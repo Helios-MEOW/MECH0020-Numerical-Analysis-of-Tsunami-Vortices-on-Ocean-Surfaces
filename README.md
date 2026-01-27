@@ -1,0 +1,2 @@
+# MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces
+Numerical modelling of tsunami-induced vortex dynamics using vorticity–streamfunction formulations. Implements finite-difference (Arakawa Jacobian + Poisson solve + explicit time-stepping) with automated grid convergence, parameter sweeps, and computational cost logging; extends to spectral, finite-volume, and obstacle/bathymetry experiments.
