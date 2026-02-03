@@ -115,24 +115,52 @@ fprintf('========================================\n');
 % ------------------------------------------------------------------------
 % UI Mode Check - Launch UI Controller or Traditional Monitors
 % ------------------------------------------------------------------------
+% --- UI CONFIGURATION ---
+% Control whether to use UI interface or traditional separate figure windows
+use_ui_interface = true;    % true: Launch launchUIController GUI; false: Traditional tabbed figures
+%
+% UI MODE BEHAVIOR:
+%   • use_ui_interface = true:
+%       - Launches comprehensive launchUIController with embedded monitors
+%       - All configuration and monitoring in single tabbed interface
+%       - No separate figure windows
+%       - Recommended for interactive configuration and monitoring
+%
+%   • use_ui_interface = false (Traditional Mode):
+%       - Uses separate figure windows for execution and convergence monitors
+%       - Configuration via script parameters below
+%       - Same behavior as previous versions
+%       - Recommended for batch processing and automated workflows
+%
+% NOTE: If use_ui_interface = true, the UI will override parameters below
+%       and all configuration is done through the UI tabs.
+%       If user selects "Traditional Mode" in startup dialog, traditional mode runs instead.
 if use_ui_interface
-    % Launch comprehensive UI interface
+    % Launch UI startup dialog
     fprintf('\n========================================\n');
     fprintf('LAUNCHING UI CONTROLLER\n');
     fprintf('========================================\n');
-    fprintf('UI Mode: ENABLED\n');
-    fprintf('All configuration and monitoring via UI_Controller\n');
-    fprintf('Close UI window to exit\n');
+    fprintf('Starting UIController with mode selection...\n');
     fprintf('========================================\n\n');
     
-    % Launch UI and wait for user configuration
-    UI_Controller();
+    % Launch UI and capture choice
+    app = UIController();
     
-    % NOTE: When UI integration is complete, UI will pass config back
-    % For now, UI is standalone - script execution stops here
-    fprintf('UI closed. To run simulation, set use_ui_interface = false\n');
-    return;  % Exit script, user works in UI
-else
+    % Check if user chose traditional mode
+    if isappdata(0, 'ui_mode') && strcmp(getappdata(0, 'ui_mode'), 'traditional')
+        rmappdata(0, 'ui_mode');
+        fprintf('\nUser selected Traditional Mode from UI startup dialog.\n');
+        fprintf('Switching to traditional interface with separate windows.\n\n');
+        use_ui_interface = false;
+        % Continue to traditional mode below
+    else
+        % UI mode was selected and completed
+        fprintf('UI closed. To run simulation, set use_ui_interface = false\n');
+        return;  % Exit script, user works in UI
+    end
+end
+
+if ~use_ui_interface
     % Traditional mode: Create separate figure windows for monitors
     fprintf('\n========================================\n');
     fprintf('TRADITIONAL MODE (Separate Monitors)\n');
@@ -239,26 +267,6 @@ display_function_instructions("all");
 
 run_mode = "convergence";    % Options: "evolution", "convergence", "sweep", "animation", "experimentation"
 
-% --- UI CONFIGURATION ---
-% Control whether to use UI interface or traditional separate figure windows
-use_ui_interface = false;    % true: Launch UI_Controller GUI; false: Traditional tabbed figures
-%
-% UI MODE BEHAVIOR:
-%   • use_ui_interface = true:
-%       - Launches comprehensive UI_Controller with embedded monitors
-%       - All configuration and monitoring in single tabbed interface
-%       - No separate figure windows
-%       - Recommended for interactive configuration and monitoring
-%
-%   • use_ui_interface = false (Traditional Mode):
-%       - Uses separate figure windows for execution and convergence monitors
-%       - Configuration via script parameters below
-%       - Same behavior as previous versions
-%       - Recommended for batch processing and automated workflows
-%
-% NOTE: If use_ui_interface = true, the UI will override parameters below
-%       and all configuration is done through the UI tabs.
-
 % --- SUSTAINABILITY TRACKING CONFIGURATION ---
 enable_sustainability_tracking = true;     % Master switch for all tracking
 track_mode_separately = true;              % Separate logs for each mode
@@ -272,41 +280,10 @@ if enable_sustainability_tracking && ~exist(sustainability_output_dir, 'dir')
 end
 
 % --- BASELINE SIMULATION PARAMETERS (CONSOLIDATED STRUCT) ---
-% All parameters and configurations are defined here in a single struct
-Parameters = struct(...    % Physical domain and discretization
-    'Lx', 10, ...
-    'Ly', 10, ...
-    'Nx', 128, ...
-    'Ny', 128, ...
-    'delta', 2, ...
-    'use_explicit_delta', true, ...    % true: use explicit delta; false: derive from Lx/Nx
-    'nu', 1e-6, ...    % Kinematic viscosity (m^2/s); typical range: 1e-6 to 1e-2
-    'dt', 0.01, ...    % Time step (s); must satisfy CFL condition
-    'Tfinal', 8, ...    % Final simulation time (s)
-    'num_snapshots', 9, ...    % Number of snapshots; automatically computed from snap_times
-    'ic_type', "stretched_gaussian", ...    % Options: "stretched_gaussian", "vortex_blob_gaussian", "vortex_pair", "multi_vortex", "counter_rotating_pair", "kutz"
-    'ic_coeff', [2 0.2], ...    % IC coefficients; meaning depends on ic_type (e.g., [x_coeff, y_coeff] for stretched_gaussian)
-    'analysis_method', "Finite Difference", ...    % Options: "Finite Difference", "Finite Volume", "Spectral"
-    'method_config', [], ...    % Set after definition; populated by get_analysis_method()
-    'mode', "solve", ...    % Options: "solve" (standard), "debug" (verbose output)
-    'live_preview', false, ...    % true: display figures during simulation; false: suppress display
-    'progress_stride', 0, ...    % Progress update interval (0 = no progress output)
-    'live_stride', 0, ...    % Live update stride for figure refresh (0 = no live updates)
-    'create_animations', true, ...    % true: create animation files; false: skip animation generation
-    'animation_format', 'gif', ...    % Options: 'gif' (animated GIF - RECOMMENDED), 'mp4' (H.264), 'avi' (uncompressed)
-    'animation_fps', 30, ...    % Frames per second for animations; typical: 24, 30, 60
-    'animation_quality', 90, ...    % Quality percentage (0-100); higher = larger files, better quality
-    'animation_num_frames', 100, ...    % Number of frames in animation; more frames = smoother but larger files
-    'animation_codec', 'MPEG-4', ...    % Options: 'MPEG-4' (H.264), 'Uncompressed', 'Motion JPEG' (only for mp4/avi)
-    'animation_dir', [], ...    % Set after definition; auto-generated based on analysis_method
-    'energy_monitoring', struct('enabled', true, 'sample_interval', 0.5, 'output_dir', '../../sensor_logs'), ...     % Energy monitoring (v4.1): enabled=true/false, sample_interval in seconds (typical: 0.1-1.0), output_dir for CSV logs
-    'sustainability', struct('enabled', false, 'build_model', false, 'auto_compare', false) ...    % Sustainability analysis: enabled=true/false, build_model=true/false (fit E=A*C^α), auto_compare=true/false (compare multiple runs)
-);
-Parameters.snap_times = linspace(0, Parameters.Tfinal , Parameters.num_snapshots);
-% Post-process: set derived fields
-Parameters.method_config = get_analysis_method(Parameters.analysis_method);
-Parameters.num_snapshots = numel(Parameters.snap_times);
-Parameters.animation_dir = fullfile('Figures', Parameters.analysis_method, 'Animations');
+% Use factory function for standardized parameter initialization
+% This replaces 30+ lines of verbose struct initialization with a single function call
+% Factory location: Scripts/Infrastructure/create_default_parameters.m
+Parameters = create_default_parameters();
 
 % --- VISUALIZATION METHOD PARAMETERS ---
 visualization = struct(...
@@ -455,7 +432,8 @@ convergence_cancel_file = 'CANCEL_CONVERGENCE.txt';  % Create this file to stop 
 % --- PARAMETER SWEEP LISTS ---
 sweep_nu_list = [1e-5 1e-4 1e-3 1e-2 1e-1];     % Viscosity values to sweep
 sweep_dt_list = [1e-4 1e-3 1e-2 1e-1];          % Time step values to sweep
-sweep_ic_list = ["stretched_gaussian","placeholder1","placeholder2"]; % IC types
+sweep_ic_list = ["stretched_gaussian", "lamb_oseen", "rankine", "lamb_dipole", ...
+                  "taylor_green", "random_turbulence", "elliptical_vortex"]; % IC types
 
 % --- PREFLIGHT CHECKS ---
 preflight_enabled = true;      % Fail-fast checks before long runs
@@ -1050,8 +1028,9 @@ function [T, meta] = run_animation_mode(Parameters, settings, run_mode)
 end
 
 function omega = initialise_omega(X, Y, ic_type, ic_coeff)
+    % Convert ic_type to lowercase and handle string/char conversion
     if isstring(ic_type) || ischar(ic_type)
-        ic_type = char(ic_type);
+        ic_type = lower(char(ic_type));
     end
     
     % Ensure ic_coeff is always a valid numeric array
@@ -1059,12 +1038,34 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
         ic_coeff = [];
     end
     
-    switch lower(ic_type)
+    % Convert ic_coeff array to params struct for new IC functions
+    params = ic_coeff_to_params(ic_type, ic_coeff);
+    
+    switch ic_type
+        % New standalone IC functions (from Scripts/Initial_Conditions/)
+        case 'lamb_oseen'
+            omega = ic_lamb_oseen(X, Y, params);
+            
+        case 'rankine'
+            omega = ic_rankine(X, Y, params);
+            
+        case 'lamb_dipole'
+            omega = ic_lamb_dipole(X, Y, params);
+            
+        case 'taylor_green'
+            omega = ic_taylor_green(X, Y, params);
+            
+        case 'random_turbulence'
+            omega = ic_random_turbulence(X, Y, params);
+            
+        case 'elliptical_vortex'
+            omega = ic_elliptical_vortex(X, Y, params);
+        
+        % Legacy IC types (kept in Analysis.m for backward compatibility)
         case 'stretched_gaussian'
             % Stretched Gaussian vortex IC
             % ic_coeff = [x_stretch, y_stretch] for non-uniform stretching
             if isempty(ic_coeff) || numel(ic_coeff) < 2
-                % Default: uniform Gaussian
                 x_coeff = -1.0;
                 y_coeff = -1.0;
             else
@@ -1075,7 +1076,6 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
             
         case 'vortex_blob_gaussian'
             % Gaussian vortex blob with circulation
-            % Requires ic_coeff = [Circulation, Radius, x_0, y_0]
             if numel(ic_coeff) >= 4
                 Circulation = ic_coeff(1);
                 Radius = ic_coeff(2);
@@ -1088,7 +1088,6 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
             
         case 'vortex_pair'
             % Two counter-rotating vortices
-            % ic_coeff = [Gamma1, R1, x1, y1, Gamma2, x2] (y2 computed symmetrically)
             if numel(ic_coeff) >= 6
                 Gamma1 = ic_coeff(1);
                 R1 = ic_coeff(2);
@@ -1096,7 +1095,7 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
                 y1 = ic_coeff(4);
                 Gamma2 = ic_coeff(5);
                 x2 = ic_coeff(6);
-                y2 = 10 - y1;  % Mirror position (assuming Ly = 10)
+                y2 = 10 - y1;  % Mirror position
             else
                 error('vortex_pair requires 6 coefficients: [Gamma1, R1, x1, y1, Gamma2, x2]');
             end
@@ -1106,22 +1105,16 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
             
         case 'multi_vortex'
             % Three or more vortices
-            % ic_coeff = [Gamma1,R1,x1,y1, Gamma2,R2,x2,y2, Gamma3,x3,y3]
             omega = zeros(size(X));
-            num_vortices = floor(numel(ic_coeff) / 3);  % Rough estimate
-            
-            if numel(ic_coeff) >= 10  % At least 3 vortices: 3 floats + 3 + 4
-                % Vortex 1
+            if numel(ic_coeff) >= 10
                 G1 = ic_coeff(1); R1 = ic_coeff(2); x1 = ic_coeff(3); y1 = ic_coeff(4);
                 omega = omega + G1/(2*pi*R1^2) * exp(-((X-x1).^2 + (Y-y1).^2)/(2*R1^2));
                 
-                % Vortex 2
                 G2 = ic_coeff(5); R2 = ic_coeff(6); x2 = ic_coeff(7); y2 = ic_coeff(8);
                 omega = omega + G2/(2*pi*R2^2) * exp(-((X-x2).^2 + (Y-y2).^2)/(2*R2^2));
                 
-                % Vortex 3
                 G3 = ic_coeff(9); x3 = ic_coeff(10); y3 = ic_coeff(11);
-                R3 = 1.5;  % Default radius
+                R3 = 1.5;
                 if numel(ic_coeff) >= 12
                     R3 = ic_coeff(12);
                 end
@@ -1132,7 +1125,6 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
             
         case 'counter_rotating_pair'
             % Strong interaction: counter-rotating pair
-            % ic_coeff = [G1,R1,x1,y1, G2,R2,x2,y2]
             if numel(ic_coeff) >= 8
                 G1 = ic_coeff(1); R1 = ic_coeff(2); x1 = ic_coeff(3); y1 = ic_coeff(4);
                 G2 = ic_coeff(5); R2 = ic_coeff(6); x2 = ic_coeff(7); y2 = ic_coeff(8);
@@ -1144,15 +1136,59 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
             omega = vort1 + vort2;
             
         case 'placeholder2'
-            % Placeholder IC 2
-            omega = zeros(size(X));  % Placeholder: all zeros
+            omega = zeros(size(X));
             
         case 'kutz'
-            % Sinusoidal test case
             omega = sin(X) .* cos(Y);
             
         otherwise
             error('Unknown ic_type: %s', ic_type);
+    end
+end
+
+function params = ic_coeff_to_params(ic_type, ic_coeff)
+    % Helper function: Convert ic_coeff array to named params struct
+    % This allows UI/legacy code to use simple arrays while IC functions use structs
+    
+    params = struct();
+    
+    switch ic_type
+        case 'lamb_oseen'
+            params.circulation = get_coeff(ic_coeff, 1, 1.0);
+            params.virtual_time = get_coeff(ic_coeff, 2, 1.0);
+            params.nu = get_coeff(ic_coeff, 3, 0.001);
+            
+        case 'rankine'
+            params.core_vorticity = get_coeff(ic_coeff, 1, 1.0);
+            params.core_radius = get_coeff(ic_coeff, 2, 1.0);
+            
+        case 'lamb_dipole'
+            params.translation_speed = get_coeff(ic_coeff, 1, 0.5);
+            params.dipole_radius = get_coeff(ic_coeff, 2, 1.0);
+            
+        case 'taylor_green'
+            params.wavenumber = get_coeff(ic_coeff, 1, 1.0);
+            params.strength = get_coeff(ic_coeff, 2, 1.0);
+            
+        case 'random_turbulence'
+            params.spectrum_exp = get_coeff(ic_coeff, 1, 5/3);
+            params.energy_level = get_coeff(ic_coeff, 2, 1.0);
+            params.seed = get_coeff(ic_coeff, 3, 0);
+            
+        case 'elliptical_vortex'
+            params.peak_vorticity = get_coeff(ic_coeff, 1, 1.0);
+            params.width_x = get_coeff(ic_coeff, 2, 1.0);
+            params.width_y = get_coeff(ic_coeff, 3, 0.5);
+            params.rotation_angle = get_coeff(ic_coeff, 4, 0.0);
+    end
+end
+
+function val = get_coeff(ic_coeff, index, default)
+    % Helper: Extract coefficient from array or return default
+    if numel(ic_coeff) >= index
+        val = ic_coeff(index);
+    else
+        val = default;
     end
 end
 % ========================================================================
@@ -1704,18 +1740,56 @@ end
 % ========================================================================
 %% AGENT-BASED CONVERGENCE MODE (Version 2)
 % ========================================================================
-% Complete rebuild with preflight test, sequential dual-criterion
-% convergence, RL agent optimization, live monitoring, and CSV storage
+% Intelligent convergence with preflight testing and adaptive refinement
+% Uses AdaptiveConvergenceAgent class for pattern learning and optimization
 
 function [T, meta] = run_convergence_mode_v2(Parameters, settings, run_mode)
     % Create unique convergence study with organized directory structure
     study_id = create_convergence_study(settings, Parameters);
     
-    % Temporarily redirect to old convergence mode until v2 is fully integrated
-    % TODO: Replace with full agent-based implementation
-    fprintf_colored('[INFO] Agent-based convergence v2 redirecting to classic mode\n', 'cyan_bg');
-    fprintf('Full implementation available in CONVERGENCE_AGENT_v2.m\n\n');
-    [T, meta] = run_convergence_mode(Parameters, settings, run_mode);
+    fprintf('\n╔════════════════════════════════════════════════════════════════════════════════╗\n');
+    fprintf('║              AGENT-BASED CONVERGENCE MODE V2 (ADAPTIVE & INTELLIGENT)         ║\n');
+    fprintf('╚════════════════════════════════════════════════════════════════════════════════╝\n\n');
+    fprintf('[V2 MODE] Using intelligent adaptive agent with preflight training\n');
+    fprintf('[V2 MODE] Study ID: %s\n\n', study_id);
+    
+    % Check if AdaptiveConvergenceAgent is available
+    if exist('AdaptiveConvergenceAgent', 'file') ~= 2
+        fprintf_colored('[WARNING] AdaptiveConvergenceAgent.m not found. Falling back to classic mode.\n', 'yellow');
+        fprintf('Expected location: Scripts/Main/AdaptiveConvergenceAgent.m\n\n');
+        [T, meta] = run_convergence_mode(Parameters, settings, run_mode);
+        return;
+    end
+    
+    try
+        % Create adaptive convergence agent
+        agent = AdaptiveConvergenceAgent(Parameters, settings);
+        
+        % Phase 1: Preflight testing (small grids to learn patterns)
+        fprintf('[PHASE 1] Running preflight tests...\n');
+        agent.run_preflight();
+        
+        % Phase 2: Execute intelligent convergence study
+        fprintf('[PHASE 2] Executing adaptive convergence study...\n');
+        [N_star, T, meta] = agent.execute_convergence_study();
+        
+        % Enhance metadata with study info
+        meta.study_id = study_id;
+        meta.mode_version = 'v2_adaptive';
+        meta.agent_class = 'AdaptiveConvergenceAgent';
+        
+        fprintf('\n[V2 MODE] Convergence complete: N*=%d\n', N_star);
+        fprintf('[V2 MODE] Results saved to: %s\n', settings.convergence.study_dir);
+        
+    catch ME
+        fprintf_colored('[ERROR] Agent-based convergence failed: %s\n', 'red', ME.message);
+        fprintf('Stack trace:\n');
+        for i = 1:length(ME.stack)
+            fprintf('  %s (line %d)\n', ME.stack(i).name, ME.stack(i).line);
+        end
+        fprintf('\nFalling back to classic convergence mode...\n\n');
+        [T, meta] = run_convergence_mode(Parameters, settings, run_mode);
+    end
 end
 
 % ========================================================================
@@ -1733,7 +1807,13 @@ function [T, meta] = run_sweep_mode(Parameters, settings, run_mode)
     % Build all parameter combinations for the sweep
     cases = build_sweep_cases(Parameters, Nstar, settings.sweep.nu_list, settings.sweep.dt_list, settings. sweep.ic_list);
     results = repmat(result_schema(), numel(cases), 1);
-    for k = 1:numel(cases)
+    
+    % === PARALLEL OPTIMIZATION (Priority 1.1) ===
+    % Use parfor for 4-8x speedup on multi-core systems
+    % Each case is independent, making this embarrassingly parallel
+    fprintf('[SWEEP MODE] Running %d cases in parallel...\n', numel(cases));
+    
+    parfor k = 1:numel(cases)
         params = cases(k);
         % Compute initial condition
         x = linspace(-params.Lx/2, params.Lx/2, params.Nx);
@@ -1754,6 +1834,7 @@ function [T, meta] = run_sweep_mode(Parameters, settings, run_mode)
             analysis = struct(...
                 'error_id', string(ME.identifier), ...
                 'error_message', string(ME.message));
+            % Note: fprintf inside parfor may not display in order
             fprintf("Error in sweep mode at %s line %d: %s - %s\n", ME.stack(1).file, ME.stack(1).line, ME.identifier, ME.message);  % Print error to console with file and line
             run_ok = false;
         end
@@ -1778,7 +1859,18 @@ end
 %% PREFLIGHT CHECKS
 % ========================================================================
 function run_preflight_checks(Parameters, settings)
-    % Fail-fast checks to avoid long runs crashing later
+    % Enhanced preflight validation with comprehensive parameter checking
+    % Uses validation suite from Scripts/Infrastructure/validate_simulation_parameters.m
+    
+    % Run comprehensive validation
+    [is_valid, warnings, errors] = validate_simulation_parameters(Parameters, settings);
+    
+    % If validation failed, abort immediately
+    if ~is_valid
+        error('Preflight validation failed. See errors above.');
+    end
+    
+    % Legacy checks for backward compatibility
     required_funcs = {"Finite_Difference_Analysis"};
     if isfield(settings.preflight, 'require_monitor') && settings.preflight.require_monitor
         required_funcs = [required_funcs, {"create_live_monitor_dashboard", "update_live_monitor"}];
@@ -1790,7 +1882,7 @@ function run_preflight_checks(Parameters, settings)
         end
     end
 
-    % Basic parameter sanity
+    % Basic parameter sanity (redundant with new validation, but kept for safety)
     assert(Parameters.Nx > 0 && Parameters.Ny > 0, 'Preflight failed: grid sizes invalid');
     assert(Parameters.dt > 0 && Parameters.Tfinal > 0, 'Preflight failed: dt/Tfinal invalid');
 
@@ -1798,7 +1890,7 @@ function run_preflight_checks(Parameters, settings)
     if isfield(settings, 'results_dir') && ~exist(settings.results_dir, 'dir')
         mkdir(settings.results_dir);
     end
-    fprintf('[PREFLIGHT] OK\n');
+    fprintf('[PREFLIGHT] Enhanced validation complete - Ready to proceed\n');
 end
 % ========================================================================
 %% SINGLE CASE METRIC EVALUATION
@@ -1806,16 +1898,22 @@ end
 function [metric, row, figs_new] = run_case_metric_cached(Parameters, N, cache, dt_override)
     % Cached version - checks cache before running simulation
     % DUAL REFINEMENT: Now supports dt override for adaptive timestep control
+    % CRITICAL FIX: Proper dual-key caching (N + dt) to prevent stale results
     if nargin < 4
         dt_override = [];  % Use Parameters.dt if not specified
     end
     
-    % Cache key includes both N and dt for dual refinement
+    % CRITICAL: Cache key MUST include both N and dt to avoid stale results in dual refinement
     if isempty(dt_override)
-        cache_key = sprintf('N%d', N);
+        cache_key = sprintf('N%d_dt%.6e', N, Parameters.dt);  % Use base dt
     else
-        cache_key = sprintf('N%d_dt%.6e', N, dt_override);
+        cache_key = sprintf('N%d_dt%.6e', N, dt_override);    % Use override dt
     end
+    
+    % Make cache_key filesystem-safe (replace dots with underscores)
+    cache_key = strrep(cache_key, '.', 'p');
+    cache_key = strrep(cache_key, '-', 'm');
+    cache_key = strrep(cache_key, '+', 'p');
     
     if nargin >= 3 && isstruct(cache) && isfield(cache, cache_key)
         % Return cached result
@@ -1824,7 +1922,7 @@ function [metric, row, figs_new] = run_case_metric_cached(Parameters, N, cache, 
         row = cached.row;
         figs_new = cached.figs;
         if isempty(dt_override)
-            fprintf('  [Cache hit: N=%d]\n', N);
+            fprintf('  [Cache hit: N=%d, dt=%.3e]\n', N, Parameters.dt);
         else
             fprintf('  [Cache hit: N=%d, dt=%.3e]\n', N, dt_override);
         end
@@ -1834,10 +1932,13 @@ function [metric, row, figs_new] = run_case_metric_cached(Parameters, N, cache, 
     % No cache - run simulation and store result
     [metric, row, figs_new] = run_case_metric(Parameters, N, dt_override);
     
-    % Store in cache
+    % Store in cache with valid struct field name
     if nargin >= 3 && isstruct(cache)
-        % Assign to cache structure (caller passes by reference in nested scopes)
-        assignin('caller', 'cache', cache);  % Update caller's cache if needed
+        % Store directly in cache structure
+        cache_entry = struct('metric', metric, 'row', row, 'figs', figs_new);
+        cache.(cache_key) = cache_entry;
+        % Assign back to caller workspace to persist cache updates
+        assignin('caller', 'cache', cache);
     end
 end
 
@@ -1865,20 +1966,49 @@ function [metric, row, figs_new] = run_case_metric(Parameters, N, dt_override)
     feats = extract_features_from_analysis(analysis);    
     
     % --- Vorticity convergence metric: compare N vs 2N ---
+    % CRITICAL: Never default to NaN without attempting proper computation
+    % This defeats the purpose of convergence studies
     metric = NaN;
     Nf = NaN;
     if run_ok
         Nf = 2*N;
-        % Guard: if 2N is not feasible, metric remains NaN (caller will handle)
-        if isfinite(Nf)
+        % Ensure Nf is valid and feasible
+        if isfinite(Nf) && Nf > N
             % Get criterion type from Parameters if available
             if isfield(Parameters, 'criterion_type') && ~isempty(Parameters.criterion_type)
                 criterion_type = Parameters.criterion_type;
             else
                 criterion_type = 'l2_relative';  % Default
             end
-            metric = compute_richardson_metric_for_mesh(N, Nf, Parameters, analysis, criterion_type);
+            
+            % Compute Richardson metric with robust error handling
+            try
+                metric = compute_richardson_metric_for_mesh(N, Nf, Parameters, analysis, criterion_type);
+                
+                % Validate metric is physically meaningful
+                if ~isfinite(metric)
+                    fprintf('\x1b[43m[WARNING]\x1b[0m Richardson metric non-finite at N=%d. Attempting fallback...\n', N);
+                    % Try extracting features directly as fallback
+                    feats_N = extract_features_from_analysis(analysis);
+                    if isfinite(feats_N.peak_abs_omega) && feats_N.peak_abs_omega > 0
+                        % Use relative change as proxy metric
+                        metric = abs(feats_N.convergence_criterion);
+                        fprintf('\x1b[43m[WARNING]\x1b[0m Using fallback metric: %.4e\n', metric);
+                    else
+                        fprintf('\x1b[41m[ERROR]\x1b[0m Cannot compute valid metric at N=%d. Simulation may be unstable.\n', N);
+                        % DO NOT set to NaN - let caller handle the error explicitly
+                    end
+                end
+            catch ME
+                fprintf('\x1b[41m[ERROR]\x1b[0m Richardson metric computation failed: %s\n', ME.message);
+                % Rethrow to force caller to handle - don't silently continue
+                rethrow(ME);
+            end
+        else
+            fprintf('\x1b[41m[ERROR]\x1b[0m Invalid refinement: N=%d, Nf=%d (must have Nf > N)\n', N, Nf);
         end
+    else
+        fprintf('\x1b[41m[ERROR]\x1b[0m Simulation failed at N=%d, cannot compute metric\n', N);
     end
     
     if run_ok

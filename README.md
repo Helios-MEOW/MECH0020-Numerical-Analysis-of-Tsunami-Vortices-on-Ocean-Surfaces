@@ -17,8 +17,24 @@ finite-volume formulations, and obstacle/bathymetry experiments.
 
 ## Operating Modes
 
+### Starting the Application
+When you run `Analysis.m` with `use_ui_interface = true`, a startup dialog appears:
+
+```
+┌─────────────────────────────────────┐
+│  Choose Simulation Interface        │
+│                                     │
+│  How would you like to run?         │
+│                                     │
+│ [🖥️ UI Mode] [📊 Traditional Mode]  │
+└─────────────────────────────────────┘
+```
+
+Choose based on your workflow:
+
 ### UI Mode (Graphical Interface)
-Interactive configuration and monitoring via comprehensive UI:
+Click **🖥️ UI Mode** in startup dialog for interactive configuration:
+
 ```matlab
 % In Scripts/Main/Analysis.m, set:
 use_ui_interface = true;
@@ -26,28 +42,70 @@ use_ui_interface = true;
 % Run:
 cd Scripts/Main
 Analysis
+
+% A dialog appears → Click "🖥️ UI Mode"
+% Full 9-tab interface launches
 ```
 
+**9 Interactive Tabs**:
+1. Method & Mode - Select algorithm and run type
+2. Initial Conditions - Configure vortex starting state
+3. Numerical Parameters - Grid, time, domain settings
+4. Convergence Study - Mesh refinement controls
+5. Sustainability - Energy/performance monitoring
+6. Execution Monitor - Live CPU/memory/progress display
+7. Convergence Monitor - Error decay tracking
+8. Terminal Output - Console output capture
+9. Figures - Generated plot gallery and export
+
 **Features**:
-- 7-tab interface for complete control
 - Real-time parameter validation (CFL, stability)
-- Quick start presets (Kutz, convergence, sweep, animation)
+- Quick start presets (Kutz, Convergence Study)
 - IC designer with live preview
 - Embedded monitors (execution and convergence)
-- Configuration export/import
+- Configuration export/import (JSON/MAT)
+- Terminal log capture with timestamps
+- Figure save/export
 
 **Best for**: Interactive research, parameter exploration, teaching
 
 ### Traditional Mode (Script-Based)
-Direct parameter configuration in `Analysis.m`:
+Click **📊 Traditional Mode** in startup dialog for script-based configuration:
+
 ```matlab
 % In Scripts/Main/Analysis.m, set:
-use_ui_interface = false;
-run_mode = "convergence";  % or "evolution", "sweep", etc.
-Parameters.Nx = 128;
-% ... (configure all parameters)
+use_ui_interface = true;  % Startup dialog still appears
 
 % Run:
+cd Scripts/Main
+Analysis
+
+% A dialog appears → Click "📊 Traditional Mode"
+% OR in Analysis.m, set:
+use_ui_interface = false;
+
+% Configure parameters in script:
+Parameters.Nx = 128;
+Parameters.Ny = 128;
+Parameters.dt = 0.001;
+% ... (configure all parameters)
+```
+
+**Configuration** (edit in Analysis.m):
+- Numerical grid: Nx, Ny, Lx, Ly
+- Time integration: dt, t_final, viscosity
+- Run mode: "evolution", "convergence", "sweep", "animation", "experimentation"
+- Numerical method: "finite_difference", "finite_volume", "spectral"
+- Initial condition type and parameters
+
+**Features**:
+- Separate figure windows for monitoring
+- Batch processing capable
+- Automated workflows
+- Scriptable parameter sweeps
+
+**Best for**: Batch processing, parameter sweeps, automated workflows
+
 cd Scripts/Main
 Analysis
 ```
@@ -83,48 +141,78 @@ Analysis
 
 ## Quickstart (MATLAB)
 
-### Option 1: UI Mode (Recommended for first-time users)
+### Running the Application
 1. Add script paths:
    ```matlab
    addpath('Scripts/Main', 'Scripts/Methods', 'Scripts/Sustainability', 'Scripts/Visuals', 'Scripts/UI', 'Scripts/Infrastructure');
    ```
-2. Launch UI:
-   ```matlab
-   cd Scripts/Main
-   % Set use_ui_interface = true in Analysis.m
-   Analysis
-   ```
-3. Configure simulation in UI tabs and click "🚀 Launch Simulation"
 
-### Option 2: Traditional Mode (Script-based)
-1. Add script paths (same as above)
-2. Configure parameters in [Scripts/Main/Analysis.m](Scripts/Main/Analysis.m):
-   ```matlab
-   use_ui_interface = false;  % Traditional mode
-   run_mode = "convergence";
-   Parameters.Nx = 128;
-   % ... (set other parameters)
-   ```
-3. Run:
+2. Launch Analysis:
    ```matlab
    cd Scripts/Main
+   % Set use_ui_interface = true in Analysis.m (recommended)
    Analysis
    ```
+
+3. **A startup dialog appears** - Choose one:
+   - **🖥️ UI Mode** (Recommended for first-time users)
+     - Full graphical interface with 9 tabs
+     - Parameter validation and quick presets
+     - Live monitoring and figure export
+   - **📊 Traditional Mode** (Script-based)
+     - Edit parameters directly in Analysis.m
+     - Separate figure windows
+     - Best for batch processing
+
+### Option 1: UI Mode Workflow
+1. Click **🖥️ UI Mode** in startup dialog
+2. Configure simulation across 9 tabs:
+   - **Tab 1**: Select method (FD/FV/Spectral) and mode (evolution/convergence/sweep/...)
+   - **Tab 2**: Configure initial condition (Kutz preset available)
+   - **Tab 3**: Set grid (Nx, Ny), time (dt, T), domain (Lx, Ly)
+   - **Tabs 4-5**: Convergence and sustainability settings (optional)
+3. Click **🚀 Launch Simulation**
+4. Monitor execution in **Tab 8** (Terminal Output)
+5. View results in **Tab 9** (Figures) and Results/ folder
+
+### Option 2: Traditional Mode Workflow
+1. Click **📊 Traditional Mode** in startup dialog (or set `use_ui_interface = false`)
+2. Edit parameters in [Scripts/Main/Analysis.m](Scripts/Main/Analysis.m):
+   ```matlab
+   run_mode = "convergence";        % evolution, convergence, sweep, animation
+   Parameters.Nx = 128;             % Grid points X
+   Parameters.Ny = 128;             % Grid points Y
+   Parameters.dt = 0.001;           % Timestep
+   Parameters.t_final = 10.0;       % Final time
+   Parameters.nu = 1e-4;            % Viscosity
+   % ... (see Analysis.m for all options)
+   ```
+3. Run: `Analysis`
+4. Monitor via separate figure windows (execution and convergence monitors)
 
 ## Configuration
 
-### UI Mode
-All configuration done through graphical interface:
-- **Tab 1**: Method & Mode selection
-- **Tab 2**: Initial Conditions (with preview)
-- **Tab 3**: Numerical Parameters (with validation)
-- **Tab 4**: Convergence Study settings
-- **Tab 5**: Sustainability Tracking
-- **Tab 6/7**: Live Monitors (execution and convergence)
+### UI Mode Configuration
+Done through the graphical interface - all 9 tabs are self-explanatory:
 
-### Traditional Mode
-Simulation parameters live in the `Parameters` struct inside [Scripts/Main/Analysis.m](Scripts/Main/Analysis.m) (e.g., `Nx`, `Ny`, `dt`, `Tfinal`, `nu`, `ic_type`, `snap_times`).
-Driver settings (results/figures directories, convergence tolerance, sweep lists) live in the `settings` struct in the same file.
+| Tab | Purpose |
+|-----|---------|
+| 1 | Method & Mode - Algorithm selection |
+| 2 | Initial Conditions - Vortex config + preview |
+| 3 | Parameters - Grid, time, domain |
+| 4 | Convergence - Mesh refinement settings |
+| 5 | Sustainability - Performance monitoring |
+| 6 | Execution Monitor - Live CPU/memory/progress |
+| 7 | Convergence Monitor - Error decay tracking |
+| 8 | Terminal Output - Console logs + export |
+| 9 | Figures - Gallery + save/export tools |
+
+### Traditional Mode Configuration
+Simulation parameters in the `Parameters` struct, driver settings in the `settings` struct in [Scripts/Main/Analysis.m](Scripts/Main/Analysis.m):
+- Grid: `Nx`, `Ny`, `Lx`, `Ly`
+- Time: `dt`, `t_final`, `nu`
+- Physics: `ic_type`, `ic_coeff1`, `ic_coeff2`
+- Output: `snap_times`, `figure_dir`, `results_dir`
 
 ## Convergence criterion
 Convergence uses vorticity-derived features (e.g., peak |ω| or enstrophy) across grid refinements. The search uses bracketing and binary refinement inside [Scripts/Main/Analysis.m](Scripts/Main/Analysis.m).
