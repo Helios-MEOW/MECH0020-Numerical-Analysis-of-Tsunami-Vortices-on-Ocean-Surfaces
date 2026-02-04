@@ -1042,25 +1042,65 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
     params = ic_coeff_to_params(ic_type, ic_coeff);
     
     switch ic_type
-        % New standalone IC functions (from Scripts/Initial_Conditions/)
         case 'lamb_oseen'
-            omega = ic_lamb_oseen(X, Y, params);
-            
+            Gamma = params.circulation;
+            nu = params.nu;
+            t0 = max(params.virtual_time, 1.0e-6);
+            x0 = params.center_x;
+            y0 = params.center_y;
+            R2 = (X - x0).^2 + (Y - y0).^2;
+            omega = (Gamma / (4 * pi * nu * t0)) * exp(-R2 / (4 * nu * t0));
+
         case 'rankine'
-            omega = ic_rankine(X, Y, params);
-            
+            omega0 = params.core_vorticity;
+            rc = params.core_radius;
+            x0 = params.center_x;
+            y0 = params.center_y;
+            R = sqrt((X - x0).^2 + (Y - y0).^2);
+            omega = zeros(size(X));
+            omega(R <= rc) = omega0;
+
         case 'lamb_dipole'
-            omega = ic_lamb_dipole(X, Y, params);
-            
+            U = params.translation_speed;
+            a = max(params.dipole_radius, 1.0e-6);
+            x0 = params.center_x;
+            y0 = params.center_y;
+            r1_2 = (X - x0 + a/2).^2 + (Y - y0).^2;
+            r2_2 = (X - x0 - a/2).^2 + (Y - y0).^2;
+            a2 = a^2;
+            omega = (U/(pi*a2)) * (exp(-r1_2/a2) - exp(-r2_2/a2));
+
         case 'taylor_green'
-            omega = ic_taylor_green(X, Y, params);
-            
+            k = params.wavenumber;
+            G = params.strength;
+            x0 = params.center_x;
+            y0 = params.center_y;
+            omega = 2 * k * G * sin(k * (X - x0)) .* sin(k * (Y - y0));
+
         case 'random_turbulence'
-            omega = ic_random_turbulence(X, Y, params);
-            
+            alpha = params.spectrum_exp;
+            E0 = params.energy_level;
+            seed = params.seed;
+            rng(seed);
+            kmax = 4;
+            omega = zeros(size(X));
+            for k = 1:kmax
+                omega = omega + (E0 / k^(alpha/2)) * sin(k * X) .* cos(k * Y);
+            end
+
         case 'elliptical_vortex'
-            omega = ic_elliptical_vortex(X, Y, params);
-        
+            w0 = params.peak_vorticity;
+            sx = max(params.width_x, 1.0e-6);
+            sy = max(params.width_y, 1.0e-6);
+            theta = params.rotation_angle;
+            x0 = params.center_x;
+            y0 = params.center_y;
+            Xc = X - x0;
+            Yc = Y - y0;
+            xr = cos(theta) * Xc + sin(theta) * Yc;
+            yr = -sin(theta) * Xc + cos(theta) * Yc;
+            omega = w0 * exp(-(xr.^2 / (2*sx^2) + yr.^2 / (2*sy^2)));
+
         % Legacy IC types (kept in Analysis.m for backward compatibility)
         case 'stretched_gaussian'
             % Stretched Gaussian vortex IC
@@ -1072,7 +1112,12 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
                 x_coeff = -ic_coeff(1);
                 y_coeff = -ic_coeff(2);
             end
-            omega = exp(x_coeff*X.^2 + y_coeff*Y.^2);
+            x0 = 0; y0 = 0;
+            if numel(ic_coeff) >= 6
+                x0 = ic_coeff(5);
+                y0 = ic_coeff(6);
+            end
+            omega = exp(x_coeff*(X-x0).^2 + y_coeff*(Y-y0).^2);
             
         case 'vortex_blob_gaussian'
             % Gaussian vortex blob with circulation
@@ -1083,6 +1128,10 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
                 y_0 = ic_coeff(4);
             else
                 error('vortex_blob_gaussian requires ic_coeff = [Circulation, Radius, x_0, y_0], got %d elements', numel(ic_coeff));
+            end
+            if numel(ic_coeff) >= 6 && (x_0 == 0 && y_0 == 0)
+                x_0 = ic_coeff(5);
+                y_0 = ic_coeff(6);
             end
             omega = Circulation/(2 * pi * Radius^2) * exp(-((X-x_0).^2 + (Y-y_0).^2)/(2*Radius^2));
             
@@ -1180,6 +1229,12 @@ function params = ic_coeff_to_params(ic_type, ic_coeff)
             params.width_x = get_coeff(ic_coeff, 2, 1.0);
             params.width_y = get_coeff(ic_coeff, 3, 0.5);
             params.rotation_angle = get_coeff(ic_coeff, 4, 0.0);
+    end
+    
+    % Optional center shift (shared across ICs)
+    if ~isempty(fieldnames(params))
+        params.center_x = get_coeff(ic_coeff, 5, 0.0);
+        params.center_y = get_coeff(ic_coeff, 6, 0.0);
     end
 end
 
@@ -1703,7 +1758,7 @@ fprintf('====================================\n\n');
             t0_anim = tic;
             figs_before_conv = findall(0, 'Type', 'figure');
             
-            [~, analysis_conv] = Finite_Difference_Analysis(p_converged);
+            [~, analysis_conv] = run_simulation_with_method(p_converged);
             
             figs_after_conv = findall(0, 'Type', 'figure');
             figs_new_conv = setdiff(figs_after_conv, figs_before_conv);
@@ -1824,7 +1879,7 @@ function [T, meta] = run_sweep_mode(Parameters, settings, run_mode)
         t0 = tic;
         figs_before = findall(0, 'Type', 'figure');  % Capture figures before run
         try
-            [fig_handle, analysis] = Finite_Difference_Analysis(params);
+            [fig_handle, analysis] = run_simulation_with_method(params);
             figs_after = findall(0, 'Type', 'figure');  % Capture figures after run
             figs_new = setdiff(figs_after, figs_before);  % Identify new figures
             save_case_figures(figs_new, settings, run_mode, params);  % Changed mode to run_mode
@@ -1870,8 +1925,8 @@ function run_preflight_checks(Parameters, settings)
         error('Preflight validation failed. See errors above.');
     end
     
-    % Legacy checks for backward compatibility
-    required_funcs = {"Finite_Difference_Analysis"};
+    % Required functions for operation
+    required_funcs = {"run_simulation_with_method", "Finite_Difference_Analysis"};
     if isfield(settings.preflight, 'require_monitor') && settings.preflight.require_monitor
         required_funcs = [required_funcs, {"create_live_monitor_dashboard", "update_live_monitor"}];
     end
@@ -2399,7 +2454,8 @@ function [figs_new, analysis, run_ok, wall_time_s, cpu_time_s] = execute_simulat
     figs_before = findall(0, 'Type', 'figure');
     
     try
-        [~, analysis] = Finite_Difference_Analysis(params);
+        % Use method dispatcher to route to appropriate solver
+        [~, analysis] = run_simulation_with_method(params);
         figs_after = findall(0, 'Type', 'figure');
         figs_new = setdiff(figs_after, figs_before);
         run_ok = true;

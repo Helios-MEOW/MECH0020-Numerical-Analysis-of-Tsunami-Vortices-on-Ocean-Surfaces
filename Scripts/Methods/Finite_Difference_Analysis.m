@@ -281,48 +281,58 @@ function [fig_handle, analysis] = Finite_Difference_Analysis(Parameters)
     analysis.snapshot_times = snap_times(:);
     analysis.snapshots_stored = Nsnap;  % Ensure all 9 snapshots are accounted for
 
-    % Compute diagnostics from final vorticity and streamfunction
-    omega_final = omega_snaps(:,:,end);
-    psi_final = psi_snaps(:,:,end);
-    
-    % Peak absolute vorticity
-    analysis.peak_abs_omega = max(abs(omega_final(:)));
-    
-    % Enstrophy = (1/2) * integral of omega^2
-    analysis.enstrophy = 0.5 * sum(omega_final(:).^2) * (dx * dy);
-    
-    % Velocity components at final time (using shift operators defined earlier)
-    u_final = -(shift_yp(psi_final) - shift_ym(psi_final)) / (2 * dy);
-    v_final = (shift_xp(psi_final) - shift_xm(psi_final)) / (2 * dx);
-    speed_final = sqrt(u_final.^2 + v_final.^2);
-    
-    analysis.peak_u = max(abs(u_final(:)));
-    analysis.peak_v = max(abs(v_final(:)));
-    analysis.peak_speed = max(speed_final(:));
-    
-    % Store u,v snapshots for streamline plotting
-    analysis.u_snaps = NaN(Ny, Nx, Nsnap);
-    analysis.v_snaps = NaN(Ny, Nx, Nsnap);
-    
-    for k = 1:Nsnap
-        psi_snap = psi_snaps(:,:,k);
-        analysis.u_snaps(:,:,k) = -(shift_yp(psi_snap) - shift_ym(psi_snap)) / (2 * dy);
-        analysis.v_snaps(:,:,k) = (shift_xp(psi_snap) - shift_xm(psi_snap)) / (2 * dx);
-    end
-    
-    % Debug output for diagnostics with units
-    fprintf('[DIAGNOSTICS] peak_abs_omega=%.6e s^-1, enstrophy=%.6e s^-2, peak_u=%.6e m/s, peak_v=%.6e m/s, peak_speed=%.6e m/s\n', ...
-        analysis.peak_abs_omega, analysis.enstrophy, analysis.peak_u, analysis.peak_v, analysis.peak_speed);
-    
-    % Verification that values are finite
-    if ~isfinite(analysis.peak_abs_omega)
-        warning('[DIAGNOSTICS] peak_abs_omega is NaN or Inf!');
-    end
-    if ~isfinite(analysis.enstrophy)
-        warning('[DIAGNOSTICS] enstrophy is NaN or Inf!');
-    end
-    if ~isfinite(analysis.peak_u) || ~isfinite(analysis.peak_v) || ~isfinite(analysis.peak_speed)
-        warning('[DIAGNOSTICS] Velocity diagnostics contain NaN or Inf!');
+    % === UNIFIED METRICS EXTRACTION ===
+    % Use comprehensive metrics framework for consistency across all methods
+    if exist('extract_unified_metrics', 'file') == 2
+        unified_metrics = extract_unified_metrics(omega_snaps, psi_snaps, snap_times, dx, dy, Parameters);
+        
+        % Merge unified metrics into analysis struct
+        analysis = mergestruct(analysis, unified_metrics);
+        
+        fprintf('[FD] Unified metrics extraction complete: %d metrics loaded\n', length(fieldnames(unified_metrics)));
+    else
+        % Fallback: compute basic metrics if helper function not available
+        % Peak absolute vorticity
+        omega_final = omega_snaps(:,:,end);
+        psi_final = psi_snaps(:,:,end);
+        
+        analysis.peak_abs_omega = max(abs(omega_final(:)));
+        
+        % Enstrophy = (1/2) * integral of omega^2
+        analysis.enstrophy = 0.5 * sum(omega_final(:).^2) * (dx * dy);
+        
+        % Velocity components at final time (using shift operators defined earlier)
+        u_final = -(shift_yp(psi_final) - shift_ym(psi_final)) / (2 * dy);
+        v_final = (shift_xp(psi_final) - shift_xm(psi_final)) / (2 * dx);
+        speed_final = sqrt(u_final.^2 + v_final.^2);
+        
+        analysis.peak_u = max(abs(u_final(:)));
+        analysis.peak_v = max(abs(v_final(:)));
+        analysis.peak_speed = max(speed_final(:));
+        
+        % Store u,v snapshots for streamline plotting
+        analysis.u_snaps = NaN(Ny, Nx, Nsnap);
+        analysis.v_snaps = NaN(Ny, Nx, Nsnap);
+        
+        for k = 1:Nsnap
+            psi_snap = psi_snaps(:,:,k);
+            analysis.u_snaps(:,:,k) = -(shift_yp(psi_snap) - shift_ym(psi_snap)) / (2 * dy);
+            analysis.v_snaps(:,:,k) = (shift_xp(psi_snap) - shift_xm(psi_snap)) / (2 * dx);
+        end
+        
+        fprintf('[DIAGNOSTICS] peak_abs_omega=%.6e s^-1, enstrophy=%.6e s^-2, peak_u=%.6e m/s, peak_v=%.6e m/s, peak_speed=%.6e m/s\n', ...
+            analysis.peak_abs_omega, analysis.enstrophy, analysis.peak_u, analysis.peak_v, analysis.peak_speed);
+        
+        % Verification that values are finite
+        if ~isfinite(analysis.peak_abs_omega)
+            warning('[DIAGNOSTICS] peak_abs_omega is NaN or Inf!');
+        end
+        if ~isfinite(analysis.enstrophy)
+            warning('[DIAGNOSTICS] enstrophy is NaN or Inf!');
+        end
+        if ~isfinite(analysis.peak_u) || ~isfinite(analysis.peak_v) || ~isfinite(analysis.peak_speed)
+            warning('[DIAGNOSTICS] Velocity diagnostics contain NaN or Inf!');
+        end
     end
     
     % Poisson matrix properties

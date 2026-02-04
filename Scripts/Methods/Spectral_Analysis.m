@@ -2,8 +2,115 @@
 % Spectral_Analysis.m - FFT-based Pseudospectral Method
 % ========================================================================
 % Implements J. Nathan Kutz's pseudospectral approach for 2D vorticity
+%
+% DISPATCH WRAPPER (Entry Point):
+%   [fig_handle, analysis] = Spectral_Analysis(Parameters)
+%   
+% ORIGINAL IMPLEMENTATION (Internal):
+%   [T, omega, psi, meta] = Spectral_Analysis_Impl(X, Y, omega0, Parameters)
 
-function [T, omega, psi, meta] = Spectral_Analysis(X, Y, omega0, Parameters, ~)
+function [fig_handle, analysis] = Spectral_Analysis(Parameters)
+    % Dispatch wrapper to match Finite_Difference_Analysis interface
+    % This allows seamless method switching via method dispatcher
+    
+    % Validate required parameters
+    required_fields = {'nu','Lx','Ly','Nx','Ny','dt','Tfinal','snap_times','ic_type'};
+    for k = 1:numel(required_fields)
+        if ~isfield(Parameters, required_fields{k})
+            error('Missing required field: %s', required_fields{k});
+        end
+    end
+    
+    % Initialize grid
+    dx = Parameters.Lx / Parameters.Nx;
+    dy = Parameters.Ly / Parameters.Ny;
+    x = linspace(0, Parameters.Lx - dx, Parameters.Nx);
+    y = linspace(0, Parameters.Ly - dy, Parameters.Ny);
+    [X, Y] = meshgrid(x, y);
+    
+    % Compute initial condition
+    % Try to call initialise_omega from Analysis.m if available, otherwise use ic_factory
+    if exist('initialise_omega', 'file') == 2
+        omega0 = initialise_omega(X, Y, Parameters.ic_type, Parameters.ic_coeff);
+    elseif exist('ic_factory', 'file') == 2
+        omega0 = ic_factory(X, Y, Parameters.ic_type, Parameters.ic_coeff);
+    else
+        % Fallback: simple Gaussian if IC functions not available
+        warning('Neither initialise_omega nor ic_factory found - using fallback Gaussian IC');
+        if numel(Parameters.ic_coeff) >= 2
+            omega0 = exp(-Parameters.ic_coeff(1)*(X - Parameters.Lx/2).^2 - Parameters.ic_coeff(2)*(Y - Parameters.Ly/2).^2);
+        else
+            omega0 = exp(-2*(X - Parameters.Lx/2).^2 - 0.2*(Y - Parameters.Ly/2).^2);
+        end
+    end
+    
+    % Call internal implementation
+    [T, omega_full, psi_full, meta] = Spectral_Analysis_Impl(X, Y, omega0, Parameters);
+    
+    % Extract snapshots at requested times
+    [~, snap_indices] = intersect(T, Parameters.snap_times, 'rows');
+    if isempty(snap_indices)
+        % If exact times not found, use nearest neighbors
+        snap_indices = [];
+        for i = 1:length(Parameters.snap_times)
+            [~, idx] = min(abs(T - Parameters.snap_times(i)));
+            snap_indices = [snap_indices; idx];
+        end
+    end
+    
+    % Build analysis struct compatible with FD method output
+    analysis = struct();
+    analysis.method = 'spectral';
+    analysis.omega_snaps = omega_full(:, :, snap_indices);
+    analysis.psi_snaps = psi_full(:, :, snap_indices);
+    analysis.time_vec = T;
+    
+    % === UNIFIED METRICS EXTRACTION ===
+    % Use comprehensive metrics framework for consistency across all methods
+    if exist('extract_unified_metrics', 'file') == 2
+        snap_times_extracted = T(snap_indices);
+        unified_metrics = extract_unified_metrics(analysis.omega_snaps, analysis.psi_snaps, snap_times_extracted, dx, dy, Parameters);
+        
+        % Merge unified metrics into analysis struct
+        analysis = mergestruct(analysis, unified_metrics);
+    else
+        % Fallback: minimal metrics extraction if helper function not available
+        analysis.kinetic_energy = zeros(1, length(T));
+        analysis.enstrophy = zeros(1, length(T));
+        for t = 1:length(T)
+            omega_t = omega_full(:, :, t);
+            psi_t = psi_full(:, :, t);
+            
+            [dpsidx, dpsidy] = gradient(psi_t);
+            dpsidx = dpsidx / dx;
+            dpsidy = dpsidy / dy;
+            analysis.kinetic_energy(t) = 0.5 * sum(sum(dpsidx.^2 + dpsidy.^2)) * dx * dy;
+            analysis.enstrophy(t) = 0.5 * sum(sum(omega_t.^2)) * dx * dy;
+        end
+        analysis.peak_vorticity = max(abs(omega_full(:)));
+    end
+    
+    % Metadata
+    analysis.meta = meta;
+    analysis.dx = dx;
+    analysis.dy = dy;
+    analysis.Nx = Parameters.Nx;
+    analysis.Ny = Parameters.Ny;
+    
+    % Create figure (compatible with FD output)
+    fig_handle = figure('Name', 'Spectral Analysis Results', 'NumberTitle', 'off');
+    subplot(1, 2, 1);
+    contourf(X, Y, analysis.omega_snaps(:, :, end), 20);
+    colorbar; title('Vorticity (final)'); xlabel('x'); ylabel('y');
+    
+    subplot(1, 2, 2);
+    semilogy(analysis.time_vec, analysis.enstrophy + 1e-10);
+    hold on; semilogy(analysis.time_vec, analysis.kinetic_energy + 1e-10);
+    legend('Enstrophy', 'Kinetic Energy'); xlabel('Time'); ylabel('Value');
+    grid on;
+end
+
+function [T, omega, psi, meta] = Spectral_Analysis_Impl(X, Y, omega0, Parameters)
     % Spectral pseudospectral method for 2D vorticity dynamics
     
     % Grid parameters
