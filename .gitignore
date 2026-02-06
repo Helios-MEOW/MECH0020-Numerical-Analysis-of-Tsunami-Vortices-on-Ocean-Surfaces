@@ -1,0 +1,32 @@
+# MATLAB autosaves
+*.asv
+*.autosave
+
+# Compiled MEX files
+*.mexw64
+*.mexa64
+*.mexmaci64
+
+# Generated artefacts (Results directory is for outputs)
+Results/
+diary
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+tests/test_results.mat
