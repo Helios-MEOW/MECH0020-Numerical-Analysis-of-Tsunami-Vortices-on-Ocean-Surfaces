@@ -7,10 +7,13 @@
 *.mexa64
 *.mexmaci64
 
-# Generated artefacts (Results directory is for outputs)
+# Generated artefacts
+Data/Output/
 Results/
 diary
 *.log
+chat.json
+comprehensive_test_log.txt
 
 # Python cache
 __pycache__/
@@ -30,3 +33,8 @@ Thumbs.db
 
 # Test outputs
 tests/test_results.mat
+
+# Cleanup planning docs in root only (archived versions are tracked)
+/CLEANUP_*.md
+/REPOSITORY_CLEANUP_PLAN.md
+/PLANNING_DELIVERABLES.md

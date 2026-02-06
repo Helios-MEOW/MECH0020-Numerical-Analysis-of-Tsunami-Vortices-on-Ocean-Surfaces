@@ -155,9 +155,9 @@ function [is_valid, warnings, errors] = validate_simulation_parameters(Parameter
     fprintf('[5/7] Checking directory structure...\n');
     
     required_dirs = {
-        'Scripts/Methods', ...
+        'Scripts/Solvers', ...
         'Scripts/Infrastructure', ...
-        'Scripts/Main'
+        'Scripts/Drivers'
     };
     
     if isfield(settings, 'results_dir')

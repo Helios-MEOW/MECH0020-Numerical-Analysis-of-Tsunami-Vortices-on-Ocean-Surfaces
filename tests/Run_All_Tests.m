@@ -24,13 +24,15 @@ test_dir = fileparts(mfilename('fullpath'));
 repo_root = fileparts(test_dir);
 
 % Add all Scripts subdirectories to path
-addpath(fullfile(repo_root, 'Scripts', 'Main'));
-addpath(fullfile(repo_root, 'Scripts', 'Methods'));
+addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
+addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
+addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
 addpath(fullfile(repo_root, 'Scripts', 'Infrastructure'));
 addpath(fullfile(repo_root, 'Scripts', 'Editable'));
 addpath(fullfile(repo_root, 'Scripts', 'UI'));
-addpath(fullfile(repo_root, 'Scripts', 'Visuals'));
+addpath(fullfile(repo_root, 'Scripts', 'Plotting'));
 addpath(fullfile(repo_root, 'Scripts', 'Sustainability'));
+addpath(fullfile(repo_root, 'utilities'));
 addpath(fullfile(repo_root, 'tests'));
 
 fprintf('Repository root: %s\n', repo_root);

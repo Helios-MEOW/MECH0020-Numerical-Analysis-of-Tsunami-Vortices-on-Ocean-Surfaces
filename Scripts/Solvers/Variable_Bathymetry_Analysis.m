@@ -1,0 +1,309 @@
+﻿function [fig_handle, analysis] = Variable_Bathymetry_Analysis(Parameters)
+% VARIABLE_BATHYMETRY_ANALYSIS FD solver with topography-induced vorticity
+%
+% Extends Finite_Difference_Analysis with bathymetric forcing term
+%
+% Physics:
+%   ω/t + uω = νω + f*(u/x) + β_topo*F_bathymetry
+%   where F_bathymetry captures vorticity generation from topography
+
+    required_fields = {'nu','Lx','Ly','Nx','Ny','dt','Tfinal','snap_times','ic_type'};
+    for k = 1:numel(required_fields)
+        if ~isfield(Parameters, required_fields{k})
+            error('Missing required field: %s', required_fields{k});
+        end
+    end
+
+    Nx = Parameters.Nx;
+    Ny = Parameters.Ny;
+    Lx = Parameters.Lx;
+    Ly = Parameters.Ly;
+    dx = Lx / Nx;
+    dy = Ly / Ny;
+    
+    x = linspace(0, Lx - dx, Nx);
+    y = linspace(0, Ly - dy, Ny);
+    [X, Y] = meshgrid(x, y);
+    
+    % Load or generate bathymetry
+    [bathymetry_field, bath_x, bath_y] = load_bathymetry(Parameters, Nx, Ny, Lx, Ly);
+    
+    % Interpolate to simulation grid if needed
+    if ~(length(bath_x) == Nx && length(bath_y) == Ny)
+        [Bath_X, Bath_Y] = meshgrid(bath_x, bath_y);
+        bathymetry_field = interp2(Bath_X, Bath_Y, bathymetry_field, X, Y, 'linear', 0);
+    end
+    
+    % Compute bathymetric slopes for forcing
+    [dbathy_dx, dbathy_dy] = gradient(bathymetry_field, dx, dy);
+    
+    % Initial condition
+    if exist('initialise_omega', 'file') == 2
+        omega = initialise_omega(X, Y, Parameters.ic_type, Parameters.ic_coeff);
+    elseif exist('ic_factory', 'file') == 2
+        omega = ic_factory(X, Y, Parameters.ic_type, Parameters.ic_coeff);
+    else
+        omega = exp(-2*(X.^2 + Y.^2));
+    end
+    
+    dt = Parameters.dt;
+    Tfinal = Parameters.Tfinal;
+    t = 0;
+    n = 0;
+    
+    snap_times = Parameters.snap_times;
+    snap_idx = 1;
+    omega_snaps = zeros(Ny, Nx, length(snap_times));
+    psi_snaps = zeros(Ny, Nx, length(snap_times));
+    time_vec = [];
+    
+    omega_snaps(:,:,1) = omega;
+    psi_snaps(:,:,1) = solve_poisson_bathy(omega, dx, dy);
+    time_vec = [time_vec, t];
+    snap_idx = 2;
+    
+    fprintf('[Bathymetry] Grid: %dx%d, Topography forcing enabled\n', Nx, Ny);
+    fprintf('[Bathymetry] Bathy range: [%.3f, %.3f]\n', min(bathymetry_field(:)), max(bathymetry_field(:)));
+    
+    while t < Tfinal && n < 10000
+        % Compute stream function
+        psi = solve_poisson_bathy(omega, dx, dy);
+        
+        % Compute velocity
+        [u, v] = get_velocity_bathy(psi, dx, dy);
+        
+        % Arakawa scheme for advection (conservative)
+        dudt = arakawa_advect(omega, u, v, dx, dy);
+        
+        % Viscous dissipation
+        dudt = dudt + Parameters.nu * laplacian_periodic(omega, dx, dy);
+        
+        % Bathymetric forcing term
+        % ω_bathy = -u/x * b/x - v/y * b/y (simplified)
+        [du_dx, ~] = gradient(u, dx, dy);
+        [~, dv_dy] = gradient(v, dx, dy);
+        bathy_forcing = -(du_dx .* dbathy_dx + dv_dy .* dbathy_dy);
+        
+        dudt = dudt + 0.1 * bathy_forcing;  % 0.1 = coupling strength
+        
+        % RK3-SSP time integration
+        if n == 0
+            omega_rk1 = omega + dt * dudt;
+        else
+            omega_rk1 = 0.75 * omega + 0.25 * (omega_rk1 + dt * dudt);
+        end
+        omega = omega_rk1;
+        
+        t = t + dt;
+        n = n + 1;
+        
+        % Snapshots
+        while snap_idx <= length(snap_times) && t >= snap_times(snap_idx)
+            omega_snaps(:,:,snap_idx) = omega;
+            psi_snaps(:,:,snap_idx) = solve_poisson_bathy(omega, dx, dy);
+            time_vec = [time_vec, t];
+            snap_idx = snap_idx + 1;
+        end
+        
+        if mod(n, max(1, round(Tfinal/dt/20))) == 0
+            fprintf('  t=%.3f: ||ω||_=%.4e (with bathy forcing)\n', t, max(abs(omega(:))));
+        end
+    end
+    
+    omega_snaps = omega_snaps(:,:,1:snap_idx-1);
+    psi_snaps = psi_snaps(:,:,1:snap_idx-1);
+    
+    analysis = struct();
+    analysis.method = 'bathymetry';
+    analysis.omega_snaps = omega_snaps;
+    analysis.psi_snaps = psi_snaps;
+    analysis.snapshot_times = time_vec;
+    analysis.snap_times = time_vec;  % Ensure both naming conventions work
+    analysis.time_vec = time_vec;
+    analysis.snapshots_stored = numel(time_vec);
+    analysis.bathymetry_field = bathymetry_field;
+    analysis.dx = dx;
+    analysis.dy = dy;
+    analysis.Nx = Nx;
+    analysis.Ny = Ny;
+    analysis.grid_points = Nx * Ny;
+    analysis.peak_abs_omega = max(abs(omega_snaps(:)));
+    analysis.peak_vorticity = analysis.peak_abs_omega;
+    
+    % === UNIFIED METRICS EXTRACTION ===
+    % Use comprehensive metrics framework for consistency across all methods
+    if exist('extract_unified_metrics', 'file') == 2
+        unified_metrics = extract_unified_metrics(omega_snaps, psi_snaps, time_vec, dx, dy, Parameters);
+        
+        % Merge unified metrics into analysis struct
+        analysis = mergestruct(analysis, unified_metrics);
+        
+        % Add bathymetry-specific metrics
+        analysis.bathymetry_max = max(bathymetry_field(:));
+        analysis.bathymetry_min = min(bathymetry_field(:));
+        analysis.bathymetry_rms = sqrt(mean(bathymetry_field(:).^2));
+    else
+        % Fallback: compute basic metrics if helper function not available
+        analysis.kinetic_energy = zeros(1, length(time_vec));
+        analysis.enstrophy = zeros(1, length(time_vec));
+        for i = 1:length(time_vec)
+            omega_t = omega_snaps(:,:,i);
+            psi_t = psi_snaps(:,:,i);
+            
+            [dpsi_dx, dpsi_dy] = gradient(psi_t);
+            dpsi_dx = dpsi_dx / dx;
+            dpsi_dy = dpsi_dy / dy;
+            analysis.kinetic_energy(i) = 0.5 * sum(sum(dpsi_dx.^2 + dpsi_dy.^2)) * dx * dy;
+            analysis.enstrophy(i) = 0.5 * sum(sum(omega_t.^2)) * dx * dy;
+        end
+        analysis.peak_vorticity = max(abs(omega_snaps(:)));
+    end
+    
+    show_figs = usejava('desktop') && ~strcmpi(get(0, 'DefaultFigureVisible'), 'off');
+
+    if ~show_figs
+        fig_handle = figure('Visible', 'off');
+        return;
+    end
+
+    fig_handle = figure('Name', 'Bathymetry Analysis', 'NumberTitle', 'off');
+    
+    subplot(2, 2, 1);
+    contourf(X, Y, analysis.omega_snaps(:,:,end), 20);
+    colorbar; title('Vorticity (final)'); xlabel('x'); ylabel('y');
+    
+    subplot(2, 2, 2);
+    contourf(X, Y, bathymetry_field, 15);
+    colorbar; title('Bathymetry'); xlabel('x'); ylabel('y');
+    
+    subplot(2, 2, 3);
+    semilogy(analysis.time_vec, analysis.enstrophy + 1e-10);
+    hold on; semilogy(analysis.time_vec, analysis.kinetic_energy + 1e-10);
+    legend('Enstrophy', 'KE'); xlabel('Time'); ylabel('Value');
+    grid on;
+    
+    subplot(2, 2, 4);
+    omega_abs = abs(analysis.omega_snaps);
+    if isempty(omega_abs)
+        omega_max_t = [];
+    elseif ndims(omega_abs) < 3
+        omega_max_t = max(omega_abs(:));
+    else
+        omega_max_t = squeeze(max(max(omega_abs, [], 1), [], 2));
+    end
+    omega_max_t = omega_max_t(:);
+    time_plot = analysis.time_vec(:);
+    if isempty(omega_max_t)
+        omega_max_t = nan(size(time_plot));
+    elseif numel(time_plot) ~= numel(omega_max_t)
+        min_len = min(numel(time_plot), numel(omega_max_t));
+        time_plot = time_plot(1:min_len);
+        omega_max_t = omega_max_t(1:min_len);
+    end
+    plot(time_plot, omega_max_t);
+    xlabel('Time'); ylabel('Max |ω|'); grid on; title('Vorticity evolution');
+end
+
+function [bath, x_bath, y_bath] = load_bathymetry(Parameters, Nx, Ny, Lx, Ly)
+    % Load bathymetry from file or generate synthetic
+    
+    if isfield(Parameters, 'bathymetry_file') && ~isempty(Parameters.bathymetry_file)
+        file = Parameters.bathymetry_file;
+        if isfile(file)
+            if endsWith(file, '.mat')
+                data = load(file);
+                if isfield(data, 'bathymetry')
+                    bath = data.bathymetry;
+                else
+                    fields = fieldnames(data);
+                    if isempty(fields)
+                        error('Bathymetry file %s contained no variables.', file);
+                    end
+                    bath = data.(fields{1});
+                end
+            else
+                bath = readmatrix(file);
+            end
+            [Ny_b, Nx_b] = size(bath);
+            x_bath = linspace(0, Lx, Nx_b);
+            y_bath = linspace(0, Ly, Ny_b);
+        else
+            fprintf('[Bathymetry] File not found: %s. Using synthetic.\n', file);
+            [bath, x_bath, y_bath] = generate_synthetic_bathymetry(Nx, Ny, Lx, Ly);
+        end
+    else
+        [bath, x_bath, y_bath] = generate_synthetic_bathymetry(Nx, Ny, Lx, Ly);
+    end
+end
+
+function [bath, x, y] = generate_synthetic_bathymetry(Nx, Ny, Lx, Ly)
+    % Synthetic bathymetry: Gaussian ridge + shelf
+    
+    x = linspace(0, Lx, Nx);
+    y = linspace(0, Ly, Ny);
+    [X, Y] = meshgrid(x, y);
+    
+    % Shelf depth
+    depth_shelf = 1000;
+    
+    % Ridge feature
+    x_ridge = Lx / 2;
+    y_ridge = Ly / 2;
+    ridge_width = Lx / 4;
+    ridge_height = 500;
+    
+    ridge = ridge_height * exp(-((X - x_ridge).^2 + (Y - y_ridge).^2) / (ridge_width^2));
+    
+    % Continental slope
+    slope = 100 * (1 + tanh(5*(X - Lx/3) / Lx));
+    
+    bath = depth_shelf - slope - ridge;
+    bath = max(bath, 100);  % Ensure minimum depth
+end
+
+function psi = solve_poisson_bathy(omega, dx, dy)
+    [Ny, Nx] = size(omega);
+    omega_hat = fft2(omega);
+    kx = 2*pi/Nx * [0:Nx/2-1, -Nx/2:-1];
+    ky = 2*pi/Ny * [0:Ny/2-1, -Ny/2:-1];
+    [Kx, Ky] = meshgrid(kx, ky);
+    K2 = Kx.^2 + Ky.^2;
+    K2(1,1) = 1;
+    psi_hat = -omega_hat ./ K2;
+    psi_hat(1,1) = 0;
+    psi = real(ifft2(psi_hat));
+end
+
+function [u, v] = get_velocity_bathy(psi, dx, dy)
+    [v, u] = gradient(psi);
+    u = u / dx;
+    v = v / dy;
+end
+
+function lapl = laplacian_periodic(f, dx, dy)
+    lapl = (circshift(f,1,2) + circshift(f,-1,2) - 2*f) / (dx^2) + ...
+           (circshift(f,1,1) + circshift(f,-1,1) - 2*f) / (dy^2);
+end
+
+function advection = arakawa_advect(omega, u, v, dx, dy)
+    % Arakawa scheme for energy/enstrophy conservation
+    J1 = (circshift(u,0,1) .* (circshift(omega,0,1) - circshift(omega,0,-1)) + ...
+          circshift(u,0,-1) .* (circshift(omega,0,2) - circshift(omega,0,0))) / (4*dy^2);
+    
+    J2 = (circshift(omega,1,0) .* (circshift(v,1,0) - circshift(v,-1,0)) + ...
+          circshift(omega,-1,0) .* (circshift(v,0,0) - circshift(v,-2,0))) / (4*dx^2);
+    
+    advection = -(J1 + J2) / 3;
+end
+
+function s_merged = mergestruct(s1, s2)
+    % MERGESTRUCT Merge two structs, with s2 values taking precedence for overlapping fields
+    s_merged = s1;
+    if isempty(s2)
+        return;
+    end
+    fields = fieldnames(s2);
+    for i = 1:numel(fields)
+        s_merged.(fields{i}) = s2.(fields{i});
+    end
+end
