@@ -362,6 +362,15 @@ All user-editable defaults are in `Scripts/Editable/`:
 - `Default_FD_Parameters.m` - Physics and numerics (Nx, Ny, Lx, Ly, nu, dt, Tfinal, delta, IC type)
 - `Default_Settings.m` - IO, logging, monitoring options
 
+**Key Parameters**:
+- `Nx`, `Ny` - Grid resolution (e.g., 128, 256)
+- `Lx`, `Ly` - Domain size (e.g., 2π, 10)
+- `delta` - Grid spacing scaling factor (default: 2) - controls initial condition spread
+- `nu` - Kinematic viscosity (e.g., 1e-6, 1e-4)
+- `dt` - Timestep (e.g., 0.001, 0.01)
+- `Tfinal` - Final simulation time
+- `ic_type` - Initial condition type (e.g., 'Lamb-Oseen', 'stretched_gaussian')
+
 **Example**:
 ```matlab
 % Edit Scripts/Editable/Default_FD_Parameters.m directly
@@ -369,7 +378,7 @@ All user-editable defaults are in `Scripts/Editable/`:
 Parameters = Default_FD_Parameters();
 Parameters.Nx = 256;
 Parameters.Ny = 256;
-Parameters.delta = 2;  % Grid spacing scaling factor
+Parameters.delta = 2;  % Grid spacing scaling factor (affects IC)
 Parameters.nu = 1e-4;  % Viscosity
 ```
 
