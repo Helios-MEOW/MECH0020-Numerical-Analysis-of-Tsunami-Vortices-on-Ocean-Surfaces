@@ -64,11 +64,7 @@
 % Key dependency:
 %   Finite_Difference_Analysis(params) must exist on path and return analysis.
 % ========================================================================
-%#ok<*NASGU>
-%#ok<*INUSD>
-%#ok<*GVMIS>
-%#ok<*DEFNU>
-%#ok<*UNRCH>
+
 clc; close all; clear;
 matlab_settings = settings;
 matlab_settings.matlab.appearance.figure.GraphicsTheme.PersonalValue = 'light';
@@ -169,12 +165,6 @@ if ~use_ui_interface
     fprintf('Using separate figure windows for monitoring\n');
     fprintf('Configuration via script parameters\n');
     fprintf('========================================\n\n');
-end
-
-% ------------------------------------------------------------------------
-% Create Live Monitoring Dashboard (Traditional Mode Only)
-% ------------------------------------------------------------------------
-if ~use_ui_interface
     % Create live monitoring dashboard (dark UI version)
     monitor_figure = create_live_monitor_dashboard();
 else
@@ -265,7 +255,7 @@ display_function_instructions("all");
 %
 % ========================================================================
 
-run_mode = "convergence";    % Options: "evolution", "convergence", "sweep", "animation", "experimentation"
+run_mode = "evolution";    % Options: "evolution", "convergence", "sweep", "animation", "experimentation"
 
 % --- SUSTAINABILITY TRACKING CONFIGURATION ---
 enable_sustainability_tracking = true;     % Master switch for all tracking
@@ -715,7 +705,7 @@ switch run_mode
     case "evolution"
         [T, meta] = run_evolution_mode(Parameters, settings, run_mode);
     case "convergence"
-        [T, meta] = run_convergence_mode_v2(Parameters, settings, run_mode);
+        [T, meta] = run_convergence_mode(Parameters, settings, run_mode);
     case "sweep"
         [T, meta] = run_sweep_mode(Parameters, settings, run_mode);
     case "animation"
@@ -841,24 +831,29 @@ else
     T.timestamp(:) = datetime("now");
 end
 if isfile(csv_path)
-    T_old = readtable(csv_path);
-    % Ensure OLD data also has timestamp (only tolerated schema adjustment)
-    if ~ismember("timestamp", T_old.Properties.VariableNames)
-        T_old.timestamp = repmat(datetime(NaT), height(T_old), 1);
+    opts = detectImportOptions(csv_path, 'TextType', 'string');
+    if any(strcmpi(opts.VariableNames, "timestamp"))
+        opts = setvartype(opts, "timestamp", "datetime");
+        opts = setvaropts(opts, "timestamp", "InputFormat", "yyyy-MM-dd HH:mm:ss", "DatetimeLocale", "en_US");
+    end
+    T_existing = readtable(csv_path, opts);
+    % Ensure EXISTING data also has timestamp (only tolerated schema adjustment)
+    if ~ismember("timestamp", T_existing.Properties.VariableNames)
+        T_existing.timestamp = repmat(datetime(NaT), height(T_existing), 1);
     end
     % Enforce identical variable names (ignoring order)
-    vars_new = string(T.Properties.VariableNames);
-    vars_old = string(T_old.Properties.VariableNames);
+    vars_current = string(T.Properties.VariableNames);
+    vars_existing = string(T_existing.Properties.VariableNames);
     % Allow only ordering differences; any name mismatch is a hard error
-    missing_in_old = setdiff(vars_new, vars_old);
-    extra_in_old   = setdiff(vars_old, vars_new);
-    if ~isempty(missing_in_old) || ~isempty(extra_in_old)
-        T_old = migrate_csv_schema(T_old, T, csv_path, missing_in_old, extra_in_old);
-        vars_old = string(T_old.Properties.VariableNames);
+    missing_in_existing = setdiff(vars_current, vars_existing);
+    extra_in_existing   = setdiff(vars_existing, vars_current);
+    if ~isempty(missing_in_existing) || ~isempty(extra_in_existing)
+        T_existing = migrate_csv_schema(T_existing, T, csv_path, missing_in_existing, extra_in_existing);
+        vars_existing = string(T_existing.Properties.VariableNames);
     end
-    % Reorder OLD columns to match NEW exactly, then append
-    T_old = T_old(:, T.Properties.VariableNames);
-    T_app = [T_old; T];
+    % Reorder EXISTING columns to match CURRENT exactly, then append
+    T_existing = T_existing(:, T.Properties.VariableNames);
+    T_app = [T_existing; T];
 else
     % First write defines schema (includes timestamp)
     T_app = T;
@@ -870,6 +865,16 @@ if settings.save_mat
     save(mat_path, "T_app", "meta", "Parameters", "settings");
 end
 T = T_app;
+
+% Update master CSV (cross-mode aggregation)
+if settings.save_csv
+    append_master_csv(T, settings);
+end
+
+% Generate report for sweep/convergence modes
+if ismember(string(run_mode), ["sweep", "convergence"])
+    generate_solver_report(T, meta, settings, run_mode);
+end
 % ========================================================================
 %% MODE IMPLEMENTATIONS (7 Execution Modes)
 % ========================================================================
@@ -1247,7 +1252,8 @@ function val = get_coeff(ic_coeff, index, default)
     end
 end
 % ========================================================================
-%% ADAPTIVE CONVERGENCE SEARCH with Live Monitoring and Intelligent Refinement
+%% ADAPTIVE CONVERGENCE SEARCH - CLASSIC IMPLEMENTATION (FALLBACK)
+% Used when AdaptiveConvergenceAgent is not available
 % - Compares errors between successive mesh refinements
 % - Tracks peak vorticity at each stage
 % - Uses adaptive step-size refinement (decreases as convergence improves)
@@ -1255,7 +1261,7 @@ end
 % - Dynamically chooses next mesh size based on convergence rate
 % - Computational cost limiting via maximum mesh size
 % ========================================================================
-function [T, meta] = run_convergence_mode(Parameters, settings, run_mode)
+function [T, meta] = run_convergence_mode_classic(Parameters, settings, run_mode)
 
     tol = settings.convergence.tol;
     N_start = settings.convergence.N_coarse;
@@ -1793,26 +1799,26 @@ fprintf('====================================\n\n');
 end
 
 % ========================================================================
-%% AGENT-BASED CONVERGENCE MODE (Version 2)
+%% AGENT-BASED CONVERGENCE MODE
 % ========================================================================
 % Intelligent convergence with preflight testing and adaptive refinement
 % Uses AdaptiveConvergenceAgent class for pattern learning and optimization
 
-function [T, meta] = run_convergence_mode_v2(Parameters, settings, run_mode)
+function [T, meta] = run_convergence_mode(Parameters, settings, run_mode)
     % Create unique convergence study with organized directory structure
     study_id = create_convergence_study(settings, Parameters);
     
     fprintf('\n╔════════════════════════════════════════════════════════════════════════════════╗\n');
-    fprintf('║              AGENT-BASED CONVERGENCE MODE V2 (ADAPTIVE & INTELLIGENT)         ║\n');
+    fprintf('║           AGENT-BASED ADAPTIVE CONVERGENCE MODE (INTELLIGENT REFINEMENT)       ║\n');
     fprintf('╚════════════════════════════════════════════════════════════════════════════════╝\n\n');
-    fprintf('[V2 MODE] Using intelligent adaptive agent with preflight training\n');
-    fprintf('[V2 MODE] Study ID: %s\n\n', study_id);
+    fprintf('[AGENT] Using adaptive convergence with preflight training\n');
+    fprintf('[AGENT] Study ID: %s\n\n', study_id);
     
     % Check if AdaptiveConvergenceAgent is available
     if exist('AdaptiveConvergenceAgent', 'file') ~= 2
         fprintf_colored('[WARNING] AdaptiveConvergenceAgent.m not found. Falling back to classic mode.\n', 'yellow');
         fprintf('Expected location: Scripts/Main/AdaptiveConvergenceAgent.m\n\n');
-        [T, meta] = run_convergence_mode(Parameters, settings, run_mode);
+        [T, meta] = run_convergence_mode_classic(Parameters, settings, run_mode);
         return;
     end
     
@@ -1830,11 +1836,11 @@ function [T, meta] = run_convergence_mode_v2(Parameters, settings, run_mode)
         
         % Enhance metadata with study info
         meta.study_id = study_id;
-        meta.mode_version = 'v2_adaptive';
+        meta.mode_version = 'adaptive_convergence';
         meta.agent_class = 'AdaptiveConvergenceAgent';
         
-        fprintf('\n[V2 MODE] Convergence complete: N*=%d\n', N_star);
-        fprintf('[V2 MODE] Results saved to: %s\n', settings.convergence.study_dir);
+        fprintf('\n[AGENT] Convergence complete: N*=%d\n', N_star);
+        fprintf('[AGENT] Results saved to: %s\n', settings.convergence.study_dir);
         
     catch ME
         fprintf_colored('[ERROR] Agent-based convergence failed: %s\n', 'red', ME.message);
@@ -1843,7 +1849,7 @@ function [T, meta] = run_convergence_mode_v2(Parameters, settings, run_mode)
             fprintf('  %s (line %d)\n', ME.stack(i).name, ME.stack(i).line);
         end
         fprintf('\nFalling back to classic convergence mode...\n\n');
-        [T, meta] = run_convergence_mode(Parameters, settings, run_mode);
+        [T, meta] = run_convergence_mode_classic(Parameters, settings, run_mode);
     end
 end
 
@@ -1914,7 +1920,7 @@ end
 %% PREFLIGHT CHECKS
 % ========================================================================
 function run_preflight_checks(Parameters, settings)
-    % Enhanced preflight validation with comprehensive parameter checking
+    % Comprehensive preflight validation with multi-level parameter checking
     % Uses validation suite from Scripts/Infrastructure/validate_simulation_parameters.m
     
     % Run comprehensive validation
@@ -1945,7 +1951,7 @@ function run_preflight_checks(Parameters, settings)
     if isfield(settings, 'results_dir') && ~exist(settings.results_dir, 'dir')
         mkdir(settings.results_dir);
     end
-    fprintf('[PREFLIGHT] Enhanced validation complete - Ready to proceed\n');
+    fprintf('[PREFLIGHT] Comprehensive validation complete - Ready to proceed\n');
 end
 % ========================================================================
 %% SINGLE CASE METRIC EVALUATION
@@ -2169,49 +2175,7 @@ function cfg = get_analysis_method(method_name)
             );
     end
 end
-% ========================================================================
-%% CSV SCHEMA MIGRATION
-% ========================================================================
-function T_old = migrate_csv_schema(T_old, T_new, csv_path, missing_in_old, extra_in_old)
-    % Adds missing columns (matching types from T_new) and logs extras.
-    if ~isempty(missing_in_old)
-        fprintf("CSV schema mismatch: adding missing columns: %s\n", strjoin(missing_in_old, ", "));
-        for k = 1:numel(missing_in_old)
-            col = char(missing_in_old(k));
-            if ismember(col, T_new.Properties.VariableNames)
-                sample = T_new.(col);
-                cls = class(sample);
-                switch cls
-                    case 'double'
-                        T_old.(col) = nan(height(T_old), 1);
-                    case 'single'
-                        T_old.(col) = single(nan(height(T_old), 1));
-                    case {'char', 'string'}
-                        T_old.(col) = repmat("", height(T_old), 1);
-                    case 'cell'
-                        T_old.(col) = repmat({[]}, height(T_old), 1);
-                    case 'datetime'
-                        T_old.(col) = repmat(datetime(NaT), height(T_old), 1);
-                    otherwise
-                        T_old.(col) = repmat({[]}, height(T_old), 1);
-                end
-            else
-                T_old.(col) = repmat({[]}, height(T_old), 1);
-            end
-        end
-        try
-            writetable(T_old, csv_path);
-        catch WErr
-            warning(WErr.identifier, 'Failed to write migrated CSV: %s', WErr.message);
-        end
-    end
-    if ~isempty(extra_in_old)
-        fprintf("Warning: CSV contains extra columns: %s (kept)\n", strjoin(extra_in_old, ", "));
-    end
-end
-% ========================================================================
-%% CSV PLOTTING UTILITIES
-% ========================================================================
+
 function plot_results_from_csv(csv_path) %#ok<DEFNU>
     % Reads results CSV and produces a few diagnostic plots using Plot_Format.
     if ~isfile(csv_path)
@@ -2239,155 +2203,90 @@ function plot_results_from_csv(csv_path) %#ok<DEFNU>
     end
 end
 
-function feats = extract_features_from_analysis(analysis)
-    % Extracts scalar features from the solver output for:
-    %   - trend plotting
-    %   - defining a convergence criterion
-    % Populates peak vorticity and optional velocity peaks when available.
-    % Prefers pre-computed values from solver when available.
-    feats = struct(...
-        'peak_abs_omega', NaN, ...
-        'enstrophy', NaN, ...
-        'peak_u', NaN, ...
-        'peak_v', NaN, ...
-        'peak_speed', NaN, ...
-        'convergence_criterion', NaN);
+% ========================================================================
+% DEPRECATED: Forwarding wrappers to Infrastructure modules
+% These functions have been extracted to focused modules for maintainability.
+% Wrappers preserve backwards compatibility.
+% ========================================================================
 
-    if ~isstruct(analysis)
-        return;
-    end
-    
-    % Prefer pre-computed values from solver if available
-    feats.peak_abs_omega = safe_get(analysis, "peak_abs_omega", NaN);
-    feats.enstrophy = safe_get(analysis, "enstrophy", NaN);
-    feats.peak_u = safe_get(analysis, "peak_u", NaN);
-    feats.peak_v = safe_get(analysis, "peak_v", NaN);
-    feats.peak_speed = safe_get(analysis, "peak_speed", NaN);
-    
-    % Debug output for feature extraction
-    fprintf('[EXTRACT_FEATURES] Retrieved from analysis struct: peak_abs_omega=%.6e, enstrophy=%.6e, peak_u=%.6e, peak_v=%.6e, peak_speed=%.6e\n', ...
-        feats.peak_abs_omega, feats.enstrophy, feats.peak_u, feats.peak_v, feats.peak_speed);
-    
-    % Fallback: compute from snapshots if pre-computed values not available
-    if ~isfinite(feats.peak_abs_omega) && isfield(analysis,"omega_snaps") && ~isempty(analysis.omega_snaps)
-        omega_last = analysis.omega_snaps(:,:,end);
-        feats.peak_abs_omega = max(abs(omega_last(:)));
-    end
-    
-    if ~isfinite(feats.enstrophy) && isfield(analysis,"omega_snaps") && ~isempty(analysis.omega_snaps)
-        omega_last = analysis.omega_snaps(:,:,end);
-        dx = safe_get(analysis, "dx", NaN);
-        dy = safe_get(analysis, "dy", NaN);
-        if isfinite(dx) && isfinite(dy)
-            feats.enstrophy = 0.5 * sum(omega_last(:).^2) * (dx * dy);
-        end
-    end
-
-    % Optional velocity fields - fallback to snapshots if not pre-computed
-    if ~isfinite(feats.peak_u) && isfield(analysis,"u_snaps") && ~isempty(analysis.u_snaps)
-        u_last = analysis.u_snaps(:,:,end);
-        feats.peak_u = max(abs(u_last(:)));
-    end
-    if ~isfinite(feats.peak_v) && isfield(analysis,"v_snaps") && ~isempty(analysis.v_snaps)
-        v_last = analysis.v_snaps(:,:,end);
-        feats.peak_v = max(abs(v_last(:)));
-    end
-    if ~isfinite(feats.peak_speed) && isfinite(feats.peak_u) && isfinite(feats.peak_v)
-        feats.peak_speed = hypot(feats.peak_u, feats.peak_v);
-    end
+function val = take_scalar_metric(val)
+    % DEPRECATED: Forward to HelperUtils.take_scalar_metric
+    % TODO: Remove wrapper in future release after updating all call sites
+    val = HelperUtils.take_scalar_metric(val);
 end
 
 function out = pack_result(params, run_ok, analysis, feats, wall_time_s, cpu_time_s, mem_used_MB, mem_max_MB)
-    % Packs parameters, run status, solver metadata, extracted features,
-    % and resource metrics into a single flat struct record for table output.
-    out = result_schema();
-    out.run_ok = run_ok;
-    out.Nx = params.Nx;
-    out.Ny = params.Ny;
-    out.grid_points = params.Nx * params.Ny;
-    out.nu = params.nu;
-    out.dt = params.dt;
-    out.Tfinal = params.Tfinal;
-    out.ic_type = string(params.ic_type);
-    out.delta = params.delta;
-    if params.ic_type == "stretched_gaussian"
-        out.ic_coeff = mat2str(params.ic_coeff);
-    else
-        out.ic_coeff = "N/A";
-    end
-    out.wall_time_s = wall_time_s;
-    out.cpu_time_s = cpu_time_s;
-    out.mem_used_MB = mem_used_MB;
-    out.mem_max_possible_MB = mem_max_MB;
-    out.method = safe_get(analysis, "method", "");
-    out.poisson_matrix_nnz = safe_get(analysis, "poisson_matrix_nnz", NaN);
-    
-    % Try direct field first, then fall back to poisson_matrix_size
-    out.poisson_matrix_n = safe_get(analysis, "poisson_matrix_n", NaN);
-    if ~isfinite(out.poisson_matrix_n)
-        pm_size = safe_get(analysis, "poisson_matrix_size", [NaN NaN]);
-        if isnumeric(pm_size) && numel(pm_size) == 2
-            out.poisson_matrix_n = pm_size(1);
-        end
-    end
-    
-    out.rhs_calls = safe_get(analysis, "rhs_calls", NaN);
-    out.poisson_solves = safe_get(analysis, "poisson_solves", NaN);
-    out.setup_wall_time_s = safe_get(analysis, "setup_wall_time_s", NaN);
-    out.solve_wall_time_s = safe_get(analysis, "solve_wall_time_s", NaN);
-    out.error_id = safe_get(analysis, "error_id", "");
-    out.error_message = safe_get(analysis, "error_message", "");
-    out.peak_abs_omega = feats.peak_abs_omega;
-    out.enstrophy = feats.enstrophy;
-    out.peak_u = feats.peak_u;
-    out.peak_v = feats.peak_v;
-    out.peak_speed = feats.peak_speed;
-    out.convergence_metric = feats.convergence_criterion;
+    % DEPRECATED: Forward to MetricsExtractor.pack_result
+    out = MetricsExtractor.pack_result(params, run_ok, analysis, feats, wall_time_s, cpu_time_s, mem_used_MB, mem_max_MB);
 end
 
 function out = result_schema()
-    % Direct field assignment (most efficient for struct creation)
-    out = struct( ...
-        'run_ok',              false, ...
-        'method',              "", ...
-        'Nx',                  NaN, ...
-        'Ny',                  NaN, ...
-        'grid_points',         NaN, ...
-        'nu',                  NaN, ...
-        'dt',                  NaN, ...
-        'Tfinal',              NaN, ...
-        'ic_type',             "", ...
-        'delta',               NaN, ...
-        'ic_coeff',            "", ...
-        'wall_time_s',         NaN, ...
-        'cpu_time_s',          NaN, ...
-        'mem_used_MB',         NaN, ...
-        'mem_max_possible_MB', NaN, ...
-        'poisson_matrix_nnz',  NaN, ...
-        'poisson_matrix_n',    NaN, ...
-        'rhs_calls',           NaN, ...
-        'poisson_solves',      NaN, ...
-        'setup_wall_time_s',   NaN, ...
-        'solve_wall_time_s',   NaN, ...
-        'error_id',            "", ...
-        'error_message',       "", ...
-        'peak_abs_omega',      NaN, ...
-        'enstrophy',           NaN, ...
-        'peak_u',              NaN, ...
-        'peak_v',              NaN, ...
-        'peak_speed',          NaN, ...
-        'convergence_metric',  NaN ...
-    );
+    % DEPRECATED: Forward to MetricsExtractor.result_schema
+    out = MetricsExtractor.result_schema();
+end
+
+function feats = extract_features_from_analysis(analysis)
+    % DEPRECATED: Forward to MetricsExtractor.extract_features_from_analysis
+    feats = MetricsExtractor.extract_features_from_analysis(analysis);
 end
 
 function v = safe_get(S, field, default)
-    % Safe struct field accessor: returns default if field is missing.
-    if isstruct(S) && isfield(S, field)
-        v = S.(field);
-    else
-        v = default;
-    end
+    % DEPRECATED: Forward to HelperUtils.safe_get
+    v = HelperUtils.safe_get(S, field, default);
 end
+
+function s = sanitize_token(s)
+    % DEPRECATED: Forward to HelperUtils.sanitize_token
+    s = HelperUtils.sanitize_token(s);
+end
+
+function clean = strip_ansi_codes(text)
+    % DEPRECATED: Forward to ConsoleUtils.strip_ansi_codes
+    clean = ConsoleUtils.strip_ansi_codes(text);
+end
+
+function fprintf_colored(color_name, format_str, varargin)
+    % DEPRECATED: Forward to ConsoleUtils.fprintf_colored
+    ConsoleUtils.fprintf_colored(color_name, format_str, varargin{:});
+end
+
+function T_existing = migrate_csv_schema(T_existing, T_current, csv_path, missing_in_existing, extra_in_existing)
+    % DEPRECATED: Forward to ResultsPersistence.migrate_csv_schema
+    T_existing = ResultsPersistence.migrate_csv_schema(T_existing, T_current, csv_path, missing_in_existing, extra_in_existing);
+end
+
+function append_master_csv(T_current, settings)
+    % DEPRECATED: Forward to ResultsPersistence.append_master_csv
+    ResultsPersistence.append_master_csv(T_current, settings);
+end
+
+function report_path = generate_solver_report(T, meta, settings, run_mode)
+    % DEPRECATED: Forward to ReportGenerator.generate_solver_report
+    report_path = ReportGenerator.generate_solver_report(T, meta, settings, run_mode);
+end
+
+function html = table_to_html(T)
+    % DEPRECATED: Forward to ReportGenerator.table_to_html
+    html = ReportGenerator.table_to_html(T);
+end
+
+function out = format_report_value(val)
+    % DEPRECATED: Forward to ReportGenerator.format_report_value
+    out = ReportGenerator.format_report_value(val);
+end
+
+function txt = escape_html(txt)
+    % DEPRECATED: Forward to ReportGenerator.escape_html
+    txt = ReportGenerator.escape_html(txt);
+end
+
+function figs = collect_report_figures(settings, mode_str, max_figs)
+    % DEPRECATED: Forward to ReportGenerator.collect_report_figures
+    figs = ReportGenerator.collect_report_figures(settings, mode_str, max_figs);
+end
+
+% END DEPRECATED WRAPPERS
+% ========================================================================
 
 function params = prepare_simulation_params(Parameters, N, dt_override)
     % Prepares simulation parameters with grid initialization
@@ -2634,95 +2533,6 @@ function case_id = make_case_id(params, mode)
     
     % Format: MODE_YYYYMMDD_HHMMSS_Nx=X_Ny=Y_nu=....
     case_id = sanitize_token(mode) + "_" + timestamp + "_" + param_str + ic_coeff_str;
-end
-
-function s = sanitize_token(s)
-    s = string(s);
-    s = regexprep(s, "\s+", "_");
-    s = regexprep(s, "[^a-zA-Z0-9_\-\.]", "");
-end
-
-function clean = strip_ansi_codes(text)
-    % Remove ANSI color escape codes from text (e.g., \x1b[32m, \x1b[0m)
-    clean = regexprep(string(text), '\\x1b\[\d+m', '');
-end
-
-function fprintf_colored(color_name, format_str, varargin)
-    % Prints formatted text with consistent color support across MATLAB/terminals
-    % Handles both MATLAB command window and external terminals gracefully
-    %
-    % Usage:
-    %   fprintf_colored('cyan', '[INFO] Status: %s\n', status_text);
-    %   fprintf_colored('yellow', 'Warning: %s\n', warning_msg);
-    %   fprintf_colored('red', 'Error: %s\n', error_msg);
-    %   fprintf_colored('green', 'Success: %s\n', success_msg);
-    %
-    % Color names: 'red', 'green', 'yellow', 'cyan', 'magenta', 'blue', 'white', 'black'
-    %            Also: 'red_bg' (red background), 'yellow_bg', 'cyan_bg', etc.
-    %
-    
-    % Check if we're in MATLAB (vs external terminal)
-    is_matlab = usejava('desktop');
-    
-    % Map color names to ANSI codes for terminals
-    ansi_codes = struct(...
-        'red', '\x1b[31m', ...
-        'green', '\x1b[32m', ...
-        'yellow', '\x1b[33m', ...
-        'blue', '\x1b[34m', ...
-        'magenta', '\x1b[35m', ...
-        'cyan', '\x1b[36m', ...
-        'white', '\x1b[37m', ...
-        'black', '\x1b[30m', ...
-        'red_bg', '\x1b[41m\x1b[37m', ...      % red background + white text
-        'yellow_bg', '\x1b[43m\x1b[30m', ...   % yellow background + black text
-        'cyan_bg', '\x1b[46m\x1b[30m', ...     % cyan background + black text
-        'green_bg', '\x1b[42m\x1b[37m', ...    % green background + white text
-        'magenta_bg', '\x1b[45m\x1b[30m', ...  % magenta background + black text
-        'blue_bg', '\x1b[44m\x1b[37m', ...     % blue background + white text
-        'reset', '\x1b[0m');
-    
-    % Map color names to MATLAB text colors for display (when outside terminal)
-    matlab_colors = struct(...
-        'red', [1 0 0], ...
-        'green', [0 1 0], ...
-        'yellow', [1 1 0], ...
-        'blue', [0 0 1], ...
-        'magenta', [1 0 1], ...
-        'cyan', [0 1 1], ...
-        'white', [1 1 1], ...
-        'black', [0 0 0], ...
-        'red_bg', [1 0 0], ...
-        'yellow_bg', [1 1 0], ...
-        'cyan_bg', [0 1 1], ...
-        'green_bg', [0 1 0], ...
-        'magenta_bg', [1 0 1], ...
-        'blue_bg', [0 0 1], ...
-        'reset', [0 0 0]);
-    
-    % Format the main text
-    formatted_text = sprintf(format_str, varargin{:});
-    
-    % Determine if we should use ANSI codes
-    if is_matlab
-        % In MATLAB desktop: try to use fprintf with color
-        % Note: MATLAB's fprintf doesn't natively support ANSI codes
-        % So we'll just print without codes but with marker prefixes
-        
-        % Strip any existing ANSI codes for cleanliness
-        clean_text = regexprep(formatted_text, '\\x1b\[\d+m', '');
-        fprintf('%s', clean_text);
-    else
-        % In terminal: use ANSI codes for proper coloring
-        if isfield(ansi_codes, color_name)
-            ansi_color = ansi_codes.(color_name);
-            ansi_reset = ansi_codes.reset;
-            fprintf('%s%s%s', ansi_color, formatted_text, ansi_reset);
-        else
-            % Color not found, just print normally
-            fprintf('%s', formatted_text);
-        end
-    end
 end
 
 function out = convergence_iteration_schema()
@@ -3491,7 +3301,7 @@ end
 % ========================================================================
 
 function [N_next, dt_next, info] = convergence_agent_select_next_state(state, tol, Nmax, agent_settings, refinement_strategy)
-    % ENHANCED AGENT: Now handles dual refinement (both N and dt)
+    % ADAPTIVE AGENT: Now handles dual refinement (both N and dt)
     % 
     % INPUTS:
     %   state - struct with fields: N1, N2, dt1, dt2, metric1, metric2, 
@@ -4724,17 +4534,17 @@ end
 % Handles shifting of convergence pairs and extension logic
 
 function [N1, N2, metric1, metric2, row1, row2, wall_time1, wall_time2] = ...
-    shift_pair(N_old2, N3, metric_old2, metric3, row_old2, row3, wall_time_old2, wall_time3)
+    shift_pair(N_prev, N_next, metric_prev, metric_next, row_prev, row_next, wall_time_prev, wall_time_next)
     % Shift convergence pair from (N1, N2) to (N2, N3)
-    N1 = N_old2;
-    metric1 = metric_old2;
-    row1 = row_old2;
-    wall_time1 = wall_time_old2;
+    N1 = N_prev;
+    metric1 = metric_prev;
+    row1 = row_prev;
+    wall_time1 = wall_time_prev;
     
-    N2 = N3;
-    metric2 = metric3;
-    row2 = row3;
-    wall_time2 = wall_time3;
+    N2 = N_next;
+    metric2 = metric_next;
+    row2 = row_next;
+    wall_time2 = wall_time_next;
 end
 
 %% HELPER FUNCTIONS: OUTPUT & LOGGING
@@ -6399,10 +6209,10 @@ function study_id = create_convergence_study(settings, params)
         metadata.case_name = params.case_name;
     end
     
-    metadata.N_coarse = params.Nx;
-    metadata.N_max = params.N_max;
+    metadata.N_coarse = settings.convergence.N_coarse;
+    metadata.N_max = settings.convergence.N_max;
     metadata.Re = params.Re;
-    metadata.tol = params.tol;
+    metadata.tol = settings.convergence.tol;
     
     % Save metadata
     metadata_path = fullfile(study_root, "study_metadata.json");

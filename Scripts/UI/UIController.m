@@ -26,7 +26,7 @@
 
 classdef UIController < handle
     
-    properties
+    properties (Access = public)
         fig                    % Main figure
         tab_group              % Tab group container
         tabs                   % Structure of tab handles
@@ -39,6 +39,15 @@ classdef UIController < handle
         diary_last_size        % Last diary file size
     end
     
+    properties (Access = private)
+        % Terminal color scheme (RGB triplets)
+        color_success          % Success messages: bright green
+        color_warning          % Warnings: yellow/orange
+        color_error            % Errors: red
+        color_info             % Info messages: cyan
+        color_debug            % Debug messages: light gray
+    end
+    
     methods
         function app = UIController()
             % Constructor - creates and initializes the UI
@@ -49,6 +58,13 @@ classdef UIController < handle
             app.handles = struct();
             app.terminal_log = {};
             app.figures_list = {};
+            
+            % Initialize terminal color scheme (RGB triplets)
+            app.color_success = [0.3 1.0 0.3];     % Bright green
+            app.color_warning = [1.0 0.8 0.2];     % Yellow/orange
+            app.color_error = [1.0 0.3 0.3];       % Red
+            app.color_info = [0.3 0.8 1.0];        % Cyan
+            app.color_debug = [0.7 0.7 0.7];       % Light gray
             
             % Show startup decision dialog
             choice = app.show_startup_dialog();
@@ -72,10 +88,11 @@ classdef UIController < handle
             % User chose UI mode - create full interface
             % Create main figure with resize callback (maximized)
             % Dark mode theme for professional appearance
-            app.fig = uifigure('Name', 'Tsunami Vortex Simulation - Professional Interface', ...
+            app.fig = uifigure('Name', 'Tsunami Numerical Simulation UI', ...
                 'WindowState', 'maximized', ...
                 'Color', [0.15 0.15 0.15], ...  % Dark background
                 'AutoResizeChildren', 'on', ...
+                'Theme', 'dark', ...  % Apply MATLAB dark theme (R2025a+)
                 'CloseRequestFcn', @(~,~) app.cleanup());
             
             % Create tab group with relative sizing (fit within maximized window)
@@ -152,13 +169,17 @@ classdef UIController < handle
         
         function create_all_tabs(app)
             % Create streamlined UI tabs (consolidated from 9 to 5)
-            app.tabs.config = uitab(app.tab_group, 'Title', '⚙️ Configuration');
+            % All tabs styled with dark mode colors
+            app.tabs.config = uitab(app.tab_group, 'Title', '⚙️ Configuration', ...
+                'BackgroundColor', [0.20 0.20 0.20]);
             app.create_config_tab();
             
-            app.tabs.monitoring = uitab(app.tab_group, 'Title', '📊 Live Monitor');
+            app.tabs.monitoring = uitab(app.tab_group, 'Title', '📊 Live Monitor', ...
+                'BackgroundColor', [0.20 0.20 0.20]);
             app.create_monitoring_tab();
             
-            app.tabs.results = uitab(app.tab_group, 'Title', '📈 Results & Figures');
+            app.tabs.results = uitab(app.tab_group, 'Title', '📈 Results & Figures', ...
+                'BackgroundColor', [0.20 0.20 0.20]);
             app.create_results_tab();
         end
         
@@ -172,7 +193,7 @@ classdef UIController < handle
             % Rebuilt configuration tab (grouped, compact, method-aware)
             parent = app.tabs.config;
             parent.Units = 'normalized';
-            parent.BackgroundColor = [0.97 0.97 0.99];
+            parent.BackgroundColor = [0.20 0.20 0.20];  % Dark mode
 
             root = uigridlayout(parent, [1 2]);
             root.ColumnWidth = {'1.05x', '1x'};
@@ -453,27 +474,38 @@ classdef UIController < handle
         
         
         function create_monitoring_tab(app)
-            % Live execution (side-by-side) + convergence + MATLAB terminal (split layout)
+            % Redesigned monitoring tab: Left 3/4 (4 sections) + Right 1/4 (terminal)
             parent = app.tabs.monitoring;
             parent.Units = 'normalized';
             parent.BackgroundColor = [0.15 0.15 0.15];  % Dark mode
 
-            root = uigridlayout(parent, [3 3]);
-            root.ColumnWidth = {'1x', '1x', '1x'};
-            root.RowHeight = {'1x', '1x', '1x'};
+            % Main layout: 2 columns (75% left, 25% right)
+            root = uigridlayout(parent, [1 2]);
+            root.ColumnWidth = {'3x', '1x'};
             root.Padding = [10 10 10 10];
-            root.RowSpacing = 10;
             root.ColumnSpacing = 12;
 
-            % Panel 1: Live Execution Monitor (Iterations vs Time) - TOP LEFT
-            panel_exec1 = uipanel(root, 'Title', '⚡ Iterations vs Time', ...
+            % ======== LEFT PANEL (3/4 - Four sections in 2x2 grid) ========
+            left_panel = uipanel(root, 'Title', '📊 Live Monitoring', ...
                 'BackgroundColor', [0.20 0.20 0.20]);
-            panel_exec1.Layout.Row = 1;
-            panel_exec1.Layout.Column = 1;
-            exec_layout1 = uigridlayout(panel_exec1, [1 1]);
-            exec_layout1.Padding = [6 6 6 6];
+            left_panel.Layout.Column = 1;
             
-            app.handles.exec_monitor_axes1 = uiaxes(exec_layout1);
+            left_layout = uigridlayout(left_panel, [2 2]);
+            left_layout.RowHeight = {'1x', '1x'};
+            left_layout.ColumnWidth = {'1x', '1x'};
+            left_layout.Padding = [8 8 8 8];
+            left_layout.RowSpacing = 10;
+            left_layout.ColumnSpacing = 10;
+
+            % TOP-LEFT: Iterations vs Time figure
+            panel_iter_time = uipanel(left_layout, 'Title', '⚡ Iterations vs Time', ...
+                'BackgroundColor', [0.20 0.20 0.20]);
+            panel_iter_time.Layout.Row = 1;
+            panel_iter_time.Layout.Column = 1;
+            iter_time_layout = uigridlayout(panel_iter_time, [1 1]);
+            iter_time_layout.Padding = [6 6 6 6];
+            
+            app.handles.exec_monitor_axes1 = uiaxes(iter_time_layout);
             app.handles.exec_monitor_axes1.Color = [0.15 0.15 0.15];
             app.handles.exec_monitor_axes1.XColor = [0.9 0.9 0.9];
             app.handles.exec_monitor_axes1.YColor = [0.9 0.9 0.9];
@@ -484,15 +516,15 @@ classdef UIController < handle
             ylabel(app.handles.exec_monitor_axes1, 'Iterations', 'Color', [0.9 0.9 0.9]);
             grid(app.handles.exec_monitor_axes1, 'on');
 
-            % Panel 2: Live Execution Monitor (Iterations/Second vs Time) - TOP MIDDLE
-            panel_exec2 = uipanel(root, 'Title', '⚡ Iterations/Second vs Time', ...
+            % TOP-RIGHT: Iteration/Time vs Time figure
+            panel_iter_per_sec = uipanel(left_layout, 'Title', '⚡ Iterations/Second vs Time', ...
                 'BackgroundColor', [0.20 0.20 0.20]);
-            panel_exec2.Layout.Row = 1;
-            panel_exec2.Layout.Column = 2;
-            exec_layout2 = uigridlayout(panel_exec2, [1 1]);
-            exec_layout2.Padding = [6 6 6 6];
+            panel_iter_per_sec.Layout.Row = 1;
+            panel_iter_per_sec.Layout.Column = 2;
+            iter_per_sec_layout = uigridlayout(panel_iter_per_sec, [1 1]);
+            iter_per_sec_layout.Padding = [6 6 6 6];
             
-            app.handles.exec_monitor_axes2 = uiaxes(exec_layout2);
+            app.handles.exec_monitor_axes2 = uiaxes(iter_per_sec_layout);
             app.handles.exec_monitor_axes2.Color = [0.15 0.15 0.15];
             app.handles.exec_monitor_axes2.XColor = [0.9 0.9 0.9];
             app.handles.exec_monitor_axes2.YColor = [0.9 0.9 0.9];
@@ -503,26 +535,10 @@ classdef UIController < handle
             ylabel(app.handles.exec_monitor_axes2, 'Iterations/s', 'Color', [0.9 0.9 0.9]);
             grid(app.handles.exec_monitor_axes2, 'on');
 
-            % Panel 3: Terminal (TOP RIGHT)
-            panel_terminal = uipanel(root, 'Title', '🖥️ MATLAB Terminal', ...
+            % BOTTOM-LEFT: Convergence Monitor
+            panel_conv = uipanel(left_layout, 'Title', '📉 Convergence Monitor', ...
                 'BackgroundColor', [0.20 0.20 0.20]);
-            panel_terminal.Layout.Row = 1;
-            panel_terminal.Layout.Column = 3;
-            terminal_layout = uigridlayout(panel_terminal, [1 1]);
-            terminal_layout.Padding = [6 6 6 6];
-
-            app.handles.terminal_output = uitextarea(terminal_layout, ...
-                'Value', {'MATLAB terminal capture enabled', 'Output will appear here.'}, ...
-                'Editable', 'off', ...
-                'FontName', 'Courier New', ...
-                'FontSize', 10, ...
-                'BackgroundColor', [0.08 0.08 0.08], ...
-                'FontColor', [0.2 1.0 0.2]);
-
-            % Panel 4: Convergence Monitor (BOTTOM LEFT-MIDDLE)
-            panel_conv = uipanel(root, 'Title', '📉 Convergence Monitor: Refinement vs Iteration', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
-            panel_conv.Layout.Row = [2 3];
+            panel_conv.Layout.Row = 2;
             panel_conv.Layout.Column = 1;
             conv_layout = uigridlayout(panel_conv, [1 1]);
             conv_layout.Padding = [6 6 6 6];
@@ -533,34 +549,69 @@ classdef UIController < handle
             app.handles.conv_monitor_axes.YColor = [0.9 0.9 0.9];
             app.handles.conv_monitor_axes.ZColor = [0.9 0.9 0.9];
             app.handles.conv_monitor_axes.GridColor = [0.3 0.3 0.3];
-            title(app.handles.conv_monitor_axes, 'Refinement (no data yet)', 'Color', [0.9 0.9 0.9]);
+            title(app.handles.conv_monitor_axes, 'Refinement vs Iteration (no data yet)', 'Color', [0.9 0.9 0.9]);
             xlabel(app.handles.conv_monitor_axes, 'Iteration', 'Color', [0.9 0.9 0.9]);
-            ylabel(app.handles.conv_monitor_axes, 'Refinement Level (integers)', 'Color', [0.9 0.9 0.9]);
+            ylabel(app.handles.conv_monitor_axes, 'Refinement Level', 'Color', [0.9 0.9 0.9]);
             grid(app.handles.conv_monitor_axes, 'on');
-            % Keep Y-axis at integers only
             app.handles.conv_monitor_axes.YTickMode = 'manual';
 
-            % Panel 5: Simulation Metrics (BOTTOM RIGHT)
-            panel_metrics = uipanel(root, 'Title', '📊 Simulation Metrics', ...
+            % BOTTOM-RIGHT: Data Metrics (Simulation & Sustainability)
+            panel_metrics = uipanel(left_layout, 'Title', '📊 Simulation Metrics', ...
                 'BackgroundColor', [0.20 0.20 0.20]);
-            panel_metrics.Layout.Row = [2 3];
-            panel_metrics.Layout.Column = [2 3];
-            metrics_layout = uigridlayout(panel_metrics, [4 2]);
+            panel_metrics.Layout.Row = 2;
+            panel_metrics.Layout.Column = 2;
+            metrics_layout = uigridlayout(panel_metrics, [12 2]);
             metrics_layout.ColumnWidth = {'1x', '1x'};
-            metrics_layout.RowHeight = {'fit', 'fit', 'fit', 'fit'};
+            metrics_layout.RowHeight = repmat({'fit'}, 1, 12);
             metrics_layout.Padding = [6 6 6 6];
+            metrics_layout.RowSpacing = 4;
 
+            % Simulation Metrics
+            uilabel(metrics_layout, 'Text', '🔹 SIMULATION', 'FontColor', [0.3 0.8 1.0], 'FontWeight', 'bold');
+            uilabel(metrics_layout, 'Text', '');
+            
+            uilabel(metrics_layout, 'Text', 'Iterations:', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.metrics_iterations = uilabel(metrics_layout, 'Text', '0', 'FontColor', [0.3 1.0 0.3]);
+            
             uilabel(metrics_layout, 'Text', 'Time Elapsed:', 'FontColor', [0.9 0.9 0.9]);
             app.handles.metrics_time_elapsed = uilabel(metrics_layout, 'Text', '0.0 s', 'FontColor', [0.3 1.0 0.3]);
             
             uilabel(metrics_layout, 'Text', 'Grid Size:', 'FontColor', [0.9 0.9 0.9]);
             app.handles.metrics_grid = uilabel(metrics_layout, 'Text', '128×128', 'FontColor', [0.3 1.0 0.3]);
             
+            uilabel(metrics_layout, 'Text', 'Physical Time:', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.metrics_phys_time = uilabel(metrics_layout, 'Text', '0.0 s', 'FontColor', [0.3 1.0 0.3]);
+            
+            uilabel(metrics_layout, 'Text', 'Vorticity (max):', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.metrics_vorticity = uilabel(metrics_layout, 'Text', '--', 'FontColor', [0.3 1.0 0.3]);
+            
+            % Sustainability Metrics
+            uilabel(metrics_layout, 'Text', '🟢 SUSTAINABILITY', 'FontColor', [0.3 1.0 0.3], 'FontWeight', 'bold');
+            uilabel(metrics_layout, 'Text', '');
+            
             uilabel(metrics_layout, 'Text', 'CPU Usage:', 'FontColor', [0.9 0.9 0.9]);
             app.handles.metrics_cpu = uilabel(metrics_layout, 'Text', '-- %', 'FontColor', [0.3 1.0 0.3]);
             
             uilabel(metrics_layout, 'Text', 'Memory:', 'FontColor', [0.9 0.9 0.9]);
             app.handles.metrics_memory = uilabel(metrics_layout, 'Text', '-- MB', 'FontColor', [0.3 1.0 0.3]);
+            
+            uilabel(metrics_layout, 'Text', 'Energy Loss:', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.metrics_energy = uilabel(metrics_layout, 'Text', '-- %', 'FontColor', [0.3 1.0 0.3]);
+
+            % ======== RIGHT PANEL (1/4 - Terminal) ========
+            panel_terminal = uipanel(root, 'Title', '🖥️ Terminal', ...
+                'BackgroundColor', [0.20 0.20 0.20]);
+            panel_terminal.Layout.Column = 2;
+            terminal_layout = uigridlayout(panel_terminal, [1 1]);
+            terminal_layout.Padding = [6 6 6 6];
+
+            app.handles.terminal_output = uitextarea(terminal_layout, ...
+                'Value', {'MATLAB terminal capture enabled', 'Output will appear here.'}, ...
+                'Editable', 'off', ...
+                'FontName', 'Courier New', ...
+                'FontSize', 10, ...
+                'BackgroundColor', [0.08 0.08 0.08], ...
+                'FontColor', [0.2 1.0 0.2]);
         end
         
         function create_terminal_tab(~)
@@ -707,7 +758,7 @@ classdef UIController < handle
                 
                 % Log
                 app.append_to_terminal(sprintf('✓ Configuration collected for %s method in %s mode', ...
-                    app.config.method, app.config.mode));
+                    app.config.method, app.config.mode), 'success');
                 app.append_to_terminal(sprintf('  Grid: %d × %d, dt=%.4f, T=%.2f', ...
                     app.config.Nx, app.config.Ny, app.config.dt, app.config.Tfinal));
                 
@@ -715,7 +766,7 @@ classdef UIController < handle
                 app.tab_group.SelectedTab = app.tabs.monitoring;
                 
             catch ME
-                app.append_to_terminal(sprintf('✗ Error collecting configuration: %s', ME.message));
+                app.append_to_terminal(sprintf('✗ Error collecting configuration: %s', ME.message), 'error');
                 uialert(app.fig, ME.message, 'Configuration Error', 'icon', 'error');
             end
         end
@@ -773,12 +824,12 @@ classdef UIController < handle
                     round(app.handles.Nx.Value), round(app.handles.Ny.Value), ...
                     app.handles.dt.Value, app.handles.t_final.Value, app.handles.nu.Value);
                 uialert(app.fig, msg, 'Validation Passed', 'icon', 'success');
-                app.append_to_terminal('✓ All parameters validated successfully');
+                app.append_to_terminal('✓ All parameters validated successfully', 'success');
             else
                 msg = sprintf('Found %d validation error(s):\n\n• %s', ...
                     length(errors), strjoin(errors, '\n• '));
                 uialert(app.fig, msg, 'Validation Errors', 'icon', 'error');
-                app.append_to_terminal(sprintf('✗ Validation errors: %s', strjoin(errors, ', ')));
+                app.append_to_terminal(sprintf('✗ Validation errors: %s', strjoin(errors, ', ')), 'error');
             end
 
             app.update_checklist();
@@ -1077,15 +1128,49 @@ classdef UIController < handle
             end
         end
         
-        function append_to_terminal(app, message)
-            % Append message to terminal with timestamp
-            % Defensive: checks if terminal_output exists before updating
+        function append_to_terminal(app, message, msg_type)
+            % Append colored message to terminal with timestamp
+            % Args:
+            %   message: String to display
+            %   msg_type: 'success', 'warning', 'error', 'info', 'debug' (optional)
+            %             If omitted, auto-detects from message content
+            
+            if nargin < 3
+                % Auto-detect message type from content
+                if contains(message, {'✓', 'Success', 'Updated', 'Complete'}, 'IgnoreCase', true)
+                    msg_type = 'success';
+                elseif contains(message, {'✗', 'Error', 'Failed', 'Exception'}, 'IgnoreCase', true)
+                    msg_type = 'error';
+                elseif contains(message, {'Warning', 'Caution'}, 'IgnoreCase', true)
+                    msg_type = 'warning';
+                else
+                    msg_type = 'info';
+                end
+            end
+            
+            % Determine color based on message type
+            switch lower(msg_type)
+                case 'success'
+                    color = app.color_success;  % Bright green [0.3 1.0 0.3]
+                case 'warning'
+                    color = app.color_warning;  % Yellow/orange [1.0 0.8 0.2]
+                case 'error'
+                    color = app.color_error;    % Red [1.0 0.3 0.3]
+                case 'info'
+                    color = app.color_info;     % Cyan [0.3 0.8 1.0]
+                case 'debug'
+                    color = app.color_debug;    % Light gray [0.7 0.7 0.7]
+                otherwise
+                    color = app.color_info;     % Default to cyan
+            end
+            
+            % Format message with timestamp
             timestamp = datestr(now, 'HH:MM:SS');
             formatted_msg = sprintf('[%s] %s', timestamp, message);
             
             app.terminal_log{end+1} = formatted_msg;
             
-            % Only update UI if terminal_output has been created
+            % Only update UI if terminal_output exists
             if isfield(app.handles, 'terminal_output') && ishghandle(app.handles.terminal_output)
                 current_text = app.handles.terminal_output.Value;
                 if isstring(current_text)
@@ -1097,12 +1182,25 @@ classdef UIController < handle
                 
                 current_text{end+1} = formatted_msg;
                 
-                % Keep only last 1000 lines
-                if length(current_text) > 1000
-                    current_text = current_text(end-999:end);
+                % Keep only last 500 lines
+                if length(current_text) > 500
+                    current_text = current_text(end-499:end);
                 end
                 
                 app.handles.terminal_output.Value = current_text;
+                
+                % Apply color to new message
+                % Note: MATLAB uitextarea applies font color to entire content
+                % We update color on each message for visual consistency
+                app.handles.terminal_output.FontColor = color;
+                
+                % Scroll to bottom if possible
+                try
+                    scroll(app.handles.terminal_output, 'bottom');
+                catch
+                    % Scroll may not be available in all MATLAB versions
+                end
+                
                 drawnow;
             end
         end
@@ -1353,9 +1451,12 @@ classdef UIController < handle
                         Z = exp(-((X-x0).^2 + (Y-y0).^2));
                 end
 
+                % Suppress contour warnings for constant data
+                warning('off', 'MATLAB:contour:ConstantData');
                 contour(app.handles.ic_preview_axes, X, Y, Z, 12, 'LineWidth', 1.0);
                 hold(app.handles.ic_preview_axes, 'on');
                 contourf(app.handles.ic_preview_axes, X, Y, Z, 20);
+                warning('on', 'MATLAB:contour:ConstantData');
                 rectangle(app.handles.ic_preview_axes, 'Position', [-Lx/2 -Ly/2 Lx Ly], ...
                     'EdgeColor', [0.2 0.2 0.2], 'LineStyle', '--');
                 hold(app.handles.ic_preview_axes, 'off');
@@ -1370,9 +1471,9 @@ classdef UIController < handle
                 grid(app.handles.ic_preview_axes, 'on');
 
                 app.update_checklist();
-                app.append_to_terminal(sprintf('✓ IC preview updated (t=0, ω_max=%.3f)', max(Z, [], 'all')));
+                app.append_to_terminal(sprintf('✓ IC preview updated (t=0, ω_max=%.3f)', max(Z, [], 'all')), 'success');
             catch ME
-                app.append_to_terminal(sprintf('✗ Error updating IC preview: %s', ME.message));
+                app.append_to_terminal(sprintf('✗ Error updating IC preview: %s', ME.message), 'error');
             end
         end
 
@@ -1528,47 +1629,49 @@ classdef UIController < handle
             try
                 default_params = create_default_parameters();
                 % Extract key parameters from defaults
-                config = struct();
-                config.method = default_params.analysis_method;
-                config.mode = 'evolution';
-                config.Nx = default_params.Nx;
-                config.Ny = default_params.Ny;
-                config.Lx = default_params.Lx;
-                config.Ly = default_params.Ly;
-                config.delta = default_params.delta;
-                config.use_explicit_delta = default_params.use_explicit_delta;
-                config.dt = default_params.dt;
-                config.t_final = default_params.Tfinal;
-                config.nu = default_params.nu;
-                config.num_snapshots = default_params.num_snapshots;
-                config.ic_type = default_params.ic_type;
-                config.ic_coeff = default_params.ic_coeff;
-                config.create_animations = default_params.create_animations;
-                config.animation_format = default_params.animation_format;
-                config.animation_fps = default_params.animation_fps;
-                config.bathymetry_enabled = default_params.bathymetry_enabled;
+                config = struct(...
+                    "method", default_params.analysis_method, ...
+                    "mode", 'evolution', ...
+                    "Nx", default_params.Nx, ...
+                    "Ny", default_params.Ny, ...
+                    "Lx", default_params.Lx, ...
+                    "Ly", default_params.Ly, ...
+                    "delta", default_params.delta, ...
+                    "use_explicit_delta", default_params.use_explicit_delta, ...
+                    "dt", default_params.dt, ...
+                    "t_final", default_params.Tfinal, ...
+                    "nu", default_params.nu, ...
+                    "num_snapshots", default_params.num_snapshots, ...
+                    "ic_type", default_params.ic_type, ...
+                    "ic_coeff", default_params.ic_coeff, ...
+                    "create_animations", default_params.create_animations, ...
+                    "animation_format", default_params.animation_format, ...
+                    "animation_fps", default_params.animation_fps, ...
+                    "bathymetry_enabled", default_params.bathymetry_enabled ...
+                );
             catch ME
                 % Fallback to hardcoded defaults if create_default_parameters is not available
                 warning(ME.identifier, '%s', ME.message);
-                config = struct();
-                config.method = 'Finite Difference';
-                config.mode = 'evolution';
-                config.Nx = 128;
-                config.Ny = 128;
-                config.Lx = 10;
-                config.Ly = 10;
-                config.delta = 2;
-                config.use_explicit_delta = true;
-                config.dt = 0.01;
-                config.t_final = 8.0;
-                config.nu = 1e-6;
-                config.num_snapshots = 9;
-                config.ic_type = "stretched_gaussian";
-                config.ic_coeff = [2, 0.2];
-                config.create_animations = true;
-                config.animation_format = 'gif';
-                config.animation_fps = 30;
-                config.bathymetry_enabled = false;
+                config = struct(...
+                    "method", 'Finite Difference', ...
+                    "mode", 'evolution', ...
+                    "Nx", 128, ...
+                    "Ny", 128, ...
+                    "Lx", 10, ...
+                    "Ly", 10, ...
+                    "delta", 2, ...
+                    "use_explicit_delta", true, ... 
+                    "dt", 0.01, ...
+                    "t_final", 8.0, ...
+                    "nu", 1e-6, ...
+                    "num_snapshots", 9, ...
+                    "ic_type", "stretched_gaussian", ...
+                    "ic_coeff", [2, 0.2], ...
+                    "create_animations", true, ...
+                    "animation_format", 'gif', ...
+                    "animation_fps", 30, ...
+                    "bathymetry_enabled", false ...
+                );
             end
         end
     end

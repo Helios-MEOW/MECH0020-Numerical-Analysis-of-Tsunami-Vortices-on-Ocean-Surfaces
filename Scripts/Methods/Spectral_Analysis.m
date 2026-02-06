@@ -48,7 +48,7 @@ function [fig_handle, analysis] = Spectral_Analysis(Parameters)
     [T, omega_full, psi_full, meta] = Spectral_Analysis_Impl(X, Y, omega0, Parameters);
     
     % Extract snapshots at requested times
-    [~, snap_indices] = intersect(T, Parameters.snap_times, 'rows');
+    [~, snap_indices] = intersect(T, Parameters.snap_times);
     if isempty(snap_indices)
         % If exact times not found, use nearest neighbors
         snap_indices = [];
@@ -64,6 +64,9 @@ function [fig_handle, analysis] = Spectral_Analysis(Parameters)
     analysis.omega_snaps = omega_full(:, :, snap_indices);
     analysis.psi_snaps = psi_full(:, :, snap_indices);
     analysis.time_vec = T;
+    analysis.snapshot_times = T(snap_indices);
+    analysis.snapshots_stored = numel(snap_indices);
+    analysis.grid_points = Parameters.Nx * Parameters.Ny;
     
     % === UNIFIED METRICS EXTRACTION ===
     % Use comprehensive metrics framework for consistency across all methods
@@ -96,11 +99,20 @@ function [fig_handle, analysis] = Spectral_Analysis(Parameters)
     analysis.dy = dy;
     analysis.Nx = Parameters.Nx;
     analysis.Ny = Parameters.Ny;
+    analysis.peak_abs_omega = max(abs(analysis.omega_snaps(:)));
+    analysis.peak_vorticity = analysis.peak_abs_omega;
     
     % Create figure (compatible with FD output)
+    show_figs = usejava('desktop') && ~strcmpi(get(0, 'DefaultFigureVisible'), 'off');
+
+    if ~show_figs
+        fig_handle = figure('Visible', 'off');
+        return;
+    end
+
     fig_handle = figure('Name', 'Spectral Analysis Results', 'NumberTitle', 'off');
     subplot(1, 2, 1);
-    contourf(X, Y, analysis.omega_snaps(:, :, end), 20);
+    contourf(x, y, analysis.omega_snaps(:, :, end), 20);
     colorbar; title('Vorticity (final)'); xlabel('x'); ylabel('y');
     
     subplot(1, 2, 2);
@@ -120,7 +132,11 @@ function [T, omega, psi, meta] = Spectral_Analysis_Impl(X, Y, omega0, Parameters
     
     % Time parameters
     dt = Parameters.dt;
-    t_final = Parameters.t_final;
+    if isfield(Parameters, 't_final')
+        t_final = Parameters.t_final;
+    else
+        t_final = Parameters.Tfinal;
+    end
     nu = Parameters.nu;
     
     % Wavenumber arrays for FFT
@@ -222,4 +238,16 @@ function rhs = get_spectral_rhs(omega_hat, Kx, Ky, K2, nu, dealias)
     
     % RHS
     rhs = -adv_hat + diff_hat;
+end
+
+function s_merged = mergestruct(s1, s2)
+    % MERGESTRUCT Merge two structs, with s2 values taking precedence for overlapping fields
+    s_merged = s1;
+    if isempty(s2)
+        return;
+    end
+    fields = fieldnames(s2);
+    for i = 1:numel(fields)
+        s_merged.(fields{i}) = s2.(fields{i});
+    end
 end

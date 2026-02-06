@@ -47,7 +47,7 @@ MECH0020-Numerical-Analysis-Tsunami-Vortices/
        Spectral_Analysis.m            # [4] Spectral solver (implementation ready)
        Variable_Bathymetry_Analysis.m # [4] Bathymetry solver
        run_simulation_with_method.m   # [2] Method dispatcher
-       run_simulation_with_method_enhanced.m # [2] Enhanced dispatcher
+       run_simulation_with_method.m # [1] Unified dispatcher (consolidated)
        extract_unified_metrics.m      # [3] Metrics extraction
        mergestruct.m                  # [3] Struct merging utility
    
@@ -154,7 +154,7 @@ MECH0020-Numerical-Analysis-Tsunami-Vortices/
 |------|-------|---------|--------|-------|
 | Finite_Difference_Analysis.m | 796 | FD solver (Arakawa Jacobian, RK3 time step) |  ESSENTIAL | Primary method, production-ready |
 | run_simulation_with_method.m | 156 | Method dispatcher |  ESSENTIAL | Routes to FD/FV/Spectral |
-| run_simulation_with_method_enhanced.m | 189 | Enhanced dispatcher with mode support |  ESSENTIAL | Newer, more modular version |
+| run_simulation_with_method.m | 189 | Unified dispatcher with comprehensive metrics | ESSENTIAL | Consolidation of enhanced dispatcher |
 | extract_unified_metrics.m | 234 | Post-simulation metrics |  ESSENTIAL | Energy, enstrophy, dissipation analysis |
 | Finite_Volume_Analysis.m | 89 | FV solver framework |  SUPPORTING | Placeholder/prototype - NOT YET IMPLEMENTED |
 | Spectral_Analysis.m | 124 | Spectral solver framework |  SUPPORTING | Implementation ready but not default |

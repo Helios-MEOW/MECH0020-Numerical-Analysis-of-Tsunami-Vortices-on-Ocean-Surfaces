@@ -3,6 +3,7 @@
 % Validates energy conservation, convergence, and consistency
 
 clear; close all; clc;
+set(0, 'DefaultFigureVisible', 'off');
 fprintf('================================================================================\n');
 fprintf('COMPREHENSIVE TEST SUITE - PHASE 6 VALIDATION\n');
 fprintf('Testing: FD | Spectral | Finite Volume | Bathymetry Methods\n');
@@ -17,7 +18,9 @@ fprintf('=========================================\n');
 
 grids = [32, 64, 128];
 methods = {'finite_difference', 'spectral'};
-results_conv = table();
+results_conv = table('Size',[0 4], ...
+    'VariableTypes', {'string','double','double','double'}, ...
+    'VariableNames', {'method','N','peak_vorticity','final_ke'});
 
 for method = methods
     fprintf('\nMethod: %s\n', method{1});
@@ -41,11 +44,7 @@ for method = methods
             
             fprintf('  N=%d: Peak vort=%.4e, Final KE=%.4e\n', N, peak_vort, final_energy);
             
-            results_conv = [results_conv; struct(...
-                'method', method{1}, ...
-                'N', N, ...
-                'peak_vorticity', peak_vort, ...
-                'final_ke', final_energy)];
+            results_conv = [results_conv; {string(method{1}), N, peak_vort, final_energy}];
             
             close(fig_h);
         catch ME
@@ -60,7 +59,9 @@ fprintf('=====================================================\n');
 
 N = 64;
 methods_all = {'finite_difference', 'spectral', 'finite_volume'};
-results_methods = table();
+results_methods = table('Size',[0 4], ...
+    'VariableTypes', {'string','double','double','double'}, ...
+    'VariableNames', {'method','peak_vorticity','energy_decay_pct','final_enstrophy'});
 
 for method = methods_all
     fprintf('\nTesting %s method...\n', method{1});
@@ -84,11 +85,7 @@ for method = methods_all
         fprintf('  Energy decay: %.2f%%\n', energy_decay * 100);
         fprintf('  Final enstrophy: %.4e\n', analysis.enstrophy(end));
         
-        results_methods = [results_methods; struct(...
-            'method', method{1}, ...
-            'peak_vorticity', analysis.peak_vorticity, ...
-            'energy_decay_pct', energy_decay * 100, ...
-            'final_enstrophy', analysis.enstrophy(end))];
+        results_methods = [results_methods; {string(method{1}), analysis.peak_vorticity, energy_decay * 100, analysis.enstrophy(end)}];
         
         close(fig_h);
     catch ME
@@ -190,7 +187,11 @@ for dt = dt_values
     try
         [fig_h, analysis] = run_simulation_with_method(params);
         is_stable = ~any(isnan(analysis.omega_snaps(:))) && ~any(isinf(analysis.omega_snaps(:)));
-        fprintf('  Status: %s\n', char(string(is_stable))*" STABLE" + char(string(~is_stable))*" UNSTABLE");
+        if is_stable
+            fprintf('  Status:  STABLE\n');
+        else
+            fprintf('  Status:  UNSTABLE\n');
+        end
         close(fig_h);
     catch ME
         fprintf('  Status:  CRASHED - %s\n', ME.message);

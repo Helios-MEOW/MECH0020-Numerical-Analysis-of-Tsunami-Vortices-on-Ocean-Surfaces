@@ -280,6 +280,9 @@ function [fig_handle, analysis] = Finite_Difference_Analysis(Parameters)
 
     analysis.snapshot_times = snap_times(:);
     analysis.snapshots_stored = Nsnap;  % Ensure all 9 snapshots are accounted for
+    analysis.omega_snaps = omega_snaps;
+    analysis.psi_snaps = psi_snaps;
+    analysis.time_vec = snap_times(:);
 
     % === UNIFIED METRICS EXTRACTION ===
     % Use comprehensive metrics framework for consistency across all methods
@@ -334,6 +337,11 @@ function [fig_handle, analysis] = Finite_Difference_Analysis(Parameters)
             warning('[DIAGNOSTICS] Velocity diagnostics contain NaN or Inf!');
         end
     end
+
+    if ~isfield(analysis, 'peak_abs_omega') || isempty(analysis.peak_abs_omega)
+        analysis.peak_abs_omega = max(abs(omega_snaps(:)));
+    end
+    analysis.peak_vorticity = analysis.peak_abs_omega;
     
     % Poisson matrix properties
     analysis.poisson_matrix_n = analysis.grid_points;
@@ -348,6 +356,13 @@ function [fig_handle, analysis] = Finite_Difference_Analysis(Parameters)
 
     % Plot formatting settings (from Parameters or defaults)
     plot_settings = get_plot_settings(Parameters);
+
+    show_figs = usejava('desktop') && ~strcmpi(get(0, 'DefaultFigureVisible'), 'off');
+
+    if ~show_figs
+        fig_handle = figure('Visible', 'off');
+        return;
+    end
 
     fig_handle = figure;  % First figure
     tiledlayout(3,3,'TileSpacing','compact');
@@ -479,11 +494,15 @@ function [fig_handle, analysis] = Finite_Difference_Analysis(Parameters)
     tiledlayout(3,3,'TileSpacing','compact');
     % Get streamline settings from Parameters
     streamline_density = 4;     % Default: moderate streamline density
+    streamline_color_mode = "vorticity";  % Default: color by vorticity influence
     streamline_color = 'k';     % Default: black streamlines
     streamline_width = 1.0;     % Default: line width
     if isfield(Parameters, 'visualization')
         if isfield(Parameters.visualization, 'streamline_density')
             streamline_density = Parameters.visualization.streamline_density;
+        end
+        if isfield(Parameters.visualization, 'streamline_color_mode')
+            streamline_color_mode = Parameters.visualization.streamline_color_mode;
         end
         if isfield(Parameters.visualization, 'streamline_color')
             streamline_color = Parameters.visualization.streamline_color;
@@ -508,8 +527,12 @@ function [fig_handle, analysis] = Finite_Difference_Analysis(Parameters)
         [start_x, start_y] = meshgrid(stream_x, stream_y);
         [X, Y] = meshgrid(x, y);
         streamlines = stream2(X, Y, v, u, start_x, start_y);
-        h = streamline(streamlines);
-        set(h, 'Color', streamline_color, 'LineWidth', streamline_width);
+        if strcmpi(string(streamline_color_mode), "vorticity")
+            draw_vorticity_colored_streamlines(streamlines, X, Y, omega, streamline_width);
+        else
+            h = streamline(streamlines);
+            set(h, 'Color', streamline_color, 'LineWidth', streamline_width);
+        end
         hold off;
         axis equal tight;
         set(gca,'YDir','normal');
@@ -958,4 +981,44 @@ function setup = fd_setup(Parameters)
     setup.X = X;
     setup.Y = Y;
 
+end
+
+function draw_vorticity_colored_streamlines(streamlines, X, Y, omega, line_width)
+    if isempty(streamlines)
+        return;
+    end
+    if nargin < 5 || isempty(line_width)
+        line_width = 1.0;
+    end
+    hold_state = ishold;
+    if ~hold_state
+        hold on;
+    end
+    for i = 1:numel(streamlines)
+        s = streamlines{i};
+        if isempty(s) || size(s, 1) < 2
+            continue;
+        end
+        xs = s(:,1);
+        ys = s(:,2);
+        omega_s = interp2(X, Y, omega, xs, ys, 'linear', NaN);
+        zs = zeros(size(xs));
+        surface([xs xs], [ys ys], [zs zs], [omega_s omega_s], ...
+            'EdgeColor', 'interp', 'FaceColor', 'none', 'LineWidth', line_width);
+    end
+    if ~hold_state
+        hold off;
+    end
+end
+
+function s_merged = mergestruct(s1, s2)
+    % MERGESTRUCT Merge two structs, with s2 values taking precedence for overlapping fields
+    s_merged = s1;
+    if isempty(s2)
+        return;
+    end
+    fields = fieldnames(s2);
+    for i = 1:numel(fields)
+        s_merged.(fields{i}) = s2.(fields{i});
+    end
 end
