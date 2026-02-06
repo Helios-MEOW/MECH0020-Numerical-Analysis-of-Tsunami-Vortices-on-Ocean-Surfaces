@@ -1,0 +1,1142 @@
+================================================================================
+COMPREHENSIVE TEST SUITE - PHASE 6 VALIDATION
+Testing: FD | Spectral | Finite Volume | Bathymetry Methods
+================================================================================
+
+
+[TEST 1] CONVERGENCE STUDY - Grid Refinement
+=========================================
+
+Method: finite_difference
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 0.9444]
+[Warning: 'SizeChangedFcn' callback will not execute while 'AutoResizeChildren' is set to 'on'.] 
+[> In create_live_monitor_dashboard (line 153)
+In Finite_Difference_Analysis (line 166)
+In run_simulation_with_method (line 79)
+In COMPREHENSIVE_TEST_SUITE (line 41)] 
+FD |   1.00% | t = 0.010 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 32 Ny = 32 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 32  32 = 1024 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 9.910517e-01 s
+   Mean |ω|: 4.656984e-02 s
+   RMS ω: 1.526717e-01 s
+
+Energy Metrics:
+   Initial KE: 2.094787e+01 J/kg
+   Final KE: 2.090270e+01 J/kg
+   Energy decay: 0.22 %
+   Initial enstrophy: 1.241819e+00 s
+   Final enstrophy: 1.241842e+00 s
+
+Velocity Metrics:
+   Peak |u|: 1.477344e+00 m/s
+   Peak |v|: 1.077734e+00 m/s
+   Peak speed: 1.486102e+00 m/s
+   Mean speed: 5.136566e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 4.962034e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.0494 (1.0=perfect)
+   Dissipation rate: 2.768584e-05
+
+
+  N=32: Peak vort=9.9105e-01, Final KE=2.0903e+01
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 0.9862]
+FD |   1.00% | t = 0.010 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 64  64 = 4096 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 9.985616e-01 s
+   Mean |ω|: 4.806800e-02 s
+   RMS ω: 1.551275e-01 s
+
+Energy Metrics:
+   Initial KE: 1.961798e+01 J/kg
+   Final KE: 2.032431e+01 J/kg
+   Energy decay: -3.60 %
+   Initial enstrophy: 1.241817e+00 s
+   Final enstrophy: 1.241701e+00 s
+
+Velocity Metrics:
+   Peak |u|: 1.525781e+00 m/s
+   Peak |v|: 1.181250e+00 m/s
+   Peak speed: 1.545500e+00 m/s
+   Mean speed: 5.144032e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 4.960515e+00
+   Circulation decay: 0.01 %
+   Sustainability index: 1.0125 (1.0=perfect)
+   Dissipation rate: 3.345252e-05
+
+
+  N=64: Peak vort=9.9856e-01, Final KE=2.0324e+01
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 0.9966]
+FD |   1.00% | t = 0.010 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 128  128 = 16384 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.025726e+00 s
+   Mean |ω|: 4.882992e-02 s
+   RMS ω: 1.563651e-01 s
+
+Energy Metrics:
+   Initial KE: 1.961434e+01 J/kg
+   Final KE: 1.958996e+01 J/kg
+   Energy decay: 0.12 %
+   Initial enstrophy: 1.241815e+00 s
+   Final enstrophy: 1.241857e+00 s
+
+Velocity Metrics:
+   Peak |u|: 1.785937e+00 m/s
+   Peak |v|: 1.587500e+00 m/s
+   Peak speed: 1.796928e+00 m/s
+   Mean speed: 4.973449e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 4.960198e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.0292 (1.0=perfect)
+   Dissipation rate: 1.843271e-04
+
+
+  N=128: Peak vort=1.0257e+00, Final KE=1.9590e+01
+
+Method: spectral
+[Dispatcher] Routing to Spectral (FFT) method
+[Spectral] FFT Pseudospectral RK4, Grid: 32x32, dt=0.0100, nu=1.000000e-06
+  t=0.4000: ||omega||_inf=9.6863e-01
+  t=0.8000: ||omega||_inf=1.0210e+00
+  t=1.2000: ||omega||_inf=1.0566e+00
+  t=1.6000: ||omega||_inf=1.0741e+00
+  t=2.0000: ||omega||_inf=1.0730e+00
+  t=2.4000: ||omega||_inf=1.0534e+00
+  t=2.8000: ||omega||_inf=1.0167e+00
+  t=3.2000: ||omega||_inf=1.0186e+00
+  t=3.6000: ||omega||_inf=1.0240e+00
+  t=4.0000: ||omega||_inf=1.0205e+00
+  t=4.4000: ||omega||_inf=1.0084e+00
+  t=4.8000: ||omega||_inf=9.8841e-01
+  t=5.2000: ||omega||_inf=9.6706e-01
+  t=5.6000: ||omega||_inf=9.8153e-01
+  t=6.0000: ||omega||_inf=9.8922e-01
+  t=6.4000: ||omega||_inf=1.0103e+00
+  t=6.8000: ||omega||_inf=1.0260e+00
+  t=7.2000: ||omega||_inf=1.0363e+00
+  t=7.6000: ||omega||_inf=1.0415e+00
+  t=8.0000: ||omega||_inf=1.0422e+00
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: spectral
+Grid: 32  32 = 1024 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.041014e+00 s
+   Mean |ω|: 2.107612e-02 s
+   RMS ω: 9.386705e-02 s
+
+Energy Metrics:
+   Initial KE: 0.000000e+00 J/kg
+   Final KE: 2.283128e-01 J/kg
+   Energy decay: 0.00 %
+   Initial enstrophy: 4.667536e-01 s
+   Final enstrophy: 4.341213e-01 s
+
+Velocity Metrics:
+   Peak |u|: 2.338614e-01 m/s
+   Peak |v|: 2.094795e-01 m/s
+   Peak speed: 2.449845e-01 m/s
+   Mean speed: 4.038740e-02 m/s
+
+Sustainability Metrics:
+   Circulation: 1.673789e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.0410 (1.0=perfect)
+   Dissipation rate: 1.091116e-04
+
+
+  N=32: Peak vort=1.0410e+00, Final KE=2.2831e-01
+[Dispatcher] Routing to Spectral (FFT) method
+[Spectral] FFT Pseudospectral RK4, Grid: 64x64, dt=0.0100, nu=1.000000e-06
+  t=0.4000: ||omega||_inf=1.1045e+00
+  t=0.8000: ||omega||_inf=1.1546e+00
+  t=1.2000: ||omega||_inf=1.1553e+00
+  t=1.6000: ||omega||_inf=1.0937e+00
+  t=2.0000: ||omega||_inf=1.1521e+00
+  t=2.4000: ||omega||_inf=1.1467e+00
+  t=2.8000: ||omega||_inf=1.1643e+00
+  t=3.2000: ||omega||_inf=1.1414e+00
+  t=3.6000: ||omega||_inf=1.1771e+00
+  t=4.0000: ||omega||_inf=1.1194e+00
+  t=4.4000: ||omega||_inf=1.1827e+00
+  t=4.8000: ||omega||_inf=1.1844e+00
+  t=5.2000: ||omega||_inf=1.1123e+00
+  t=5.6000: ||omega||_inf=1.1561e+00
+  t=6.0000: ||omega||_inf=1.1827e+00
+  t=6.4000: ||omega||_inf=1.1466e+00
+  t=6.8000: ||omega||_inf=1.0750e+00
+  t=7.2000: ||omega||_inf=1.1367e+00
+  t=7.6000: ||omega||_inf=1.1723e+00
+  t=8.0000: ||omega||_inf=1.1790e+00
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: spectral
+Grid: 64  64 = 4096 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.155809e+00 s
+   Mean |ω|: 1.664497e-02 s
+   RMS ω: 8.652147e-02 s
+
+Energy Metrics:
+   Initial KE: 0.000000e+00 J/kg
+   Final KE: 1.831842e-01 J/kg
+   Energy decay: 0.00 %
+   Initial enstrophy: 3.855530e-01 s
+   Final enstrophy: 3.715148e-01 s
+
+Velocity Metrics:
+   Peak |u|: 2.266998e-01 m/s
+   Peak |v|: 2.143046e-01 m/s
+   Peak speed: 2.490738e-01 m/s
+   Mean speed: 3.572889e-02 m/s
+
+Sustainability Metrics:
+   Circulation: 1.451704e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.1454 (1.0=perfect)
+   Dissipation rate: 6.494208e-04
+
+
+  N=64: Peak vort=1.1558e+00, Final KE=1.8318e-01
+[Dispatcher] Routing to Spectral (FFT) method
+[Spectral] FFT Pseudospectral RK4, Grid: 128x128, dt=0.0100, nu=1.000000e-06
+  t=0.4000: ||omega||_inf=1.1767e+00
+  t=0.8000: ||omega||_inf=1.1687e+00
+  t=1.2000: ||omega||_inf=1.1933e+00
+  t=1.6000: ||omega||_inf=1.2109e+00
+  t=2.0000: ||omega||_inf=1.1775e+00
+  t=2.4000: ||omega||_inf=1.1536e+00
+  t=2.8000: ||omega||_inf=1.1670e+00
+  t=3.2000: ||omega||_inf=1.1885e+00
+  t=3.6000: ||omega||_inf=1.1745e+00
+  t=4.0000: ||omega||_inf=1.1639e+00
+  t=4.4000: ||omega||_inf=1.1668e+00
+  t=4.8000: ||omega||_inf=1.1817e+00
+  t=5.2000: ||omega||_inf=1.1829e+00
+  t=5.6000: ||omega||_inf=1.1673e+00
+  t=6.0000: ||omega||_inf=1.1135e+00
+  t=6.4000: ||omega||_inf=1.1865e+00
+  t=6.8000: ||omega||_inf=1.1413e+00
+  t=7.2000: ||omega||_inf=1.1908e+00
+  t=7.6000: ||omega||_inf=1.2078e+00
+  t=8.0000: ||omega||_inf=1.2009e+00
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: spectral
+Grid: 128  128 = 16384 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.202288e+00 s
+   Mean |ω|: 1.456722e-02 s
+   RMS ω: 8.266661e-02 s
+
+Energy Metrics:
+   Initial KE: 0.000000e+00 J/kg
+   Final KE: 1.615326e-01 J/kg
+   Energy decay: 0.00 %
+   Initial enstrophy: 3.472415e-01 s
+   Final enstrophy: 3.403147e-01 s
+
+Velocity Metrics:
+   Peak |u|: 2.202032e-01 m/s
+   Peak |v|: 2.218009e-01 m/s
+   Peak speed: 2.459509e-01 m/s
+   Mean speed: 3.334948e-02 m/s
+
+Sustainability Metrics:
+   Circulation: 1.345238e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.1997 (1.0=perfect)
+   Dissipation rate: 4.457025e-03
+
+
+  N=128: Peak vort=1.2023e+00, Final KE=1.6153e-01
+
+[TEST 2] METHOD COMPARISON - Same Initial Condition
+=====================================================
+
+Testing finite_difference method...
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 0.2926]
+FD |   0.50% | t = 0.010 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |   5.00% | t = 0.100 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  10.00% | t = 0.200 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  15.00% | t = 0.300 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  20.00% | t = 0.400 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  25.00% | t = 0.500 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  30.00% | t = 0.600 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  35.00% | t = 0.700 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  40.00% | t = 0.800 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  45.00% | t = 0.900 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  50.00% | t = 1.000 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  55.00% | t = 1.100 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  60.00% | t = 1.200 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  65.00% | t = 1.300 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  70.00% | t = 1.400 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  75.00% | t = 1.500 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  80.00% | t = 1.600 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  85.00% | t = 1.700 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  90.00% | t = 1.800 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD |  95.00% | t = 1.900 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+FD | 100.00% | t = 2.000 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = lamb_oseen | ic_coeff = N/A
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 64  64 = 4096 points
+Snapshots: 9 at times [0.000 - 2.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 2.928029e-01 s
+   Mean |ω|: 2.977237e-04 s
+   RMS ω: 9.143172e-03 s
+
+Energy Metrics:
+   Initial KE: 3.199680e-03 J/kg
+   Final KE: 3.252210e-03 J/kg
+   Energy decay: -1.64 %
+   Initial enstrophy: 4.314269e-03 s
+   Final enstrophy: 4.312994e-03 s
+
+Velocity Metrics:
+   Peak |u|: 7.459717e-02 m/s
+   Peak |v|: 7.498169e-02 m/s
+   Peak speed: 7.713179e-02 m/s
+   Mean speed: 4.472967e-03 m/s
+
+Sustainability Metrics:
+   Circulation: 2.948927e-02
+   Circulation decay: -0.00 %
+   Sustainability index: 1.0006 (1.0=perfect)
+   Dissipation rate: 8.145046e-05
+
+
+  Peak vorticity: 2.9280e-01
+  Energy decay: -1.64%
+  Final enstrophy: 4.3130e-03
+
+Testing spectral method...
+[Dispatcher] Routing to Spectral (FFT) method
+[Spectral] FFT Pseudospectral RK4, Grid: 64x64, dt=0.0100, nu=1.000000e-06
+  t=0.4000: ||omega||_inf=6.4383e+01
+  t=0.8000: ||omega||_inf=6.3644e+01
+  t=1.2000: ||omega||_inf=6.2071e+01
+  t=1.6000: ||omega||_inf=5.8434e+01
+  t=2.0000: ||omega||_inf=6.0203e+01
+  t=2.4000: ||omega||_inf=5.6595e+01
+  t=2.8000: ||omega||_inf=5.7904e+01
+  t=3.2000: ||omega||_inf=5.5592e+01
+  t=3.6000: ||omega||_inf=5.2954e+01
+  t=4.0000: ||omega||_inf=5.5064e+01
+  t=4.4000: ||omega||_inf=5.6053e+01
+  t=4.8000: ||omega||_inf=5.3390e+01
+  t=5.2000: ||omega||_inf=5.5511e+01
+  t=5.6000: ||omega||_inf=5.4408e+01
+  t=6.0000: ||omega||_inf=5.6771e+01
+  t=6.4000: ||omega||_inf=5.6360e+01
+  t=6.8000: ||omega||_inf=5.5699e+01
+  t=7.2000: ||omega||_inf=5.8394e+01
+  t=7.6000: ||omega||_inf=5.4114e+01
+  t=8.0000: ||omega||_inf=5.9301e+01
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: spectral
+Grid: 64  64 = 4096 points
+Snapshots: 9 at times [0.000 - 2.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.591549e+02 s
+   Mean |ω|: 3.361766e-01 s
+   RMS ω: 1.761693e+00 s
+
+Energy Metrics:
+   Initial KE: 0.000000e+00 J/kg
+   Final KE: 4.121921e+00 J/kg
+   Energy decay: 0.00 %
+   Initial enstrophy: 3.092077e+02 s
+   Final enstrophy: 1.396474e+02 s
+
+Velocity Metrics:
+   Peak |u|: 3.516982e+00 m/s
+   Peak |v|: 3.516993e+00 m/s
+   Peak speed: 3.791436e+00 m/s
+   Mean speed: 1.325459e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 3.885665e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 0.3783 (1.0=perfect)
+   Dissipation rate: 4.688377e+00
+
+
+  Peak vorticity: 1.5915e+02
+  Energy decay: -Inf%
+  Final enstrophy: 1.3965e+02
+
+Testing finite_volume method...
+[Dispatcher] Routing to Finite Volume method
+[Finite Volume] Grid: 64x64, dx=0.1562, RK3 + MUSCL + Roe
+  t=0.000: ||ω||_=1.7589e+05
+  t=0.000: ||ω||_=1.1087e+08
+  t=0.000: ||ω||_=6.9851e+10
+  t=0.000: ||ω||_=4.4008e+13
+  t=0.000: ||ω||_=2.7726e+16
+  t=0.000: ||ω||_=1.7468e+19
+  t=0.000: ||ω||_=1.1005e+22
+  t=0.000: ||ω||_=6.9334e+24
+  t=0.000: ||ω||_=4.3682e+27
+  t=0.000: ||ω||_=2.7520e+30
+  t=0.000: ||ω||_=1.7338e+33
+  t=0.000: ||ω||_=1.0924e+36
+  t=0.000: ||ω||_=6.8821e+38
+  t=0.000: ||ω||_=4.3358e+41
+  t=0.000: ||ω||_=2.7317e+44
+  t=0.000: ||ω||_=1.7210e+47
+  t=0.000: ||ω||_=1.0843e+50
+  t=0.000: ||ω||_=6.8311e+52
+  t=0.000: ||ω||_=4.3037e+55
+  t=0.000: ||ω||_=2.7114e+58
+  t=0.000: ||ω||_=1.7083e+61
+  t=0.000: ||ω||_=1.0762e+64
+  t=0.000: ||ω||_=6.7805e+66
+  t=0.000: ||ω||_=4.2719e+69
+  t=0.000: ||ω||_=2.6914e+72
+  t=0.000: ||ω||_=1.6956e+75
+  t=0.000: ||ω||_=1.0683e+78
+  t=0.000: ||ω||_=6.7303e+80
+  t=0.000: ||ω||_=4.2403e+83
+  t=0.000: ||ω||_=2.6714e+86
+  t=0.000: ||ω||_=1.6831e+89
+  t=0.000: ||ω||_=1.0604e+92
+  t=0.000: ||ω||_=6.6805e+94
+  t=0.000: ||ω||_=4.2089e+97
+  t=0.000: ||ω||_=2.6517e+100
+  t=0.000: ||ω||_=1.6706e+103
+  t=0.000: ||ω||_=1.0525e+106
+  t=0.000: ||ω||_=6.6311e+108
+  t=0.000: ||ω||_=4.1777e+111
+  t=0.000: ||ω||_=2.6320e+114
+  t=0.000: ||ω||_=1.6582e+117
+  t=0.000: ||ω||_=1.0447e+120
+  t=0.000: ||ω||_=6.5820e+122
+  t=0.000: ||ω||_=4.1468e+125
+  t=0.000: ||ω||_=2.6125e+128
+  t=0.000: ||ω||_=1.6460e+131
+  t=0.000: ||ω||_=1.0370e+134
+  t=0.000: ||ω||_=6.5332e+136
+  t=0.000: ||ω||_=4.1161e+139
+  t=0.000: ||ω||_=2.5932e+142
+  t=0.000: ||ω||_=1.6338e+145
+  t=0.000: ||ω||_=1.0293e+148
+  t=0.000: ||ω||_=6.4849e+150
+  t=0.000: ||ω||_=4.0856e+153
+  t=0.060: ||ω||_=NaN
+  t=0.160: ||ω||_=NaN
+  t=0.260: ||ω||_=NaN
+  t=0.360: ||ω||_=NaN
+  t=0.460: ||ω||_=NaN
+  t=0.560: ||ω||_=NaN
+  t=0.660: ||ω||_=NaN
+  t=0.760: ||ω||_=NaN
+  t=0.860: ||ω||_=NaN
+  t=0.960: ||ω||_=NaN
+  t=1.060: ||ω||_=NaN
+  t=1.160: ||ω||_=NaN
+  t=1.260: ||ω||_=NaN
+  t=1.360: ||ω||_=NaN
+  t=1.460: ||ω||_=NaN
+  t=1.560: ||ω||_=NaN
+  t=1.660: ||ω||_=NaN
+  t=1.760: ||ω||_=NaN
+  t=1.860: ||ω||_=NaN
+  t=1.960: ||ω||_=NaN
+[Warning: [METRICS] final_kinetic_energy is NaN or Inf!] 
+[> In extract_unified_metrics (line 181)
+In Finite_Volume_Analysis (line 105)
+In run_simulation_with_method (line 88)
+In COMPREHENSIVE_TEST_SUITE (line 79)] 
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: finite_volume
+Grid: 64  64 = 4096 points
+Snapshots: 9 at times [0.000 - 2.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.591549e+02 s
+   Mean |ω|: NaN s
+   RMS ω: NaN s
+
+Energy Metrics:
+   Initial KE: 7.178407e+03 J/kg
+   Final KE: NaN J/kg
+   Energy decay: NaN %
+   Initial enstrophy: 3.092077e+02 s
+   Final enstrophy: NaN s
+
+Velocity Metrics:
+   Peak |u|: 1.774186e+02 m/s
+   Peak |v|: 1.774186e+02 m/s
+   Peak speed: 2.509078e+02 m/s
+   Mean speed: NaN m/s
+
+Sustainability Metrics:
+   Circulation: NaN
+   Circulation decay: NaN %
+   Sustainability index: NaN (1.0=perfect)
+   Dissipation rate: NaN
+
+
+  Peak vorticity: 1.5915e+02
+  Energy decay: NaN%
+  Final enstrophy: NaN
+
+[TEST 3] ENERGY CONSERVATION (Inviscid Case)
+=============================================
+
+Method: finite_difference (inviscid)
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [-1.9982, 1.9982]
+FD |   0.50% | t = 0.010 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |   5.00% | t = 0.100 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  10.00% | t = 0.200 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  15.00% | t = 0.300 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  20.00% | t = 0.400 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  25.00% | t = 0.500 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  30.00% | t = 0.600 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  35.00% | t = 0.700 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  40.00% | t = 0.800 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  45.00% | t = 0.900 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  50.00% | t = 1.000 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  55.00% | t = 1.100 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  60.00% | t = 1.200 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  65.00% | t = 1.300 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  70.00% | t = 1.400 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  75.00% | t = 1.500 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  80.00% | t = 1.600 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  85.00% | t = 1.700 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  90.00% | t = 1.800 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD |  95.00% | t = 1.900 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+FD | 100.00% | t = 2.000 / 2.000 s | Nx = 64 Ny = 64 | nu = 1.000e-08 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = taylor_green | ic_coeff = N/A
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 64  64 = 4096 points
+Snapshots: 20 at times [0.000 - 2.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 2.906401e+00 s
+   Mean |ω|: 8.702727e-01 s
+   RMS ω: 1.066212e+00 s
+
+Energy Metrics:
+   Initial KE: 2.796353e+02 J/kg
+   Final KE: 2.849907e+02 J/kg
+   Energy decay: -1.92 %
+   Initial enstrophy: 5.865919e+01 s
+   Final enstrophy: 5.865916e+01 s
+
+Velocity Metrics:
+   Peak |u|: 4.180863e+00 m/s
+   Peak |v|: 4.462137e+00 m/s
+   Peak speed: 4.462154e+00 m/s
+   Mean speed: 2.163658e+00 m/s
+
+Sustainability Metrics:
+   Circulation: -1.360855e-15
+   Circulation decay: 0.00 %
+   Sustainability index: 1.4545 (1.0=perfect)
+   Dissipation rate: 9.738299e-04
+
+
+  Max energy change: 1.915%
+   Energy well-conserved
+
+Method: spectral (inviscid)
+[Dispatcher] Routing to Spectral (FFT) method
+[Spectral] FFT Pseudospectral RK4, Grid: 64x64, dt=0.0100, nu=1.000000e-08
+  t=0.4000: ||omega||_inf=2.0357e+00
+  t=0.8000: ||omega||_inf=2.0334e+00
+  t=1.2000: ||omega||_inf=2.0322e+00
+  t=1.6000: ||omega||_inf=2.0326e+00
+  t=2.0000: ||omega||_inf=2.0151e+00
+  t=2.4000: ||omega||_inf=2.0281e+00
+  t=2.8000: ||omega||_inf=2.0358e+00
+  t=3.2000: ||omega||_inf=2.0726e+00
+  t=3.6000: ||omega||_inf=2.1029e+00
+  t=4.0000: ||omega||_inf=2.2081e+00
+  t=4.4000: ||omega||_inf=2.2726e+00
+  t=4.8000: ||omega||_inf=2.3287e+00
+  t=5.2000: ||omega||_inf=2.3179e+00
+  t=5.6000: ||omega||_inf=2.3217e+00
+  t=6.0000: ||omega||_inf=2.2549e+00
+  t=6.4000: ||omega||_inf=2.2909e+00
+  t=6.8000: ||omega||_inf=2.2037e+00
+  t=7.2000: ||omega||_inf=2.2489e+00
+  t=7.6000: ||omega||_inf=2.2949e+00
+  t=8.0000: ||omega||_inf=2.3560e+00
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: spectral
+Grid: 64  64 = 4096 points
+Snapshots: 2 at times [0.000 - 2.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 2.015144e+00 s
+   Mean |ω|: 7.498245e-01 s
+   RMS ω: 9.498715e-01 s
+
+Energy Metrics:
+   Initial KE: 0.000000e+00 J/kg
+   Final KE: 3.121606e+01 J/kg
+   Energy decay: 0.00 %
+   Initial enstrophy: 4.513454e+01 s
+   Final enstrophy: 4.509105e+01 s
+
+Velocity Metrics:
+   Peak |u|: 1.496854e+00 m/s
+   Peak |v|: 1.495287e+00 m/s
+   Peak speed: 1.498235e+00 m/s
+   Mean speed: 3.569660e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 7.052492e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.0076 (1.0=perfect)
+   Dissipation rate: 7.756080e-05
+
+
+  Max energy change: Inf%
+   Energy change exceeds 5% - check CFL
+
+[TEST 4] BATHYMETRY FORCING
+===========================
+[Dispatcher] Routing to Variable Bathymetry method
+  FAILED: Error: File: C:\Users\Apoll\OneDrive - University College London\Git\MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces\Scripts\Methods\Variable_Bathymetry_Analysis.m Line: 203 Column: 39
+ Invalid array indexing.
+
+[TEST 5] STABILITY & CFL ADAPTATION
+====================================
+
+Testing dt=0.01000 (CFL0.005)...
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 0.9966]
+FD |   1.00% | t = 0.010 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 128  128 = 16384 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.025726e+00 s
+   Mean |ω|: 4.882992e-02 s
+   RMS ω: 1.563651e-01 s
+
+Energy Metrics:
+   Initial KE: 1.961434e+01 J/kg
+   Final KE: 1.958996e+01 J/kg
+   Energy decay: 0.12 %
+   Initial enstrophy: 1.241815e+00 s
+   Final enstrophy: 1.241857e+00 s
+
+Velocity Metrics:
+   Peak |u|: 1.785937e+00 m/s
+   Peak |v|: 1.587500e+00 m/s
+   Peak speed: 1.796928e+00 m/s
+   Mean speed: 4.973449e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 4.960198e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.0292 (1.0=perfect)
+   Dissipation rate: 1.843271e-04
+
+
+  Status:  STABLE
+
+Testing dt=0.00100 (CFL0.001)...
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 0.9966]
+FD |   0.10% | t = 0.001 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-03 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 128  128 = 16384 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.026592e+00 s
+   Mean |ω|: 4.882987e-02 s
+   RMS ω: 1.563639e-01 s
+
+Energy Metrics:
+   Initial KE: 1.961434e+01 J/kg
+   Final KE: 1.964307e+01 J/kg
+   Energy decay: -0.15 %
+   Initial enstrophy: 1.241815e+00 s
+   Final enstrophy: 1.241803e+00 s
+
+Velocity Metrics:
+   Peak |u|: 1.785937e+00 m/s
+   Peak |v|: 1.587500e+00 m/s
+   Peak speed: 1.805809e+00 m/s
+   Mean speed: 4.965609e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 4.960168e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.0301 (1.0=perfect)
+   Dissipation rate: 1.810214e-04
+
+
+  Status:  STABLE
+
+Testing dt=0.00010 (CFL0.000)...
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 0.9966]
+FD |   0.01% | t = 0.000 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 128 Ny = 128 | nu = 1.000e-06 m^2/s | dt = 1.000e-04 s | delta = 2.000e+00 m | IC = stretched_gaussian | ic_coeff = [2 0.2]
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 128  128 = 16384 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.026531e+00 s
+   Mean |ω|: 4.882986e-02 s
+   RMS ω: 1.563641e-01 s
+
+Energy Metrics:
+   Initial KE: 1.961434e+01 J/kg
+   Final KE: 1.956719e+01 J/kg
+   Energy decay: 0.24 %
+   Initial enstrophy: 1.241815e+00 s
+   Final enstrophy: 1.241813e+00 s
+
+Velocity Metrics:
+   Peak |u|: 1.736328e+00 m/s
+   Peak |v|: 1.587500e+00 m/s
+   Peak speed: 1.742695e+00 m/s
+   Mean speed: 4.970683e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 4.960176e+00
+   Circulation decay: -0.00 %
+   Sustainability index: 1.0300 (1.0=perfect)
+   Dissipation rate: 1.807562e-04
+
+
+  Status:  STABLE
+
+[TEST 6] PARALLEL SWEEP EFFICIENCY
+===================================
+Testing parameter sweep with 3 viscosity values...
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 1.0000]
+FD |   1.00% | t = 0.010 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-05 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 64  64 = 4096 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.226022e+00 s
+   Mean |ω|: 8.632537e-03 s
+   RMS ω: 8.837912e-02 s
+
+Energy Metrics:
+   Initial KE: 1.599295e+00 J/kg
+   Final KE: 1.599682e+00 J/kg
+   Energy decay: -0.02 %
+   Initial enstrophy: 4.031242e-01 s
+   Final enstrophy: 4.029790e-01 s
+
+Velocity Metrics:
+   Peak |u|: 8.859375e-01 m/s
+   Peak |v|: 8.982422e-01 m/s
+   Peak speed: 9.286575e-01 m/s
+   Mean speed: 1.151770e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 8.063103e-01
+   Circulation decay: -0.01 %
+   Sustainability index: 1.1840 (1.0=perfect)
+   Dissipation rate: 2.856186e-02
+
+
+  ν=1e-05: Completed
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 1.0000]
+FD |   1.00% | t = 0.010 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-04 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 64  64 = 4096 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.221272e+00 s
+   Mean |ω|: 8.618713e-03 s
+   RMS ω: 8.825615e-02 s
+
+Energy Metrics:
+   Initial KE: 1.599295e+00 J/kg
+   Final KE: 1.624229e+00 J/kg
+   Energy decay: -1.56 %
+   Initial enstrophy: 4.031242e-01 s
+   Final enstrophy: 4.007153e-01 s
+
+Velocity Metrics:
+   Peak |u|: 8.982422e-01 m/s
+   Peak |v|: 8.982422e-01 m/s
+   Peak speed: 9.419317e-01 m/s
+   Mean speed: 1.160746e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 8.062262e-01
+   Circulation decay: 0.00 %
+   Sustainability index: 1.1780 (1.0=perfect)
+   Dissipation rate: 2.811013e-01
+
+
+  ν=1e-04: Completed
+[Dispatcher] Routing to Finite Difference method
+[FD SOLVER] WARNING: Parameters.omega not found, computing from IC type
+[FD SOLVER] Computed omega from IC: range [0.0000, 1.0000]
+FD |   1.00% | t = 0.010 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |   5.00% | t = 0.050 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  10.00% | t = 0.100 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  15.00% | t = 0.150 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  20.00% | t = 0.200 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  25.00% | t = 0.250 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  30.00% | t = 0.300 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  35.00% | t = 0.350 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  40.00% | t = 0.400 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  45.00% | t = 0.450 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  50.00% | t = 0.500 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  55.00% | t = 0.550 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  60.00% | t = 0.600 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  65.00% | t = 0.650 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  70.00% | t = 0.700 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  75.00% | t = 0.750 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  80.00% | t = 0.800 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  85.00% | t = 0.850 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  90.00% | t = 0.900 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD |  95.00% | t = 0.950 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+FD | 100.00% | t = 1.000 / 1.000 s | Nx = 64 Ny = 64 | nu = 1.000e-03 m^2/s | dt = 1.000e-02 s | delta = 2.000e+00 m | IC = rankine | ic_coeff = N/A
+[FD] Unified metrics extraction complete: 35 metrics loaded
+
+
+               SIMULATION METRICS EXTRACTION SUMMARY        
+
+Method: FD + Arakawa + RK4
+Grid: 64  64 = 4096 points
+Snapshots: 5 at times [0.000 - 1.000] s
+
+Vorticity Metrics:
+   Peak |ω|: 1.168520e+00 s
+   Mean |ω|: 8.477237e-03 s
+   RMS ω: 8.716837e-02 s
+
+Energy Metrics:
+   Initial KE: 1.599295e+00 J/kg
+   Final KE: 1.593080e+00 J/kg
+   Energy decay: 0.39 %
+   Initial enstrophy: 4.031242e-01 s
+   Final enstrophy: 3.816696e-01 s
+
+Velocity Metrics:
+   Peak |u|: 8.797852e-01 m/s
+   Peak |v|: 8.859375e-01 m/s
+   Peak speed: 9.266377e-01 m/s
+   Mean speed: 1.156649e-01 m/s
+
+Sustainability Metrics:
+   Circulation: 8.062499e-01
+   Circulation decay: -0.00 %
+   Sustainability index: 1.1120 (1.0=perfect)
+   Dissipation rate: 2.411309e+00
+
+
+  ν=1e-03: Completed
+Total sweep time: 23.01 seconds
+
+
+================================================================================
+TEST SUMMARY
+================================================================================
+
+ Convergence Study: Grid refinement analysis complete
+ Method Comparison: FD vs Spectral vs FV tested
+ Energy Conservation: Stability verified
+ Bathymetry Forcing: Topography effects included
+ CFL Stability: Multiple timesteps tested
+ Parallel Efficiency: Sweep mode operational
+
+Convergence Results:
+          method            N     peak_vorticity    final_ke
+    ___________________    ___    ______________    ________
+
+    "finite_difference"     32       0.99105         20.903 
+    "finite_difference"     64       0.99856         20.324 
+    "finite_difference"    128        1.0257          19.59 
+    "spectral"              32         1.041        0.22831 
+    "spectral"              64        1.1558        0.18318 
+    "spectral"             128        1.2023        0.16153 
+
+
+Method Comparison:
+          method           peak_vorticity    energy_decay_pct    final_enstrophy
+    ___________________    ______________    ________________    _______________
+
+    "finite_difference"        0.2928            -1.6417            0.004313    
+    "spectral"                 159.15               -Inf              139.65    
+    "finite_volume"            159.15                NaN                 NaN    
+
+
+================================================================================
+ALL TESTS COMPLETED
+================================================================================

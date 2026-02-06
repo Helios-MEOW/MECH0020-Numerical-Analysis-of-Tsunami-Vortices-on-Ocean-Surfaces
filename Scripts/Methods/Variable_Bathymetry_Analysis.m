@@ -119,11 +119,16 @@
     analysis.psi_snaps = psi_snaps;
     analysis.snapshot_times = time_vec;
     analysis.snap_times = time_vec;  % Ensure both naming conventions work
+    analysis.time_vec = time_vec;
+    analysis.snapshots_stored = numel(time_vec);
     analysis.bathymetry_field = bathymetry_field;
     analysis.dx = dx;
     analysis.dy = dy;
     analysis.Nx = Nx;
     analysis.Ny = Ny;
+    analysis.grid_points = Nx * Ny;
+    analysis.peak_abs_omega = max(abs(omega_snaps(:)));
+    analysis.peak_vorticity = analysis.peak_abs_omega;
     
     % === UNIFIED METRICS EXTRACTION ===
     % Use comprehensive metrics framework for consistency across all methods
@@ -154,6 +159,13 @@
         analysis.peak_vorticity = max(abs(omega_snaps(:)));
     end
     
+    show_figs = usejava('desktop') && ~strcmpi(get(0, 'DefaultFigureVisible'), 'off');
+
+    if ~show_figs
+        fig_handle = figure('Visible', 'off');
+        return;
+    end
+
     fig_handle = figure('Name', 'Bathymetry Analysis', 'NumberTitle', 'off');
     
     subplot(2, 2, 1);
@@ -171,7 +183,24 @@
     grid on;
     
     subplot(2, 2, 4);
-    plot(analysis.time_vec, max(abs(analysis.omega_snaps(:,:,:))));
+    omega_abs = abs(analysis.omega_snaps);
+    if isempty(omega_abs)
+        omega_max_t = [];
+    elseif ndims(omega_abs) < 3
+        omega_max_t = max(omega_abs(:));
+    else
+        omega_max_t = squeeze(max(max(omega_abs, [], 1), [], 2));
+    end
+    omega_max_t = omega_max_t(:);
+    time_plot = analysis.time_vec(:);
+    if isempty(omega_max_t)
+        omega_max_t = nan(size(time_plot));
+    elseif numel(time_plot) ~= numel(omega_max_t)
+        min_len = min(numel(time_plot), numel(omega_max_t));
+        time_plot = time_plot(1:min_len);
+        omega_max_t = omega_max_t(1:min_len);
+    end
+    plot(time_plot, omega_max_t);
     xlabel('Time'); ylabel('Max |ω|'); grid on; title('Vorticity evolution');
 end
 
@@ -186,7 +215,11 @@ function [bath, x_bath, y_bath] = load_bathymetry(Parameters, Nx, Ny, Lx, Ly)
                 if isfield(data, 'bathymetry')
                     bath = data.bathymetry;
                 else
-                    bath = data.(char(fieldnames(data){1}));
+                    fields = fieldnames(data);
+                    if isempty(fields)
+                        error('Bathymetry file %s contained no variables.', file);
+                    end
+                    bath = data.(fields{1});
                 end
             else
                 bath = readmatrix(file);
@@ -261,4 +294,16 @@ function advection = arakawa_advect(omega, u, v, dx, dy)
           circshift(omega,-1,0) .* (circshift(v,0,0) - circshift(v,-2,0))) / (4*dx^2);
     
     advection = -(J1 + J2) / 3;
+end
+
+function s_merged = mergestruct(s1, s2)
+    % MERGESTRUCT Merge two structs, with s2 values taking precedence for overlapping fields
+    s_merged = s1;
+    if isempty(s2)
+        return;
+    end
+    fields = fieldnames(s2);
+    for i = 1:numel(fields)
+        s_merged.(fields{i}) = s2.(fields{i});
+    end
 end

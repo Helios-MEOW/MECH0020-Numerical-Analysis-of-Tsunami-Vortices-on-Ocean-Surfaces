@@ -106,7 +106,7 @@
     % Energy decay (normalized by initial energy)
     analysis.energy_decay = zeros(1, Nsnap);
     if analysis.kinetic_energy(1) > 0
-        analysis.energy_decay = 1 - analysis.kinetic_energy / analysis.kinetic_energy(1);
+        analysis.energy_decay = 1 - analysis.kinetic_energy ./ analysis.kinetic_energy(1);
     end
     
     % ===== SUSTAINABILITY METRICS =====
@@ -133,19 +133,20 @@
         % Calculate circulation (integral of vorticity)
         analysis.circulation = zeros(1, Nsnap);
         for k = 1:Nsnap
-            analysis.circulation(k) = sum(omega_snaps(:,:,k)(:)) * dx * dy;
+            omega_k = omega_snaps(:,:,k);
+            analysis.circulation(k) = sum(omega_k(:)) * dx * dy;
         end
         
         % Circulation decay over simulation
         if abs(analysis.circulation(1)) > 1e-10
-            analysis.circulation_decay = 1 - abs(analysis.circulation) / abs(analysis.circulation(1));
+            analysis.circulation_decay = 1 - abs(analysis.circulation) ./ abs(analysis.circulation(1));
         else
             analysis.circulation_decay = zeros(1, Nsnap);
         end
         
         % Sustainability index: measure of structure preservation (0=lost, 1=perfect)
         % Based on how well peak vorticity is maintained
-        analysis.sustainability_index = analysis.peak_omega_history / analysis.peak_omega_history(1);
+        analysis.sustainability_index = analysis.peak_omega_history ./ analysis.peak_omega_history(1);
     else
         analysis.circulation = sum(omega_snaps(:)) * dx * dy;
         analysis.circulation_decay = 0;

@@ -93,6 +93,11 @@
     analysis.psi_snaps = psi_snaps;
     analysis.snapshot_times = time_vec;
     analysis.snap_times = time_vec;  % Ensure both naming conventions work
+    analysis.time_vec = time_vec;
+    analysis.snapshots_stored = numel(time_vec);
+    analysis.grid_points = Nx * Ny;
+    analysis.peak_abs_omega = max(abs(omega_snaps(:)));
+    analysis.peak_vorticity = analysis.peak_abs_omega;
     
     % === UNIFIED METRICS EXTRACTION ===
     % Use comprehensive metrics framework for consistency across all methods
@@ -123,6 +128,13 @@
     analysis.Nx = Nx;
     analysis.Ny = Ny;
     
+    show_figs = usejava('desktop') && ~strcmpi(get(0, 'DefaultFigureVisible'), 'off');
+
+    if ~show_figs
+        fig_handle = figure('Visible', 'off');
+        return;
+    end
+
     fig_handle = figure('Name', 'Finite Volume Analysis', 'NumberTitle', 'off');
     subplot(1, 2, 1);
     contourf(X, Y, analysis.omega_snaps(:,:,end), 20);
@@ -197,4 +209,16 @@ end
 function s = minmod(a, b)
     s = sign(a) .* max(0, min(abs(a), abs(b) .* sign(a) .* sign(b)));
     s(sign(a) ~= sign(b)) = 0;
+end
+
+function s_merged = mergestruct(s1, s2)
+    % MERGESTRUCT Merge two structs, with s2 values taking precedence for overlapping fields
+    s_merged = s1;
+    if isempty(s2)
+        return;
+    end
+    fields = fieldnames(s2);
+    for i = 1:numel(fields)
+        s_merged.(fields{i}) = s2.(fields{i});
+    end
 end

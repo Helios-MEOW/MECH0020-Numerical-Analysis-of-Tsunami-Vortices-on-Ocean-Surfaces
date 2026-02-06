@@ -147,27 +147,18 @@ MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
 **Supporting Methods Files:**
 
 **run_simulation_with_method.m** (~ 400 lines)
-- **Purpose:** Unified interface for all 4 methods
+- **Purpose:** Unified interface for all 4 methods with comprehensive metrics extraction
 - **Function Signature:**
   `matlab
-  [omega, psi, time, energy, metrics] = run_simulation_with_method(params, method_name)
+  [fig_handle, analysis] = run_simulation_with_method(Parameters)
   `
 - **Logic:**
-  - Parses method_name ('FD', 'FV', 'Spectral', 'Bathymetry')
+  - Routes to appropriate numerical solver based on Parameters.method
   - Validates parameters for that method
-  - Calls appropriate analysis function
-  - Collects metrics during evolution
-  - Returns unified data structure
-- **Key Contribution:** Abstraction layer so UI doesn't know method details
-
-**run_simulation_with_method_enhanced.m** (~ 450 lines)
-- **Purpose:** Extended version with parameter sweeps and batch processing
-- **Enhancements:**
-  - Parameter sweep capability (vary one parameter, run N simulations)
-  - Parallel execution (if Parallel Computing Toolbox available)
-  - Batch job management
-  - Result aggregation and comparison
-  - Multi-method comparison (run same IC on all 4 methods)
+  - Collects unified metrics across all methods (vorticity, energy, velocity, sustainability)
+  - Displays comprehensive metrics summary
+  - Returns figure handle and analysis struct with consistent data
+- **Key Contribution:** Unified dispatcher with consistent metrics extraction across all methods
 
 **extract_unified_metrics.m** (~ 300 lines)
 - **Purpose:** Post-processing analysis of simulation results
@@ -502,35 +493,6 @@ The utilities folder contains a cohesive "OWL Framework" for professional visual
 
 ---
 
-##  tsunami_ui/ Directory (Python Qt UI - Phase 3)
-
-Modern professional interface built on PySide6 and Matplotlib.
-
-**Project Structure:**
-`
-tsunami_ui/
- main.py                          # Entry point
- README.md                        # Phase 3 documentation
- ui/
-    main_window.py               # Main window class
-    widgets/
-       visualization_canvas.py  # Matplotlib embedding
-       parameter_panel.py       # Control widgets
-    dialogs/
-        ic_config_dialog.py      # IC configuration window
- matlab_interface/
-    engine_manager.py            # MATLAB Engine wrapper
-    data_converter.py            # Python  MATLAB type conversion
- utils/
-    latex_renderer.py            # LaTeX equation rendering
-    validators.py                # Parameter validation
-    constants.py                 # UI constants, colors
- data/
-    colormaps/                   # Professional colormaps
-    icons/                       # UI icons
- tests/
-     test_ui.py                   # Basic UI tests
-`
 
 **Phase 3 Status:** Complete
 -  3-panel professional layout

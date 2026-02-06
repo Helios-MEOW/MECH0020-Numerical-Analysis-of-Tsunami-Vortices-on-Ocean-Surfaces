@@ -21,7 +21,15 @@ function update_live_monitor(iteration, total, phase, metrics)
     monitor_data.iterations_completed = iteration;
     monitor_data.total_iterations = total;
     monitor_data.current_phase = phase;
-    elapsed_time = toc(script_start_time);
+    if isempty(script_start_time) || ~(isa(script_start_time, 'uint64') || isnumeric(script_start_time))
+        script_start_time = tic;
+    end
+    try
+        elapsed_time = toc(script_start_time);
+    catch
+        script_start_time = tic;
+        elapsed_time = toc(script_start_time);
+    end
 
     % Calculate performance metrics
     if iteration > 0

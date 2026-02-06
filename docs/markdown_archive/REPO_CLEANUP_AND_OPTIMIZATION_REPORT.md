@@ -12,7 +12,7 @@
 - Spectral_Analysis.m - Primary method (unchanged per user)
 - Variable_Bathymetry_Analysis.m - Primary method (unchanged per user)
 - run_simulation_with_method.m - Dispatcher wrapper
-- run_simulation_with_method_enhanced.m - Enhanced dispatcher
+- run_simulation_with_method.m - Unified dispatcher (consolidated from enhanced version)
 - extract_unified_metrics.m - Post-processing utility
 - mergestruct.m - Struct utility (name conflicts: check if used elsewhere)
 
@@ -65,8 +65,9 @@
 1. **IC Factory**: Inlined in UIController.m; ic_factory.m is reference-only
    - Recommendation: Keep ic_factory.m as documentation; consider moving ic_factory logic to Methods or Infrastructure if needed for Analysis.m direct calls
    
-2. **Method Dispatchers**: run_simulation_with_method.m vs run_simulation_with_method_enhanced.m
-   - Recommendation: Unify into single dispatcher with optional 'enhanced' parameter
+## UNIFIED: Method Dispatchers
+   - **Status**: RESOLVED - run_simulation_with_method_enhanced.m has been merged into run_simulation_with_method.m
+   - Both versions now consolidated into single dispatcher with comprehensive metrics extraction
    - Status: Kept separate per user's "do not modify method scripts" constraint
 
 3. **Validation Logic**: validate_simulation_parameters.m used by Analysis.m
@@ -108,7 +109,10 @@ UIController.m depends on:
 
 [ ] 1. Review AdaptiveConvergenceAgent.m - mark as primary or secondary
 [ ] 2. Consolidate plotting utilities (Plot_Format.m + Plot_Format_And_Save.m + Plot_Saver.m)
-[ ] 3. Verify run_simulation_with_method_enhanced.m vs run_simulation_with_method.m difference
+[x] 3. Verified and unified run_simulation_with_method.m vs run_simulation_with_method_enhanced.m
+   - Enhanced version merged into base version
+   - Enhanced file deleted after consolidation
+   - Metrics extraction now unified across all methods
 [ ] 4. Add optional feature flags for Sustainability/* in Analysis.m
 [ ] 5. Rename utilities/ -> utilities_plotting/ or add module prefixes
 [ ] 6. Document method dispatcher flow and convergence study workflow
