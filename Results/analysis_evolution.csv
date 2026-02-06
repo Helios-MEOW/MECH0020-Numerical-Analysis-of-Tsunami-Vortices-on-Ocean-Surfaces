@@ -1,6 +1,0 @@
-run_ok,method,Nx,Ny,grid_points,nu,dt,Tfinal,ic_type,delta,ic_coeff,wall_time_s,cpu_time_s,mem_used_MB,mem_max_possible_MB,poisson_matrix_nnz,poisson_matrix_n,rhs_calls,poisson_solves,setup_wall_time_s,solve_wall_time_s,error_id,error_message,peak_abs_omega,enstrophy,peak_u,peak_v,peak_speed,convergence_metric,timestamp
-NaN,,NaN,NaN,NaN,NaN,NaN,NaN,,NaN,,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,,,NaN,NaN,NaN,NaN,NaN,NaN,NaT
-NaN,,NaN,NaN,NaN,NaN,NaN,NaN,,NaN,,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,,,NaN,NaN,NaN,NaN,NaN,NaN,NaT
-0,,128,128,16384,1e-06,0.01,8,stretched_gaussian,2,[2 0.2],51.0169713,270.96875,5592.14453125,20329.08984375,NaN,NaN,NaN,NaN,NaN,NaN,MATLAB:mir_paren_index_must_be_last,Error: File: C:\Users\Apoll\OneDrive - University College London\Git\MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces\Scripts\Methods\extract_unified_metrics.m Line: 136 Column: 43,NaN,NaN,NaN,NaN,NaN,NaN,NaT
-NaN,,NaN,NaN,NaN,NaN,NaN,NaN,,NaN,,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,,,NaN,NaN,NaN,NaN,NaN,NaN,NaT
-1,FD + Arakawa + RK4,128,128,16384,1e-06,0.01,8,stretched_gaussian,2,[2 0.2],54.0946292,249.71875,6333.48046875,17708.328125,81920,16384,3200,3200,0.0027165,45.8230811,,,1.17261984333285,1.24192048013758,1.934765625,1.984375,2.05804179774361,NaN,05-Feb-2026 23:28:32
