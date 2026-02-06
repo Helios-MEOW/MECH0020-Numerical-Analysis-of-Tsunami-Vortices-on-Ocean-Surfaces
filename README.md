@@ -116,11 +116,13 @@ Settings = Default_Settings();
 **Best for**: Production runs, batch jobs, automated workflows, CI/CD
 
 ### Editing Defaults
-All user-editable defaults are in `Scripts/Editable/`:
-- `Default_FD_Parameters.m` - Physics and numerics
-- `Default_Settings.m` - IO, logging, monitoring
+All user-editable configuration is in `Scripts/Config/`:
+- **`default_parameters.m`** - Physics and numerics (unified for all methods)
+- **`user_settings.m`** - IO, logging, monitoring (mode-aware)
+- `Default_FD_Parameters.m` - (Legacy - kept for compatibility)
+- `Default_Settings.m` - (Legacy - kept for compatibility)
 
-No need to search core solvers to change defaults.
+See `Scripts/Config/README.md` for comprehensive configuration guide.
 
 ## FD Modes (Fixed Set - MECH0020 Spec)
 
@@ -235,33 +237,133 @@ Settings.data_source = 'Data/Output/FD/Evolution/FD_Evol_LambOseen_20240206_1430
 ```
 MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
 ├── Scripts/
-│   ├── Drivers/               # Entry points (Analysis.m, run_adaptive_convergence.m)
-│   ├── Solvers/
-│   │   └── FD/               # Finite difference solver kernels
-│   ├── Plotting/             # Visualization functions
-│   ├── Infrastructure/       # Shared utilities (metrics, logging, IO)
-│   ├── Editable/             # User-editable defaults
-│   ├── UI/                   # MATLAB UI components (3-tab interface)
-│   └── Sustainability/       # Performance and energy monitoring
+│   ├── Drivers/                      # Entry points and orchestration
+│   │   ├── Analysis.m               # Main entry point (UI or Standard mode)
+│   │   ├── run_adaptive_convergence.m
+│   │   ├── ModeDispatcher.m
+│   │   └── run_simulation_with_method.m
+│   ├── Methods/                      # Method-specific implementations
+│   │   └── FiniteDifference/        # FD solver kernels and modes
+│   │       ├── Finite_Difference_Analysis.m
+│   │       ├── FD_Evolution_Mode.m
+│   │       ├── FD_Convergence_Mode.m
+│   │       ├── FD_ParameterSweep_Mode.m
+│   │       └── FD_Plotting_Mode.m
+│   ├── Config/                       # Configuration (USER-EDITABLE)
+│   │   ├── default_parameters.m     # Unified physics/numerics defaults
+│   │   ├── user_settings.m          # Unified operational settings
+│   │   ├── Default_FD_Parameters.m  # (Legacy - kept for compatibility)
+│   │   ├── Default_Settings.m       # (Legacy - kept for compatibility)
+│   │   ├── Build_Run_Config.m
+│   │   ├── Build_Run_Status.m
+│   │   └── validate_simulation_parameters.m
+│   ├── IO/                           # Input/output and persistence
+│   │   ├── PathBuilder.m
+│   │   ├── ResultsPersistence.m
+│   │   ├── RunIDGenerator.m
+│   │   ├── MasterRunsTable.m
+│   │   ├── ReportGenerator.m
+│   │   └── initialize_directory_structure.m
+│   ├── Grid/                         # Grid generation and initial conditions
+│   │   ├── ic_factory.m
+│   │   ├── initialise_omega.m
+│   │   └── disperse_vortices.m
+│   ├── Metrics/                      # Diagnostics and convergence metrics
+│   │   ├── MetricsExtractor.m
+│   │   └── extract_unified_metrics.m
+│   ├── Plotting/                     # Visualization and figure formatting
+│   │   ├── Plot_Format.m
+│   │   ├── Plot_Saver.m
+│   │   ├── Plot_Defaults.m
+│   │   ├── Plot_Format_And_Save.m
+│   │   ├── Legend_Format.m
+│   │   └── create_live_monitor_dashboard.m
+│   ├── Utils/                        # Generic utility functions
+│   │   ├── HelperUtils.m
+│   │   ├── ConsoleUtils.m
+│   │   ├── mergestruct.m
+│   │   ├── display_function_instructions.m
+│   │   └── estimate_data_density.m
+│   ├── UI/                           # MATLAB UI components (3-tab interface)
+│   │   ├── UIController.m
+│   │   ├── MonitorInterface.m
+│   │   └── OWL_UtilitiesGuideApp.mlapp
+│   ├── Sustainability/               # Performance and energy monitoring
+│   │   ├── EnergySustainabilityAnalyzer.m
+│   │   ├── HardwareMonitorBridge.m
+│   │   ├── iCUEBridge.m
+│   │   └── update_live_monitor.m
+│   └── Solvers/                      # Other solver implementations
+│       ├── Spectral_Analysis.m      # (Future method)
+│       ├── Finite_Volume_Analysis.m # (Future method)
+│       └── Variable_Bathymetry_Analysis.m
 ├── Data/
-│   ├── Input/                # Reference data, initial conditions
-│   └── Output/               # Generated results (gitignored)
-│       └── FD/
-│           ├── Evolution/
-│           ├── Convergence/
-│           ├── ParameterSweep/
-│           └── Plotting/
-├── tests/                    # Test suite
-│   ├── Run_All_Tests.m       # Master test runner
-│   └── Test_Cases.m          # Test case definitions
-├── docs/                     # Documentation
-│   ├── User_Guide.md
-│   ├── Developer_Guide.md
-│   └── API_Reference.md
-└── utilities/                # Python auxiliary tools (APIs, sensors, utilities)
+│   ├── Input/                        # Reference data, initial conditions
+│   └── Output/                       # Generated results (gitignored)
+├── Results/                          # Organized run outputs (gitignored)
+│   └── FD/
+│       ├── Evolution/
+│       ├── Convergence/
+│       ├── ParameterSweep/
+│       └── Plotting/
+├── tests/                            # Test suite
+│   ├── Run_All_Tests.m              # Master test runner
+│   └── test_*.m                     # Individual test files
+├── Docs/
+│   └── Extra/                        # Extended documentation
+│       ├── 01_ARCHITECTURE/
+│       ├── 02_DESIGN/
+│       ├── 03_NOTEBOOKS/
+│       └── markdown_archive/
+└── README.md                         # This file
 ```
 
+**Key Changes in February 2026 Reorganization:**
+- **Focused directories**: Replaced broad "Infrastructure" with specific subdirectories (Config, IO, Grid, Metrics, Utils)
+- **Method isolation**: FD solver moved to `Scripts/Methods/FiniteDifference/` for clear separation
+- **Unified configuration**: `Scripts/Config/default_parameters.m` and `user_settings.m` are single sources of truth
+- **Clean root**: Extra documentation moved to `Docs/Extra/`, keeping only README at root
+- **Utilities consolidated**: All plotting utilities now in `Scripts/Plotting/`
+
 ## Configuration
+
+### Unified Configuration System (February 2026)
+
+**All user-editable defaults are in `Scripts/Config/`**:
+
+1. **`default_parameters.m`** - Physics and numerics (single source of truth)
+2. **`user_settings.m`** - Operational settings (IO, logging, plotting)
+
+**Basic usage:**
+```matlab
+% Load defaults for your method
+params = default_parameters('FD');      % Finite Difference
+settings = user_settings('Standard');   % Standard/CLI mode
+
+% Override as needed
+params.Nx = 256;
+params.Tfinal = 2.0;
+settings.save_figures = false;
+
+% Validate before running
+validate_simulation_parameters(params, settings);
+```
+
+**Method-specific defaults:**
+```matlab
+params = default_parameters('FD');        % Finite Difference
+params = default_parameters('Spectral');  % Spectral method
+params = default_parameters('FV');        % Finite Volume
+```
+
+**Mode-specific settings:**
+```matlab
+settings = user_settings('UI');          % UI mode
+settings = user_settings('Standard');    % Standard/CLI mode
+settings = user_settings('Convergence'); % Convergence study
+```
+
+See `Scripts/Config/README.md` for detailed configuration guide.
 
 ### UI Mode Configuration
 Done through the graphical 3-tab interface - self-explanatory tabs guide you through:
@@ -269,37 +371,13 @@ Done through the graphical 3-tab interface - self-explanatory tabs guide you thr
 - Tab 2: Live monitoring during execution
 - Tab 3: Results browsing and analysis
 
-### Standard Mode Configuration
-Edit parameters directly in `Scripts/Drivers/Analysis.m` or use struct builders:
-
-**Grid & Domain**:
+### Legacy Configuration (Maintained for Compatibility)
+If you have existing code using:
 ```matlab
-Parameters.Nx = 128;           % Grid points in x
-Parameters.Ny = 128;           % Grid points in y
-Parameters.Lx = 20.0;          % Domain size x
-Parameters.Ly = 20.0;          % Domain size y
+Parameters = Default_FD_Parameters();
+Settings = Default_Settings();
 ```
-
-**Time Integration**:
-```matlab
-Parameters.dt = 0.01;          % Time step
-Parameters.Tfinal = 10.0;      % Final time
-Parameters.nu = 1e-4;          % Viscosity
-```
-
-**Physics & Initial Conditions**:
-```matlab
-Parameters.ic_type = 'Lamb-Oseen';  % or 'Gaussian', 'Double-Vortex'
-Parameters.ic_coeff1 = 1.0;    % Circulation Gamma
-Parameters.ic_coeff2 = 1.0;    % Core radius a
-```
-
-**Output & Logging**:
-```matlab
-Settings.snap_times = [0, 2, 5, 10];  % Times to save snapshots
-Settings.figure_dir = 'Data/Output/FD/Evolution/';
-Settings.results_dir = 'Data/Output/FD/Evolution/';
-```
+This still works! The old files are kept for backward compatibility.
 
 ## Convergence Criterion
 Convergence uses vorticity-derived features (e.g., peak |ω| or enstrophy) across grid refinements. The adaptive agent uses bracketing and binary refinement inside `Scripts/Drivers/AdaptiveConvergenceAgent.m`.
@@ -481,6 +559,16 @@ If you use this code in your research, please cite:
 [[REF NEEDED: Navier-Stokes vorticity formulation]]
 [[REF NEEDED: Arakawa Jacobian scheme]]
 [[REF NEEDED: RK3-SSP time integration]]
+
+## Additional Documentation
+
+Extended documentation is available in `Docs/Extra/`:
+- **Architecture**: `Docs/Extra/01_ARCHITECTURE/` - Framework design and OWL patterns
+- **Design Decisions**: `Docs/Extra/02_DESIGN/` - UI research and redesign plans
+- **Notebooks**: `Docs/Extra/03_NOTEBOOKS/` - Jupyter notebooks and guides
+- **Archive**: `Docs/Extra/markdown_archive/` - Historical development documentation
+- **Agent Spec**: `Docs/Extra/MECH0020_COPILOT_AGENT_SPEC.md` - Agent instructions
+- **Completion Reports**: Various implementation and cleanup summaries
 
 ## Contact
 

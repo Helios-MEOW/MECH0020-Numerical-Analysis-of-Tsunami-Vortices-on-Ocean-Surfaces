@@ -15,6 +15,9 @@ diary
 chat.json
 comprehensive_test_log.txt
 
+# Release/Build artifacts
+utilities/release/
+
 # Python cache
 __pycache__/
 *.pyc

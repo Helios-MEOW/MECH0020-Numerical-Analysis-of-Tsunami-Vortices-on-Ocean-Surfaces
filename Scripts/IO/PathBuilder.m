@@ -103,7 +103,7 @@ classdef PathBuilder
                 end
                 current = parent;
             end
-            % Fallback: assume Scripts/Infrastructure location
+            % Fallback: assume Scripts/IO location
             root = fullfile(fileparts(mfilename('fullpath')), '..', '..');
         end
         
