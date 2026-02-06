@@ -5,7 +5,7 @@ function Parameters = Default_FD_Parameters()
     %   Single source of default physics and numerics for FD simulations
     %   Users edit THIS FILE to change defaults (not buried in Analysis.m)
     %
-    % Location: Scripts/Editable/ (user-editable directory)
+    % Location: Scripts/Config/ (user-editable directory)
     %
     % Structure: Returns Parameters struct (physics + numerics)
     %

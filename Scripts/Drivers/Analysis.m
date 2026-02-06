@@ -13,13 +13,15 @@ repo_root = fullfile(script_dir, '..', '..');
 
 addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
 addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
-addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
-addpath(fullfile(repo_root, 'Scripts', 'Infrastructure'));
-addpath(fullfile(repo_root, 'Scripts', 'Editable'));
+addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteDifference'));
+addpath(fullfile(repo_root, 'Scripts', 'Config'));
+addpath(fullfile(repo_root, 'Scripts', 'IO'));
+addpath(fullfile(repo_root, 'Scripts', 'Grid'));
+addpath(fullfile(repo_root, 'Scripts', 'Metrics'));
 addpath(fullfile(repo_root, 'Scripts', 'UI'));
 addpath(fullfile(repo_root, 'Scripts', 'Plotting'));
 addpath(fullfile(repo_root, 'Scripts', 'Sustainability'));
-addpath(fullfile(repo_root, 'utilities'));
+addpath(fullfile(repo_root, 'Scripts', 'Utils'));
 
 % ===== MODE SELECTION =====
 % Launch UI startup dialog for mode selection
@@ -50,7 +52,7 @@ fprintf('  MECH0020 TSUNAMI VORTEX SIMULATION - STANDARD MODE\n');
 fprintf('═══════════════════════════════════════════════════════════════\n\n');
 
 % ===== BUILD CONFIGURATION =====
-% Use builder functions from Scripts/Infrastructure/
+% Use builder functions from Scripts/Config/
 
 % Run_Config: method, mode, IC
 Run_Config = Build_Run_Config('FD', 'Evolution', 'Lamb-Oseen');

@@ -44,13 +44,15 @@ repo_root = fullfile(script_dir, '..', '..');
 % Add all Scripts subdirectories to path
 addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
 addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
-addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
-addpath(fullfile(repo_root, 'Scripts', 'Infrastructure'));
-addpath(fullfile(repo_root, 'Scripts', 'Editable'));
+addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteDifference'));
+addpath(fullfile(repo_root, 'Scripts', 'Config'));
+addpath(fullfile(repo_root, 'Scripts', 'IO'));
+addpath(fullfile(repo_root, 'Scripts', 'Grid'));
+addpath(fullfile(repo_root, 'Scripts', 'Metrics'));
 addpath(fullfile(repo_root, 'Scripts', 'UI'));
 addpath(fullfile(repo_root, 'Scripts', 'Plotting'));
 addpath(fullfile(repo_root, 'Scripts', 'Sustainability'));
-addpath(fullfile(repo_root, 'utilities'));
+addpath(fullfile(repo_root, 'Scripts', 'Utils'));
 
 % ===== CREATE BASE PARAMETERS =====
 % Use create_default_parameters if available, otherwise build manually

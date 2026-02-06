@@ -5,7 +5,7 @@ function Settings = Default_Settings()
     %   Single source of default IO, UI, logging, and plotting settings
     %   Separate from Parameters (physics/numerics)
     %
-    % Location: Scripts/Editable/ (user-editable directory)
+    % Location: Scripts/Config/ (user-editable directory)
     %
     % Structure: Returns Settings struct (operational knobs)
     %
