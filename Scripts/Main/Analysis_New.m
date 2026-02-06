@@ -23,14 +23,26 @@ addpath(fullfile(repo_root, 'Scripts', 'Visuals'));
 addpath(fullfile(repo_root, 'Scripts', 'Sustainability'));
 
 % ===== MODE SELECTION =====
-% Choose run type: 'standard' or 'ui'
-run_type = 'standard';  % Change to 'ui' to launch UI mode
+% Launch UI startup dialog for mode selection
+% User can choose between UI Mode (3-tab interface) or Standard Mode (CLI)
 
-if strcmp(run_type, 'ui')
-    % UI mode - launch 3-tab interface
-    fprintf('Launching UI mode (3 tabs)...\n');
-    app = UIController();  % Will be updated to 3-tab version
-    return;
+fprintf('========================================\n');
+fprintf('MECH0020 TSUNAMI VORTEX SIMULATION\n');
+fprintf('========================================\n\n');
+
+% Launch UIController which shows startup dialog
+app = UIController();
+
+% Check if user chose traditional/standard mode
+if isappdata(0, 'ui_mode') && strcmp(getappdata(0, 'ui_mode'), 'traditional')
+    rmappdata(0, 'ui_mode');
+    fprintf('\nUser selected Standard Mode from startup dialog.\n');
+    fprintf('Running in command-line mode with dispatcher architecture.\n\n');
+    % Continue to standard mode below
+else
+    % UI mode was selected - UIController handles everything
+    fprintf('UI mode selected. Simulation runs within UI.\n');
+    return;  % Exit script, user works in UI
 end
 
 % ===== STANDARD MODE =====

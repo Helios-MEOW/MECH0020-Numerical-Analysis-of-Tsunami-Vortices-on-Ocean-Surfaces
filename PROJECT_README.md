@@ -6,7 +6,7 @@ with automated grid convergence, parameter sweeps, and computational cost loggin
 finite-volume formulations, and obstacle/bathymetry experiments.
 
 ## Key Features (MECH0020-Compliant Architecture)
-- **Single MATLAB UI**: 3-tab interface (Setup, Live Execution, Results)
+- **Single MATLAB UI**: 3-tab interface (Configuration, Live Monitor, Results)
 - **Standard Mode**: Command-line driver with dark theme monitor
 - **FD Modes**: Evolution, Convergence, ParameterSweep, Plotting (Animation is a setting)
 - **Run ID System**: Unique, parseable identifiers with recreate-from-PNG support
@@ -15,35 +15,43 @@ finite-volume formulations, and obstacle/bathymetry experiments.
 - **Directory Structure**: FD-compliant with organized Results/ tree
 - **User-Editable Defaults**: Scripts/Editable/ for easy configuration
 - **Comprehensive Testing**: Single master test runner (tests/Run_All_Tests.m)
+- **Adaptive Convergence Agent**: Learning-based mesh refinement (not a dumb grid sweep)
 
 ## Operating Modes (MECH0020-Compliant)
 
 ### UI Mode - Single MATLAB UI (3 Tabs)
 Interactive graphical interface for configuration, execution, and results analysis.
 
+**Launching UI Mode**:
 ```matlab
 cd Scripts/Main
-run('Analysis_New.m')  % Set run_type = 'ui'
+Analysis  % or Analysis_New
+% A startup dialog appears - select "🖥️ UI Mode"
 ```
 
-**Tab 1 - Setup/Configuration**:
+**3 Integrated Tabs**:
+
+**Tab 1 - Configuration** (⚙️):
 - Method selection (FD, FFT, FV)
 - Mode selection (Evolution, Convergence, ParameterSweep, Plotting)
-- Initial condition designer with preview
+- Initial condition designer with live preview
 - Grid, domain, time, and physics parameters
 - Parameter validation and CFL check
+- Ready-to-launch checklist
 
-**Tab 2 - Live Execution**:
-- Dark theme live monitor (method, mode, IC, progress)
+**Tab 2 - Live Monitor** (📊):
+- Dark theme live execution monitor
+- Real-time metrics (CFL, max|ω|, enstrophy, energy)
+- Progress tracking and ETA
 - Convergence monitor (when applicable)
-- Metrics panel (CFL, max|ω|, enstrophy, energy)
-- MATLAB terminal panel (right side, colored output)
+- Performance metrics (CPU, memory, wall time)
 
-**Tab 3 - Results**:
+**Tab 3 - Results & Figures** (📈):
 - Browse results by run ID and metadata
-- Query/filter by method, mode, IC, date/time, parameters
-- Load plots, metrics, and reports from selected run
-- "Recreate from PNG" workflow (parse filename → load config → regenerate)
+- Query/filter by method, mode, IC, date/time
+- Load plots, metrics, and reports from selected runs
+- Figure gallery with export options
+- "Recreate from PNG" workflow support
 
 **Best for**: Interactive research, parameter exploration, teaching
 
@@ -269,7 +277,16 @@ addpath(genpath('Scripts'));
 addpath('tests');
 ```
 
-### 2. Run a Simple Evolution Simulation
+### 2. Launch with Mode Selection
+```matlab
+cd Scripts/Main
+Analysis  % or Analysis_New
+% A startup dialog appears:
+%   - Select "🖥️ UI Mode" for interactive 3-tab interface
+%   - Select "📊 Standard Mode" for command-line execution
+```
+
+### 3. Standard Mode - Direct Script Usage
 ```matlab
 cd Scripts/Main
 run('Analysis_New.m')
@@ -337,69 +354,29 @@ Run_Config = Build_Run_Config('FD', 'Plotting', 'Lamb-Oseen', ...
 Parameters.plot_types = {'contours', 'streamlines'};
 [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
 ```
-   ```matlab
-   cd Scripts/Main
-   % Set use_ui_interface = true in Analysis.m (recommended)
-   Analysis
-   ```
 
-3. **A startup dialog appears** - Choose one:
-   - **🖥️ UI Mode** (Recommended for first-time users)
-     - Full graphical interface with 9 tabs
-     - Parameter validation and quick presets
-     - Live monitoring and figure export
-   - **📊 Traditional Mode** (Script-based)
-     - Edit parameters directly in Analysis.m
-     - Separate figure windows
-     - Best for batch processing
+## Parameter Configuration
 
-### Option 1: UI Mode Workflow
-1. Click **🖥️ UI Mode** in startup dialog
-2. Configure simulation across 9 tabs:
-   - **Tab 1**: Select method (FD/FV/Spectral) and mode (evolution/convergence/sweep/...)
-   - **Tab 2**: Configure initial condition (Kutz preset available)
-   - **Tab 3**: Set grid (Nx, Ny), time (dt, T), domain (Lx, Ly)
-   - **Tabs 4-5**: Convergence and sustainability settings (optional)
-3. Click **🚀 Launch Simulation**
-4. Monitor execution in **Tab 8** (Terminal Output)
-5. View results in **Tab 9** (Figures) and Results/ folder
+### Using Editable Defaults
+All user-editable defaults are in `Scripts/Editable/`:
+- `Default_FD_Parameters.m` - Physics and numerics (Nx, Ny, Lx, Ly, nu, dt, Tfinal, delta, IC type)
+- `Default_Settings.m` - IO, logging, monitoring options
 
-### Option 2: Traditional Mode Workflow
-1. Click **📊 Traditional Mode** in startup dialog (or set `use_ui_interface = false`)
-2. Edit parameters in [Scripts/Main/Analysis.m](Scripts/Main/Analysis.m):
-   ```matlab
-   run_mode = "convergence";        % evolution, convergence, sweep, animation
-   Parameters.Nx = 128;             % Grid points X
-   Parameters.Ny = 128;             % Grid points Y
-   Parameters.dt = 0.001;           % Timestep
-   Parameters.t_final = 10.0;       % Final time
-   Parameters.nu = 1e-4;            % Viscosity
-   % ... (see Analysis.m for all options)
-   ```
-3. Run: `Analysis`
-4. Monitor via separate figure windows (execution and convergence monitors)
+**Example**:
+```matlab
+% Edit Scripts/Editable/Default_FD_Parameters.m directly
+% Or override in your script:
+Parameters = Default_FD_Parameters();
+Parameters.Nx = 256;
+Parameters.Ny = 256;
+Parameters.delta = 2;  % Grid spacing scaling factor
+Parameters.nu = 1e-4;  % Viscosity
+```
 
-## Configuration
-
-### UI Mode Configuration
-Done through the graphical interface - all 9 tabs are self-explanatory:
-
-| Tab | Purpose |
-|-----|---------|
-| 1 | Method & Mode - Algorithm selection |
-| 2 | Initial Conditions - Vortex config + preview |
-| 3 | Parameters - Grid, time, domain |
-| 4 | Convergence - Mesh refinement settings |
-| 5 | Sustainability - Performance monitoring |
-| 6 | Execution Monitor - Live CPU/memory/progress |
-| 7 | Convergence Monitor - Error decay tracking |
-| 8 | Terminal Output - Console logs + export |
-| 9 | Figures - Gallery + save/export tools |
-
-### Traditional Mode Configuration
-Simulation parameters in the `Parameters` struct, driver settings in the `settings` struct in [Scripts/Main/Analysis.m](Scripts/Main/Analysis.m):
-- Grid: `Nx`, `Ny`, `Lx`, `Ly`
-- Time: `dt`, `t_final`, `nu`
+### Standard Mode Configuration (Command-Line)
+Simulation parameters are set via struct builders:
+- Grid: `Nx`, `Ny`, `Lx`, `Ly`, `delta`
+- Time: `dt`, `Tfinal`, `nu`
 - Physics: `ic_type`, `ic_coeff1`, `ic_coeff2`
 - Output: `snap_times`, `figure_dir`, `results_dir`
 
@@ -419,9 +396,6 @@ The conceptual discussion and extended walkthrough live in [Tsunami_Vortex_Analy
 
 ## Documentation policy
 This repository keeps a single Markdown entry point (this README). Historical Markdown files are archived as plain text in [docs/markdown_archive](docs/markdown_archive).
-
-## License
-Choose a license (MIT/BSD/GPL) and place it in `LICENSE`.
 
 ## Run ID System
 

@@ -21,6 +21,7 @@ function Parameters = Default_FD_Parameters()
     % ===== GRID =====
     Parameters.Nx = 128;                % Grid points X
     Parameters.Ny = 128;                % Grid points Y
+    Parameters.delta = 2;               % Grid spacing scaling factor
     
     % ===== TIME INTEGRATION =====
     Parameters.dt = 0.001;              % Timestep
