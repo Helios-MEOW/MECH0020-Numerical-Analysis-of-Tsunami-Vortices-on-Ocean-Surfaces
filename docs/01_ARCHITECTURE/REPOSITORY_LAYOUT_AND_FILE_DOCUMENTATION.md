@@ -340,10 +340,6 @@ Each file implements one IC type and supports multi-vortex dispersion.
   - Figure rendering
   - Data I/O
 
-**UIController_Test_Documentation.ipynb** (Jupyter Notebook)
-- **Purpose:** Interactive documentation of UI testing workflows
-- **Contents:** Test scenarios, expected outputs, debug tips
-
 ---
 
 ### Visuals/ - Visualization and Monitoring
@@ -562,10 +558,7 @@ Results/
 
 ##  docs/ Directory (Documentation)
 
-**markdown_archive/:**
-- Historical documentation versions
-- Archived design notes
-- Previous UI research iterations
+Documentation is organized into architecture, design, and notebooks.
 
 ---
 
