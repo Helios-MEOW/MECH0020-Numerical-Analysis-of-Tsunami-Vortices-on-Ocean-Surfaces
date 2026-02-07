@@ -33,8 +33,3 @@ Thumbs.db
 
 # Test outputs
 tests/test_results.mat
-
-# Cleanup planning docs in root only (archived versions are tracked)
-/CLEANUP_*.md
-/REPOSITORY_CLEANUP_PLAN.md
-/PLANNING_DELIVERABLES.md
