@@ -7,7 +7,11 @@ repo_root = fileparts(test_dir);
 addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
 addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
 addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
-addpath(fullfile(repo_root, 'Scripts', 'Infrastructure'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Builds'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'DataRelatedHelpers'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Initialisers'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Runners'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Utilities'));
 addpath(fullfile(repo_root, 'utilities'));
 
 fprintf('=== TESTING MODULE INTEGRATION ===\n\n');

@@ -28,7 +28,11 @@ script_dir = fileparts(fileparts(mfilename('fullpath')));  % Up to repo root
 addpath(fullfile(script_dir, 'Scripts', 'Drivers'));
 addpath(fullfile(script_dir, 'Scripts', 'Solvers'));
 addpath(fullfile(script_dir, 'Scripts', 'Solvers', 'FD'));
-addpath(fullfile(script_dir, 'Scripts', 'Infrastructure'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'Builds'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'DataRelatedHelpers'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'Initialisers'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'Runners'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'Utilities'));
 addpath(fullfile(script_dir, 'Scripts', 'Editable'));
 addpath(fullfile(script_dir, 'Scripts', 'UI'));
 addpath(fullfile(script_dir, 'utilities'));
@@ -36,11 +40,11 @@ addpath(fullfile(script_dir, 'utilities'));
 test_count = 0;
 pass_count = 0;
 
-% ===== TEST 1: Delta parameter in Default_FD_Parameters =====
+% ===== TEST 1: Delta parameter in Parameters =====
 test_count = test_count + 1;
-fprintf('[Test %d] Checking delta parameter in Default_FD_Parameters...\n', test_count);
+fprintf('[Test %d] Checking delta parameter in Parameters...\n', test_count);
 try
-    params = Default_FD_Parameters();
+    params = Parameters();
     assert(isfield(params, 'delta'), 'delta field not found');
     assert(isnumeric(params.delta), 'delta is not numeric');
     fprintf('  ✓ PASS: delta = %.2f\n\n', params.delta);

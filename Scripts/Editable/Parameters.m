@@ -1,5 +1,5 @@
-function Parameters = Default_FD_Parameters()
-    % Default_FD_Parameters - User-editable default parameters for Finite Difference
+function Parameters = Parameters()
+    % Parameters - User-editable default parameters for Finite Difference
     %
     % Purpose:
     %   Single source of default physics and numerics for FD simulations
@@ -10,7 +10,7 @@ function Parameters = Default_FD_Parameters()
     % Structure: Returns Parameters struct (physics + numerics)
     %
     % Usage:
-    %   Parameters = Default_FD_Parameters();
+    %   Parameters = Parameters();
     %   Parameters.Nx = 256;  % Override as needed
     
     % ===== PHYSICS =====

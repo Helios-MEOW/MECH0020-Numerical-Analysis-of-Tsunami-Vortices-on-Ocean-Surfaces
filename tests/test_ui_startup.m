@@ -18,7 +18,11 @@ addpath(fullfile(script_dir, 'Scripts', 'Solvers'));
 addpath(fullfile(script_dir, 'Scripts', 'Solvers', 'FD'));
 addpath(fullfile(script_dir, 'Scripts', 'Sustainability'));
 addpath(fullfile(script_dir, 'Scripts', 'Plotting'));
-addpath(fullfile(script_dir, 'Scripts', 'Infrastructure'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'Builds'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'DataRelatedHelpers'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'Initialisers'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'Runners'));
+addpath(fullfile(script_dir, 'Scripts', 'Infrastructure', 'Utilities'));
 addpath(fullfile(script_dir, 'utilities'));
 
 % Test tracking

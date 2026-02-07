@@ -79,7 +79,11 @@ classdef UIController < handle
                 try
                     ui_dir = fileparts(mfilename('fullpath'));
                     scripts_dir = fileparts(ui_dir);
-                    addpath(fullfile(scripts_dir, 'Infrastructure'));
+                    addpath(fullfile(scripts_dir, 'Infrastructure', 'Builds'));
+                    addpath(fullfile(scripts_dir, 'Infrastructure', 'DataRelatedHelpers'));
+                    addpath(fullfile(scripts_dir, 'Infrastructure', 'Initialisers'));
+                    addpath(fullfile(scripts_dir, 'Infrastructure', 'Runners'));
+                    addpath(fullfile(scripts_dir, 'Infrastructure', 'Utilities'));
                     addpath(fullfile(scripts_dir, 'Methods'));
                 catch
                     % If path setup fails, IC preview will report a clear error
