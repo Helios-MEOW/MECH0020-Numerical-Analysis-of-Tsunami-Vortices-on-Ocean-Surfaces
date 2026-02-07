@@ -1,487 +1,263 @@
 # Tsunami Vortex Numerical Modelling
 
-Numerical modelling of tsunami-induced vortex dynamics using vorticity–streamfunction formulations.
-This repository implements finite-difference simulations (Arakawa Jacobian, elliptic Poisson solve, explicit time stepping)
-with automated grid convergence, parameter sweeps, and computational cost logging. Extensions include spectral methods,
-finite-volume formulations, and obstacle/bathymetry experiments.
+Numerical simulation of tsunami-induced vortex dynamics using vorticity–streamfunction formulations. This repository implements finite-difference solvers with Arakawa Jacobian schemes, elliptic Poisson solvers, and explicit time-stepping, supporting automated convergence studies and parameter exploration.
 
-## Key Features (MECH0020-Compliant Architecture)
-- **Single MATLAB UI**: 3-tab interface (Configuration, Live Monitor, Results)
-- **Standard Mode**: Command-line driver with dark theme monitor
-- **FD Modes**: Evolution, Convergence, ParameterSweep, Plotting (Animation is a setting)
-- **Run ID System**: Unique, parseable identifiers with recreate-from-PNG support
-- **Professional Reports**: ANSYS/Abaqus-inspired run reports
-- **Master Runs Table**: Append-safe CSV tracking all runs
-- **Directory Structure**: FD-compliant with organized Data/Output/ tree
-- **User-Editable Defaults**: Scripts/Editable/ for easy configuration
-- **Comprehensive Testing**: Single master test runner (tests/Run_All_Tests.m)
-- **Adaptive Convergence Agent**: Learning-based mesh refinement (not a dumb grid sweep)
+## Key Features
+
+- **Dual-mode operation**: UI mode (3-tab MATLAB interface) or Standard mode (command-line)
+- **Four FD simulation modes**: Evolution, Convergence, ParameterSweep, Plotting
+- **Adaptive convergence agent**: Intelligent mesh refinement using learning-based navigation
+- **Run tracking**: Unique run IDs, professional reports, master CSV table
+- **User-editable configuration**: Centralized parameter/settings files in `Scripts/Editable/`
+- **Organized outputs**: Structured directory tree in `Data/Output/` (gitignored)
 
 ## Quick Start
 
 ### Prerequisites
+
 - MATLAB R2020b or later
-- Required Toolboxes: None (base MATLAB only)
-- Operating System: Windows, macOS, Linux
+- No toolboxes required (base MATLAB only)
+- Operating System: Windows, macOS, or Linux
 
 ### Installation
+
 ```bash
-git clone https://github.com/your-org/MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces.git
+git clone https://github.com/Helios-MEOW/MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces.git
 cd MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces
 ```
 
-### Running Your First Simulation
+### Running a Simulation
 
-**Option 1: UI Mode (Recommended for beginners)**
-```matlab
-cd Scripts/Drivers
-Analysis  % Opens UI with 3 tabs
-```
+**Option 1: UI Mode (Interactive)**
 
-**Option 2: Standard Mode (Recommended for production)**
-```matlab
-cd Scripts/Drivers
-run('Analysis.m')  % Runs with default settings
-```
-
-**Option 3: Adaptive Convergence**
-```matlab
-cd Scripts/Drivers
-run_adaptive_convergence
-```
-
-## Operating Modes (MECH0020-Compliant)
-
-### UI Mode - Single MATLAB UI (3 Tabs)
-Interactive graphical interface for configuration, execution, and results analysis.
-
-**Launching UI Mode**:
-```matlab
-cd Scripts/Drivers
-Analysis  % A startup dialog appears - select "🖥️ UI Mode"
-```
-
-**3 Integrated Tabs**:
-
-**Tab 1 - Configuration** (⚙️):
-- Method selection (FD, FFT, FV)
-- Mode selection (Evolution, Convergence, ParameterSweep, Plotting)
-- Initial condition designer with live preview
-- Grid, domain, time, and physics parameters
-- Parameter validation and CFL check
-- Ready-to-launch checklist
-
-**Tab 2 - Live Monitor** (📊):
-- Dark theme live execution monitor
-- Real-time metrics (CFL, max|ω|, enstrophy, energy)
-- Progress tracking and ETA
-- Convergence monitor (when applicable)
-- Performance metrics (CPU, memory, wall time)
-- Colored terminal output on right panel
-
-**Tab 3 - Results & Figures** (📈):
-- Browse results by run ID and metadata
-- Query/filter by method, mode, IC, date/time
-- Load plots, metrics, and reports from selected runs
-- Figure gallery with export options
-- "Recreate from PNG" workflow support
-
-**Best for**: Interactive research, parameter exploration, teaching
-
-### Standard Mode - Command Line with Dark Monitor
-Script-based configuration with live execution monitor.
+Launch MATLAB, navigate to the repository, and run:
 
 ```matlab
 cd Scripts/Drivers
-run('Analysis.m')  % Default: run_type = 'standard'
+Analysis
 ```
 
-**Configuration**:
-Edit `Analysis.m` or create custom script:
+A startup dialog appears. Select "UI Mode" to access the 3-tab interface for:
+- **Tab 1**: Configuration (method, mode, parameters, initial conditions)
+- **Tab 2**: Live monitor (real-time metrics, progress, terminal output)
+- **Tab 3**: Results browser (load and visualize previous runs)
+
+**Expected output**: Interactive UI opens. Configure and run simulations from Tab 1. Results save to `Data/Output/FD/<Mode>/<run_id>/`.
+
+**Option 2: Standard Mode (Command-line)**
+
+Launch MATLAB, navigate to the repository, and run:
+
 ```matlab
-Run_Config = Build_Run_Config('FD', 'Evolution', 'Lamb-Oseen');
-Parameters = Default_FD_Parameters();  % From Scripts/Editable/
-Parameters.Nx = 256;  % Override defaults
-Settings = Default_Settings();
-[Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
+cd Scripts/Drivers
+Analysis
 ```
 
-**Monitor Output** (dark theme, ANSI colors):
-- Method, Mode, Initial Condition
-- Step, physical time, dt
-- Grid info (Nx, Ny, dx, dy)
-- Metrics: CFL, max|ω|, enstrophy, energy
-- Wall time and progress
+When the startup dialog appears, select "Standard Mode". The script continues in command-line mode with these defaults:
+- Method: Finite Difference (FD)
+- Mode: Evolution
+- IC: Lamb-Oseen vortex
+- Grid: 128×128
+- Time: dt=0.001, Tfinal=1.0
 
-**Best for**: Production runs, batch jobs, automated workflows, CI/CD
-
-### Editing Defaults
-All user-editable defaults are in `Scripts/Editable/`:
-- `Default_FD_Parameters.m` - Physics and numerics
-- `Default_Settings.m` - IO, logging, monitoring
-
-No need to search core solvers to change defaults.
-
-## FD Modes (Fixed Set - MECH0020 Spec)
-
-### 1. Evolution
-Single time evolution simulation with visualization and analysis.
-
-**Purpose**: Baseline simulation for visualization and validation
-**Use case**: Kutz figure recreation, initial parameter exploration
-**Computational cost**: LOW (single simulation)
-
-**Usage**:
-```matlab
-Run_Config = Build_Run_Config('FD', 'Evolution', 'Lamb-Oseen');
-Parameters = Default_FD_Parameters();
-Settings = Default_Settings();
-[Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
+**Expected output**:
+```
+MECH0020 TSUNAMI VORTEX SIMULATION - STANDARD MODE
+Configuration:
+  Method: FD
+  Mode: Evolution
+  IC: Lamb-Oseen
+  Grid: 128x128
+...
+Output Directory: Data/Output/FD/Evolution/FD_Evol_LambOseen_YYYYMMDD_HHMMSS/
+Report: Data/Output/FD/Evolution/.../Reports/Report.txt
 ```
 
-**Output Structure**:
-```
-Data/Output/FD/Evolution/<run_id>/
-├── Figures/
-│   ├── Evolution/
-│   ├── Contours/
-│   ├── Vector/
-│   ├── Streamlines/
-│   └── Animation/  (if Settings.animation_enabled = true)
-├── Reports/
-│   └── Report.txt
-└── Data/
-    └── results.mat
-```
-
-### 2. Convergence
-Grid convergence study with automatic mesh refinement.
-
-**Purpose**: Multi-resolution convergence analysis
-**Use case**: Production-quality mesh generation, error estimation
-**Computational cost**: HIGH (multiple simulations)
-
-**Usage**:
-```matlab
-Run_Config = Build_Run_Config('FD', 'Convergence', 'Gaussian');
-Parameters = Default_FD_Parameters();
-Parameters.mesh_sizes = [32, 64, 128, 256];
-Parameters.convergence_variable = 'max_omega';  % or 'energy', 'enstrophy'
-[Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
-```
-
-**Output Structure**:
-```
-Data/Output/FD/Convergence/<study_id>/
-├── Figures/
-│   ├── Convergence_Plots/
-│   └── Final_State_Comparison/
-├── Reports/
-│   └── Convergence_Report.txt
-└── Data/
-    ├── convergence_results.mat
-    └── mesh_<N>/results.mat (for each mesh size)
-```
-
-### 3. ParameterSweep
-Automated multi-parameter exploration and sensitivity analysis.
-
-**Purpose**: Systematic parameter space exploration
-**Use case**: Sensitivity analysis, response surface mapping
-**Computational cost**: VERY HIGH (factorial combinations)
-
-**Usage**:
-```matlab
-Run_Config = Build_Run_Config('FD', 'ParameterSweep', 'Lamb-Oseen');
-Parameters = Default_FD_Parameters();
-Parameters.sweep_params = {'nu', 'Gamma'};
-Parameters.sweep_values = {[1e-5, 1e-4, 1e-3], [1.0, 2.0, 3.0]};
-[Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
-```
-
-**Output Structure**:
-```
-Data/Output/FD/ParameterSweep/<sweep_id>/
-├── Figures/
-│   ├── Response_Surfaces/
-│   ├── Heatmaps/
-│   └── Individual_Runs/
-├── Reports/
-│   └── Sweep_Report.txt
-└── Data/
-    ├── sweep_summary.mat
-    └── run_<param_set>/results.mat (for each combination)
-```
-
-### 4. Plotting
-Results visualization and post-processing from saved data.
-
-**Purpose**: Recreate/customize plots from existing simulation data
-**Use case**: Publication-quality figures, comparative visualization
-**Computational cost**: MINIMAL (no simulation, only plotting)
-
-**Usage**:
-```matlab
-Run_Config = Build_Run_Config('FD', 'Plotting', 'Lamb-Oseen');
-Settings = Default_Settings();
-Settings.data_source = 'Data/Output/FD/Evolution/FD_Evol_LambOseen_20240206_143022/Data/results.mat';
-[Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
-```
-
-**Best for**: Recreate-from-PNG workflow, custom visualizations
+To customize parameters, edit the values in `Analysis.m` lines 56-74 before running.
 
 ## Repository Structure
 
 ```
 MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
 ├── Scripts/
-│   ├── Drivers/               # Entry points (Analysis.m, run_adaptive_convergence.m)
+│   ├── Drivers/              # Entry points
+│   │   ├── Analysis.m        # Main UI/Standard mode launcher
+│   │   └── run_adaptive_convergence.m  # Convergence agent runner
 │   ├── Solvers/
-│   │   └── FD/               # Finite difference solver kernels
+│   │   ├── FD/               # Finite difference kernels and modes
+│   │   ├── Spectral_Analysis.m
+│   │   ├── Finite_Volume_Analysis.m
+│   │   └── Variable_Bathymetry_Analysis.m
+│   ├── Infrastructure/       # Core utilities (builders, dispatchers, IO)
+│   ├── Editable/             # User-editable configuration files
+│   │   ├── Default_FD_Parameters.m
+│   │   └── Default_Settings.m
+│   ├── UI/                   # MATLAB UI components
 │   ├── Plotting/             # Visualization functions
-│   ├── Infrastructure/       # Shared utilities (metrics, logging, IO)
-│   ├── Editable/             # User-editable defaults
-│   ├── UI/                   # MATLAB UI components (3-tab interface)
-│   └── Sustainability/       # Performance and energy monitoring
+│   └── Sustainability/       # Performance monitoring
 ├── Data/
-│   ├── Input/                # Reference data, initial conditions
+│   ├── Input/                # Reference data (tracked)
 │   └── Output/               # Generated results (gitignored)
-│       └── FD/
-│           ├── Evolution/
-│           ├── Convergence/
-│           ├── ParameterSweep/
-│           └── Plotting/
-├── tests/                    # Test suite
-│   ├── Run_All_Tests.m       # Master test runner
-│   └── Test_Cases.m          # Test case definitions
 ├── docs/                     # Documentation
-│   ├── User_Guide.md
-│   ├── Developer_Guide.md
-│   └── API_Reference.md
-└── utilities/                # Python auxiliary tools (APIs, sensors, utilities)
+│   ├── 01_ARCHITECTURE/
+│   ├── 02_DESIGN/
+│   └── 03_NOTEBOOKS/
+│       └── Tsunami_Vortex_Analysis_Complete_Guide.ipynb
+├── utilities/                # Plotting helpers (optional)
+├── tests/                    # Test suite
+│   └── Run_All_Tests.m
+└── README.md
 ```
+
+**Key directories**:
+- **Drivers**: Main entry points (`Analysis.m`, `run_adaptive_convergence.m`)
+- **Solvers/FD/**: Four modes (Evolution, Convergence, ParameterSweep, Plotting)
+- **Editable**: Configuration files users should modify
+- **Output** (created at runtime): `Data/Output/{Method}/{Mode}/{run_id}/`
 
 ## Configuration
 
-### UI Mode Configuration
-Done through the graphical 3-tab interface - self-explanatory tabs guide you through:
-- Tab 1: Method, mode, IC, and parameters
-- Tab 2: Live monitoring during execution
-- Tab 3: Results browsing and analysis
+User-editable configuration is centralized in `Scripts/Editable/`:
 
-### Standard Mode Configuration
-Edit parameters directly in `Scripts/Drivers/Analysis.m` or use struct builders:
+### `Default_FD_Parameters.m` - Physics and Numerics
 
-**Grid & Domain**:
+Key parameters (edit this file to change defaults):
+- `nu`: Kinematic viscosity (default: 0.001)
+- `Lx`, `Ly`: Domain size (default: 2π × 2π)
+- `Nx`, `Ny`: Grid resolution (default: 128 × 128)
+- `dt`: Time step (default: 0.001)
+- `Tfinal`: Simulation end time (default: 1.0)
+- `ic_type`: Initial condition type (default: 'Lamb-Oseen')
+- `snap_times`: Times to save snapshots (default: 11 evenly spaced)
+
+### `Default_Settings.m` - Operational Settings
+
+Key settings (edit this file to change defaults):
+- `save_figures`: Save plots to disk (default: true)
+- `save_data`: Save MAT files (default: true)
+- `save_reports`: Generate text reports (default: true)
+- `monitor_enabled`: Show live monitor (default: true)
+- `monitor_theme`: Monitor color scheme (default: 'dark')
+- `append_to_master`: Add run to master table (default: true)
+- `animation_enabled`: Generate animations (default: false)
+
+You can also override parameters in your own scripts:
 ```matlab
-Parameters.Nx = 128;           % Grid points in x
-Parameters.Ny = 128;           % Grid points in y
-Parameters.Lx = 20.0;          % Domain size x
-Parameters.Ly = 20.0;          % Domain size y
+Parameters = Default_FD_Parameters();
+Parameters.Nx = 256;  % Override grid resolution
+Parameters.Tfinal = 5.0;  % Override end time
 ```
 
-**Time Integration**:
-```matlab
-Parameters.dt = 0.01;          % Time step
-Parameters.Tfinal = 10.0;      % Final time
-Parameters.nu = 1e-4;          % Viscosity
-```
+## Adaptive Convergence Agent
 
-**Physics & Initial Conditions**:
-```matlab
-Parameters.ic_type = 'Lamb-Oseen';  % or 'Gaussian', 'Double-Vortex'
-Parameters.ic_coeff1 = 1.0;    % Circulation Gamma
-Parameters.ic_coeff2 = 1.0;    % Core radius a
-```
+The adaptive convergence agent (`run_adaptive_convergence.m`) provides intelligent mesh refinement:
 
-**Output & Logging**:
-```matlab
-Settings.snap_times = [0, 2, 5, 10];  % Times to save snapshots
-Settings.figure_dir = 'Data/Output/FD/Evolution/';
-Settings.results_dir = 'Data/Output/FD/Evolution/';
-```
+**What it does**:
+- Runs preflight simulations to establish convergence patterns
+- Adaptively selects mesh resolutions based on observed convergence rates
+- Avoids brute-force grid sweeps by learning from intermediate results
+- Detects early convergence and stops when tolerance is met
+- Logs all decisions and metrics to a convergence trace
 
-## Convergence Criterion
-Convergence uses vorticity-derived features (e.g., peak |ω| or enstrophy) across grid refinements. The adaptive agent uses bracketing and binary refinement inside `Scripts/Drivers/AdaptiveConvergenceAgent.m`.
+**How to run**:
 
-## Outputs
-
-### Run Artifacts
-- **Master Runs Table**: `Data/Output/master_runs.csv` - append-safe tracking of all runs
-- **Reports**: Professional text reports with all metadata, parameters, and results
-- **Figures**: Saved to `Data/Output/<Method>/<Mode>/<run_id>/Figures/` with parameter-labeled filenames
-- **MAT Files**: Full workspace data in `Data/Output/<Method>/<Mode>/<run_id>/Data/`
-- **PNG Metadata**: Run IDs embedded in PNG metadata for recreate-from-PNG workflow
-
-### Report Contents
-Each run generates a professional report containing:
-- Run ID and timestamp
-- Method, mode, initial condition
-- All parameters (grid, time, physics)
-- Computational metrics (wall time, CPU time, memory)
-- Scientific metrics (max|ω|, enstrophy, energy)
-- File paths and artifact locations
-- Git commit hash (if available)
-- MATLAB version and OS info
-
-## Computational Cost and Telemetry
-Wall time, CPU time, and memory usage are captured automatically. Hardware telemetry (temperature/power) is optional and configured in `Scripts/Editable/Default_Settings.m`.
-
-**Performance Monitoring**:
-- Wall clock time (tic/toc)
-- CPU time (cputime)
-- Peak memory usage
-- Energy consumption (optional, requires sensor hardware)
-- Carbon intensity estimation (optional, via API)
-
-## Testing
-
-### Running Tests
-**Master Test Runner** (recommended):
-```matlab
-cd tests
-Run_All_Tests  % Runs all test suites
-```
-
-**Individual Test Cases**:
-```matlab
-cd tests
-Test_Cases  % Run specific test scenarios
-```
-
-**Test Coverage**:
-- Solver kernels (Arakawa, Poisson, RK)
-- Mode dispatcher
-- Metrics extraction
-- IO and logging
-- UI components
-- Report generation
-
-## Advanced Features
-
-### Adaptive Convergence Agent
-Machine learning-enhanced grid refinement that learns optimal mesh sizes:
 ```matlab
 cd Scripts/Drivers
 run_adaptive_convergence
 ```
 
-**Features**:
-- Learns from previous convergence studies
-- Predicts optimal mesh density
-- Reduces wasted computational effort
-- Saves training data for continuous improvement
+**Expected outputs**:
+- Console output showing each iteration's mesh, metrics, and decision logic
+- Convergence trace CSV: `Data/Output/Convergence_Study/convergence_trace.csv`
+- Preflight figures: `Data/Output/Convergence_Study/preflight/`
+- Final recommendation: Converged (Nx, Ny, dt) printed to console
 
-### Recreate-from-PNG Workflow
-Run IDs are embedded in PNG metadata. To recreate a figure:
-1. Right-click PNG → Properties → Details → find Run ID
-2. Open UI Tab 3 (Results)
-3. Enter Run ID → Load data → Regenerate figure with custom styling
+**Runtime**: Typically 5-10 iterations for simple ICs, 10-15 for complex cases (depends on tolerance).
 
-### Batch Processing
-For large parameter sweeps or production runs:
-```matlab
-% Create batch script
-configs = Generate_Batch_Configs('sweep_params.json');
-for i = 1:length(configs)
-    [Results{i}, paths{i}] = ModeDispatcher(configs{i}, params, settings);
-end
+## Outputs and Artifacts
+
+All simulation outputs are saved under `Data/Output/` (gitignored):
+
+**Directory structure**:
+```
+Data/Output/
+└── {Method}/              # e.g., FD
+    └── {Mode}/            # e.g., Evolution, Convergence
+        └── {run_id}/      # Unique ID: FD_Evol_LambOseen_20260207_143022
+            ├── Figures/   # PNG plots
+            ├── Data/      # MAT files with full state
+            └── Reports/   # Text report with metadata
 ```
 
-## Sustainability and Performance
+**Run ID format**: `{Method}_{Mode}_{IC}_{YYYYMMDD}_{HHMMSS}`
 
-The repository includes optional energy and carbon tracking:
-- **Energy Monitoring**: Hardware sensor integration (Linux: RAPL, macOS: powermetrics)
-- **Carbon Intensity**: Grid carbon API integration (optional)
-- **Cost Estimation**: Compute hour costing for cloud/HPC environments
+**Generated files**:
+- **Figures**: Vorticity contours, streamlines, vector fields (PNG, 300 DPI)
+- **Data**: Full workspace including omega, psi, grid, parameters (MAT)
+- **Reports**: Professional text report with run metadata, parameters, metrics, paths
 
-Enable in `Scripts/Editable/Default_Settings.m`:
-```matlab
-Settings.enable_energy_monitoring = true;
-Settings.enable_carbon_tracking = true;
-Settings.grid_region = 'GB';  % for carbon intensity API
-```
+**Master runs table**: `PathBuilder.get_master_table_path()` returns the location of the append-safe CSV tracking all runs.
 
-Logs saved to `Data/Output/<run_id>/Reports/sustainability_report.txt`
+**What to commit**:
+- Source code, configuration files, documentation
+- Reference data in `Data/Input/`
+
+**What NOT to commit** (already in `.gitignore`):
+- `Data/Output/` - simulation results
+- `*.asv` - MATLAB autosaves
+- `*.log` - log files
+- Test outputs
 
 ## Troubleshooting
 
-### Common Issues
+### Missing path errors
+**Symptom**: `Undefined function or variable 'Build_Run_Config'`  
+**Cause**: MATLAB path not set up correctly  
+**Fix**: Run from `Scripts/Drivers/` directory, or manually add paths as shown in `Analysis.m` lines 14-22
 
-**Issue**: "Path not found" errors
-**Solution**: Run `verify_matlab_paths.sh` to check directory structure
+### UI doesn't launch
+**Symptom**: UI window doesn't appear after running `Analysis`  
+**Cause**: MATLAB App Designer support missing or corrupted UI files  
+**Fix**: Select "Standard Mode" from the startup dialog to bypass UI. Check `Scripts/UI/UIController.m` exists.
 
-**Issue**: UI doesn't launch
-**Solution**: Check MATLAB version (R2020b+), ensure no conflicting UI is open
+### Missing output directory
+**Symptom**: Error creating output directory  
+**Cause**: `Data/Output/` not created automatically  
+**Fix**: Directory is created on first run. If error persists, manually create: `mkdir Data/Output`
 
-**Issue**: Convergence not detected
-**Solution**: Check mesh_sizes array, ensure sufficient resolution range
+### Very slow simulations
+**Symptom**: Simulation takes hours for small grids  
+**Cause**: Likely high resolution or small dt causing many timesteps  
+**Fix**: Check `Parameters.dt` and `Parameters.Tfinal`. Reduce `Nx`, `Ny`, or increase `dt` (watch CFL < 1).
 
-**Issue**: Out of memory
-**Solution**: Reduce grid size (Nx, Ny) or enable memory profiling in Settings
+### Standard mode vs UI mode confusion
+**Symptom**: Unsure which mode is running  
+**Cause**: Startup dialog is modal  
+**Fix**: The dialog forces a choice. "UI Mode" opens tabs, "Standard Mode" continues script execution in command window.
 
-**Issue**: Results not saving
-**Solution**: Check write permissions on Data/Output/, verify disk space
+## Testing
 
-### Debug Mode
-Enable verbose logging:
+Run the test suite to verify installation:
+
 ```matlab
-Settings.debug_mode = true;
-Settings.verbose_logging = true;
+cd tests
+Run_All_Tests
 ```
 
-### Getting Help
-1. Check `docs/User_Guide.md` for detailed instructions
-2. Review `docs/API_Reference.md` for function signatures
-3. Open an issue on GitHub with:
-   - MATLAB version (`ver`)
-   - Operating system
-   - Error message (full stack trace)
-   - Minimal reproducible example
+Expected output: Summary of passed/failed tests for core infrastructure, solvers, and UI components.
 
-## Contributing
+## Documentation
 
-### Code Standards
-- Follow MATLAB style guide (camelCase for functions, PascalCase for classes)
-- Add function headers with purpose, inputs, outputs
-- Include unit tests for new features
-- Update documentation (README, User Guide, API Reference)
-- No fabricated citations - use `[[REF NEEDED: ...]]` placeholders
-
-### Development Workflow
-1. Create feature branch: `git checkout -b feature/my-feature`
-2. Implement changes following MECH0020 spec (see MECH0020_COPILOT_AGENT_SPEC.md)
-3. Run tests: `cd tests && Run_All_Tests`
-4. Update docs
-5. Commit with descriptive message
-6. Push and create pull request
-
-### Architecture Guidelines
-- Keep `Analysis.m` thin and method-agnostic
-- All solvers run through unified dispatcher
-- Separate: configuration vs execution vs kernels vs instrumentation vs visuals
-- Generated artifacts isolated from source (gitignored)
-- One canonical runs table schema (append-safe)
-
-## Citation
-
-If you use this code in your research, please cite:
-
-```
-[[REF NEEDED: Proper citation format for this repository/dissertation]]
-```
+Additional documentation is available in the `docs/` directory:
+- [Repository Layout and File Documentation](docs/01_ARCHITECTURE/REPOSITORY_LAYOUT_AND_FILE_DOCUMENTATION.md)
+- [OWL Framework Design](docs/01_ARCHITECTURE/OWL_Framework_Design.md)
+- [UI Research and Redesign Plan](docs/02_DESIGN/UI_Research_And_Redesign_Plan.md)
+- [Complete Analysis Guide (Jupyter Notebook)](docs/03_NOTEBOOKS/Tsunami_Vortex_Analysis_Complete_Guide.ipynb)
 
 ## License
 
-[[FIGURE PLACEHOLDER: License information (e.g., MIT, GPL, Academic)]]
-
-## References
-
-[[REF NEEDED: Primary references for tsunami vortex dynamics]]
-[[REF NEEDED: Navier-Stokes vorticity formulation]]
-[[REF NEEDED: Arakawa Jacobian scheme]]
-[[REF NEEDED: RK3-SSP time integration]]
+*License information to be added.*
 
 ## Contact
 
-[[FIGURE PLACEHOLDER: Contact information or institutional affiliation]]
+*Contact information to be added.*
