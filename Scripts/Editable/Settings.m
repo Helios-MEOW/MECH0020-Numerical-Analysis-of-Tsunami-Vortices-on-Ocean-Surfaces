@@ -1,5 +1,5 @@
-function Settings = Default_Settings()
-    % Default_Settings - User-editable operational settings
+function Settings = Settings()
+    % Settings - User-editable operational settings
     %
     % Purpose:
     %   Single source of default IO, UI, logging, and plotting settings
@@ -10,7 +10,7 @@ function Settings = Default_Settings()
     % Structure: Returns Settings struct (operational knobs)
     %
     % Usage:
-    %   Settings = Default_Settings();
+    %   Settings = Settings();
     %   Settings.save_figures = false;  % Override as needed
     
     % ===== IO SETTINGS =====

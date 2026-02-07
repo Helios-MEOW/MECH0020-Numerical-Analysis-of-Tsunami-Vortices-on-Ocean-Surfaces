@@ -7,8 +7,8 @@ function [Results, paths] = FD_Evolution_Mode(Run_Config, Parameters, Settings)
     %
     % Inputs:
     %   Run_Config - method, mode, ic_type, run_id
-    %   Parameters - physics + numerics (from Default_FD_Parameters or user)
-    %   Settings - IO, monitoring, logging (from Default_Settings or user)
+    %   Parameters - physics + numerics (from Parameters() or user)
+    %   Settings - IO, monitoring, logging (from Settings() or user)
     %
     % Outputs:
     %   Results - simulation results and metrics

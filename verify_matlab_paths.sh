@@ -9,7 +9,11 @@ echo "   Expected paths:"
 echo "   - Scripts/Drivers"
 echo "   - Scripts/Solvers"
 echo "   - Scripts/Solvers/FD"
-echo "   - Scripts/Infrastructure"
+echo "   - Scripts/Infrastructure/Builds"
+echo "   - Scripts/Infrastructure/DataRelatedHelpers"
+echo "   - Scripts/Infrastructure/Initialisers"
+echo "   - Scripts/Infrastructure/Runners"
+echo "   - Scripts/Infrastructure/Utilities"
 echo "   - Scripts/Editable"
 echo "   - Scripts/UI"
 echo "   - Scripts/Plotting"
@@ -36,7 +40,7 @@ echo ""
 
 echo "4. FILE REFERENCES IN Infrastructure"
 echo "   Checking validate_simulation_parameters.m:"
-if grep -q "Scripts/Solvers" Scripts/Infrastructure/validate_simulation_parameters.m; then
+if grep -q "Scripts/Solvers" Scripts/Infrastructure/Utilities/validate_simulation_parameters.m; then
     echo "   ✓ References Scripts/Solvers"
 else
     echo "   ? May need path check"

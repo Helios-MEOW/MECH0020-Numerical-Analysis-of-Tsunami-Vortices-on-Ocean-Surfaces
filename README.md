@@ -88,10 +88,15 @@ MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
 │   │   ├── Spectral_Analysis.m
 │   │   ├── Finite_Volume_Analysis.m
 │   │   └── Variable_Bathymetry_Analysis.m
-│   ├── Infrastructure/       # Core utilities (builders, dispatchers, IO)
+│   ├── Infrastructure/       # Core utilities
+│   │   ├── Builds/           # Configuration builders
+│   │   ├── DataRelatedHelpers/ # Data persistence and paths
+│   │   ├── Initialisers/     # IC factories and setup
+│   │   ├── Runners/          # Mode dispatchers
+│   │   └── Utilities/        # Validation, metrics, monitoring
 │   ├── Editable/             # User-editable configuration files
-│   │   ├── Default_FD_Parameters.m
-│   │   └── Default_Settings.m
+│   │   ├── Parameters.m      # Physics and numerics defaults
+│   │   └── Settings.m        # Operational settings
 │   ├── UI/                   # MATLAB UI components
 │   ├── Plotting/             # Visualization functions
 │   └── Sustainability/       # Performance monitoring
@@ -119,7 +124,7 @@ MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
 
 User-editable configuration is centralized in `Scripts/Editable/`:
 
-### `Default_FD_Parameters.m` - Physics and Numerics
+### `Parameters.m` - Physics and Numerics
 
 Key parameters (edit this file to change defaults):
 - `nu`: Kinematic viscosity (default: 0.001)
@@ -130,7 +135,7 @@ Key parameters (edit this file to change defaults):
 - `ic_type`: Initial condition type (default: 'Lamb-Oseen')
 - `snap_times`: Times to save snapshots (default: 11 evenly spaced)
 
-### `Default_Settings.m` - Operational Settings
+### `Settings.m` - Operational Settings
 
 Key settings (edit this file to change defaults):
 - `save_figures`: Save plots to disk (default: true)

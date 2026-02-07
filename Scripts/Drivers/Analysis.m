@@ -14,7 +14,11 @@ repo_root = fullfile(script_dir, '..', '..');
 addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
 addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
 addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
-addpath(fullfile(repo_root, 'Scripts', 'Infrastructure'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Builds'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'DataRelatedHelpers'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Initialisers'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Runners'));
+addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Utilities'));
 addpath(fullfile(repo_root, 'Scripts', 'Editable'));
 addpath(fullfile(repo_root, 'Scripts', 'UI'));
 addpath(fullfile(repo_root, 'Scripts', 'Plotting'));
@@ -56,7 +60,7 @@ fprintf('═══════════════════════�
 Run_Config = Build_Run_Config('FD', 'Evolution', 'Lamb-Oseen');
 
 % Parameters: physics + numerics (from Editable defaults)
-Parameters = Default_FD_Parameters();
+Parameters = Parameters();
 % Override as needed:
 Parameters.Nx = 128;
 Parameters.Ny = 128;
@@ -64,7 +68,7 @@ Parameters.Tfinal = 1.0;
 Parameters.dt = 0.001;
 
 % Settings: operational (from Editable defaults)
-Settings = Default_Settings();
+Settings = Settings();
 % Override as needed:
 Settings.save_figures = true;
 Settings.save_data = true;
