@@ -12,15 +12,41 @@
 %   • Live Execution Monitor (CPU, Memory, Iteration tracking)
 %   • Convergence Monitor (Real-time error decay, mesh refinement tracking)
 %   • Parameter Validation & Export to Analysis.m
+%   • Developer Mode (layout inspector, click-to-inspect, validation tools)
 %
 % Usage:
 %   >> app = UIController();
 %   % Configure settings in GUI, then click "Launch Simulation"
+%   % Enable Developer Mode from menu bar for layout editing
 %
 % Architecture:
 %   Class-based UI with internal state management
 %   All monitors are embedded in the UI (no separate windows)
 %   Clean encapsulation with properties and methods
+%   Grid-based layout (uigridlayout) for intuitive editing
+%
+% Layout Editing (How to Safely Modify UI):
+%   1. Enable Developer Mode (menu bar button)
+%   2. Click any component to inspect its properties
+%   3. Edit layout parameters in UI_Layout_Config.m (NOT this file)
+%   4. All sizing, spacing, placement defined in UI_Layout_Config.m
+%   5. Use "Validate All Layouts" tool to check for errors
+%
+% Adding New Components:
+%   1. Add entry to UI_Layout_Config.m placement map
+%   2. Create component in appropriate create_*_tab method
+%   3. Set Layout.Row and Layout.Column from config
+%   4. DO NOT use Position property (use grid layout only)
+%
+% Callback Signatures (DO NOT CHANGE):
+%   - launch_simulation(app)
+%   - on_method_changed(app)
+%   - on_mode_changed(app)
+%   - update_ic_preview(app)
+%
+% References:
+%   MATLAB uifigure/uigridlayout documentation:
+%   https://www.mathworks.com/help/matlab/ref/matlab.ui.container.gridlayout.html
 %
 % ========================================================================
 
@@ -28,6 +54,7 @@ classdef UIController < handle
     
     properties (Access = public)
         fig                    % Main figure
+        root_grid              % Root grid layout (replaces manual positioning)
         tab_group              % Tab group container
         tabs                   % Structure of tab handles
         handles                % All UI component handles
@@ -37,6 +64,10 @@ classdef UIController < handle
         diary_file             % MATLAB diary file for terminal capture
         diary_timer            % Timer for terminal refresh
         diary_last_size        % Last diary file size
+        layout_cfg             % Centralized layout configuration
+        dev_mode_enabled       % Developer Mode toggle
+        dev_inspector_panel    % Developer Mode inspector panel
+        selected_component     % Currently selected component in dev mode
     end
     
     properties (Access = private)
@@ -58,6 +89,11 @@ classdef UIController < handle
             app.handles = struct();
             app.terminal_log = {};
             app.figures_list = {};
+            app.dev_mode_enabled = false;  % Developer Mode off by default
+            app.selected_component = [];
+            
+            % Load centralized layout configuration
+            app.layout_cfg = UI_Layout_Config();
             
             % Initialize terminal color scheme (RGB triplets)
             app.color_success = [0.3 1.0 0.3];     % Bright green
@@ -90,19 +126,33 @@ classdef UIController < handle
                 end
             
             % User chose UI mode - create full interface
-            % Create main figure with resize callback (maximized)
-            % Dark mode theme for professional appearance
+            % Create main figure (maximized, dark mode)
             app.fig = uifigure('Name', 'Tsunami Numerical Simulation UI', ...
                 'WindowState', 'maximized', ...
-                'Color', [0.15 0.15 0.15], ...  % Dark background
+                'Color', app.layout_cfg.colors.bg_dark, ...
                 'AutoResizeChildren', 'on', ...
-                'Theme', 'dark', ...  % Apply MATLAB dark theme (R2025a+)
                 'CloseRequestFcn', @(~,~) app.cleanup());
             
-            % Create tab group with relative sizing (fit within maximized window)
-            app.tab_group = uitabgroup(app.fig, 'Units', 'normalized', ...
-                'Position', [0.01 0.08 0.98 0.88], ...
+            % Create root grid layout (replaces manual Position sizing)
+            % Layout: [menu bar (fit), main content (1x), status bar (fit)]
+            app.root_grid = uigridlayout(app.fig, app.layout_cfg.root_grid.rows_cols);
+            app.root_grid.RowHeight = app.layout_cfg.root_grid.row_heights;
+            app.root_grid.ColumnWidth = app.layout_cfg.root_grid.col_widths;
+            app.root_grid.Padding = app.layout_cfg.root_grid.padding;
+            app.root_grid.RowSpacing = app.layout_cfg.root_grid.row_spacing;
+            app.root_grid.ColumnSpacing = app.layout_cfg.root_grid.col_spacing;
+            
+            % Create menu bar (row 1)
+            app.create_menu_bar();
+            
+            % Create tab group in main content area (row 2)
+            app.tab_group = uitabgroup(app.root_grid, ...
                 'FontSize', 12, 'FontWeight', 'bold');
+            app.tab_group.Layout.Row = app.layout_cfg.tab_group.parent_row;
+            app.tab_group.Layout.Column = app.layout_cfg.tab_group.parent_col;
+            
+            % Create status bar (row 3) - placeholder for future use
+            % (Currently unused, but reserved in layout config)
             
             % Create all tabs
             app.create_all_tabs();
@@ -1277,8 +1327,10 @@ classdef UIController < handle
             % Create a new tab entry for the figure
             if isfield(app.handles, 'figure_tabs') && ishghandle(app.handles.figure_tabs)
                 tab = uitab(app.handles.figure_tabs, 'Title', name);
-                uilabel(tab, 'Text', sprintf('%s stored. Select in dropdown to preview.', name), ...
-                    'Position', [10 10 400 20]);
+                % Use grid layout for label instead of Position
+                tab_grid = uigridlayout(tab, [1 1]);
+                tab_grid.Padding = [10 10 10 10];
+                uilabel(tab_grid, 'Text', sprintf('%s stored. Select in dropdown to preview.', name));
             end
 
             app.show_figure(length(app.figures_list));
@@ -1338,23 +1390,10 @@ classdef UIController < handle
             end
         end
         
-        function resize_ui(app)
-            % Callback for window resize - maintains proper proportions
-            try
-                if isempty(app.fig) || ~ishghandle(app.fig)
-                    return;
-                end
-                
-                % Tab group uses normalized units and auto-scales
-                if ishghandle(app.tab_group)
-                    app.tab_group.Units = 'normalized';
-                    app.tab_group.Position = [0.007 0.08 0.986 0.91];
-                end
-                
-                % Buttons are now in checklist (normalized layout) - no manual repositioning needed
-            catch
-                % Silently handle resize errors
-            end
+        function resize_ui(~)
+            % Resize callback - NO LONGER NEEDED
+            % Grid layout auto-resizes, no manual Position adjustments required
+            % This method kept as stub for backwards compatibility
         end
         
         % Additional stub methods for button callbacks
@@ -1678,6 +1717,438 @@ classdef UIController < handle
                 );
             end
         end
+        
+        % ===================================================================
+        % DEVELOPER MODE & LAYOUT INSPECTION
+        % ===================================================================
+        
+        function create_menu_bar(app)
+            % Create menu bar with Developer Mode toggle
+            % Menu bar occupies row 1 of root_grid
+            
+            menu_panel = uipanel(app.root_grid, 'BorderType', 'none', ...
+                'BackgroundColor', app.layout_cfg.colors.bg_panel);
+            menu_panel.Layout.Row = 1;
+            menu_panel.Layout.Column = 1;
+            
+            menu_grid = uigridlayout(menu_panel, [1, 3]);
+            menu_grid.ColumnWidth = {'fit', '1x', 'fit'};
+            menu_grid.Padding = [10 5 10 5];
+            menu_grid.ColumnSpacing = 10;
+            
+            % Title label
+            uilabel(menu_grid, 'Text', '🌊 Tsunami Vortex Simulation UI', ...
+                'FontSize', 14, 'FontWeight', 'bold', ...
+                'FontColor', app.layout_cfg.colors.fg_text);
+            
+            % Spacer
+            uilabel(menu_grid, 'Text', '');
+            
+            % Developer Mode toggle
+            app.handles.dev_mode_toggle = uibutton(menu_grid, 'push', ...
+                'Text', '🔧 Developer Mode: OFF', ...
+                'FontSize', 11, ...
+                'BackgroundColor', [0.3 0.3 0.3], ...
+                'FontColor', [0.9 0.9 0.9], ...
+                'ButtonPushedFcn', @(~,~) app.toggle_developer_mode());
+        end
+        
+        function toggle_developer_mode(app)
+            % Toggle Developer Mode on/off
+            app.dev_mode_enabled = ~app.dev_mode_enabled;
+            
+            if app.dev_mode_enabled
+                app.handles.dev_mode_toggle.Text = '🔧 Developer Mode: ON';
+                app.handles.dev_mode_toggle.BackgroundColor = app.layout_cfg.colors.accent_green;
+                app.handles.dev_mode_toggle.FontColor = [0 0 0];
+                app.show_developer_inspector();
+                app.append_to_terminal('Developer Mode ENABLED. Click any component to inspect.', 'info');
+            else
+                app.handles.dev_mode_toggle.Text = '🔧 Developer Mode: OFF';
+                app.handles.dev_mode_toggle.BackgroundColor = [0.3 0.3 0.3];
+                app.handles.dev_mode_toggle.FontColor = [0.9 0.9 0.9];
+                app.hide_developer_inspector();
+                app.append_to_terminal('Developer Mode DISABLED.', 'info');
+            end
+        end
+        
+        function show_developer_inspector(app)
+            % Create or show Developer Mode inspector panel
+            % Inspector appears as floating window with component details
+            
+            if isfield(app.handles, 'dev_inspector_fig') && ishghandle(app.handles.dev_inspector_fig)
+                app.handles.dev_inspector_fig.Visible = 'on';
+                return;
+            end
+            
+            % Create inspector figure
+            app.handles.dev_inspector_fig = uifigure('Name', 'UI Developer Inspector', ...
+                'Position', [100 100 app.layout_cfg.dev_mode.inspector_width 500], ...
+                'Color', app.layout_cfg.colors.bg_dark);
+            
+            grid = uigridlayout(app.handles.dev_inspector_fig, [8 1]);
+            grid.RowHeight = {'fit', 'fit', 'fit', 'fit', 'fit', 'fit', 'fit', '1x'};
+            grid.Padding = [10 10 10 10];
+            grid.RowSpacing = 8;
+            
+            % Title
+            uilabel(grid, 'Text', '🔍 Component Inspector', ...
+                'FontSize', 14, 'FontWeight', 'bold', ...
+                'FontColor', app.layout_cfg.colors.fg_text);
+            
+            % Instructions
+            uilabel(grid, 'Text', 'Click any UI component to inspect', ...
+                'FontSize', 10, 'FontColor', app.layout_cfg.colors.accent_gray, ...
+                'WordWrap', 'on');
+            
+            % Component info panel
+            info_panel = uipanel(grid, 'Title', 'Selected Component', ...
+                'FontWeight', 'bold', 'BackgroundColor', app.layout_cfg.colors.bg_panel);
+            info_grid = uigridlayout(info_panel, [10 2]);
+            info_grid.ColumnWidth = {'fit', '1x'};
+            info_grid.RowHeight = repmat({'fit'}, 1, 10);
+            info_grid.Padding = [8 8 8 8];
+            info_grid.RowSpacing = 4;
+            
+            % Labels and values
+            uilabel(info_grid, 'Text', 'Type:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_type = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            
+            uilabel(info_grid, 'Text', 'Parent:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_parent = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            
+            uilabel(info_grid, 'Text', 'Layout.Row:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_row = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            
+            uilabel(info_grid, 'Text', 'Layout.Column:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_col = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            
+            uilabel(info_grid, 'Text', 'Row Span:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_rowspan = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            
+            uilabel(info_grid, 'Text', 'Col Span:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_colspan = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            
+            uilabel(info_grid, 'Text', 'Parent Grid Rows:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_parent_rows = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            
+            uilabel(info_grid, 'Text', 'Parent Grid Cols:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_parent_cols = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            
+            uilabel(info_grid, 'Text', 'Callbacks:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_callbacks = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7], 'WordWrap', 'on');
+            
+            uilabel(info_grid, 'Text', 'Tag/ID:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_tag = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7], 'WordWrap', 'on');
+            
+            % Tools panel
+            tools_panel = uipanel(grid, 'Title', 'Layout Tools', ...
+                'FontWeight', 'bold', 'BackgroundColor', app.layout_cfg.colors.bg_panel);
+            tools_grid = uigridlayout(tools_panel, [3 1]);
+            tools_grid.RowHeight = {'fit', 'fit', 'fit'};
+            tools_grid.Padding = [8 8 8 8];
+            tools_grid.RowSpacing = 6;
+            
+            uibutton(tools_grid, 'Text', 'Validate All Layouts', ...
+                'FontSize', 11, 'ButtonPushedFcn', @(~,~) app.validate_all_layouts());
+            
+            uibutton(tools_grid, 'Text', 'Dump UI Map to Console', ...
+                'FontSize', 11, 'ButtonPushedFcn', @(~,~) app.dump_ui_map());
+            
+            uibutton(tools_grid, 'Text', 'Reset to Default Layout', ...
+                'FontSize', 11, 'ButtonPushedFcn', @(~,~) app.reset_layout());
+            
+            % Log area
+            log_panel = uipanel(grid, 'Title', 'Inspector Log', ...
+                'FontWeight', 'bold', 'BackgroundColor', app.layout_cfg.colors.bg_panel);
+            log_grid = uigridlayout(log_panel, [1 1]);
+            log_grid.Padding = [5 5 5 5];
+            
+            app.handles.dev_log = uitextarea(log_grid, 'Value', {'Developer Mode Active'}, ...
+                'Editable', 'off', 'FontName', 'Courier New', 'FontSize', 9);
+            
+            % Enable click-to-inspect on all components
+            app.enable_click_inspector();
+        end
+        
+        function hide_developer_inspector(app)
+            % Hide Developer Mode inspector
+            if isfield(app.handles, 'dev_inspector_fig') && ishghandle(app.handles.dev_inspector_fig)
+                app.handles.dev_inspector_fig.Visible = 'off';
+            end
+            app.disable_click_inspector();
+        end
+        
+        function enable_click_inspector(app)
+            % Enable click-to-inspect on all UI components
+            % Recursively add ButtonDownFcn to all graphics objects
+            app.add_click_listener_recursive(app.fig);
+        end
+        
+        function disable_click_inspector(~)
+            % Disable click-to-inspect (remove listeners)
+            % For now, we'll leave listeners active but inactive in dev mode
+            % A full implementation would remove listeners here
+        end
+        
+        function add_click_listener_recursive(app, obj)
+            % Recursively add click listeners to all children
+            if ~ishghandle(obj)
+                return;
+            end
+            
+            % Add listener if component supports it
+            try
+                if isprop(obj, 'ButtonDownFcn')
+                    obj.ButtonDownFcn = @(src, ~) app.inspect_component(src);
+                end
+            catch
+                % Component doesn't support ButtonDownFcn
+            end
+            
+            % Recurse to children
+            try
+                children = obj.Children;
+                for i = 1:length(children)
+                    app.add_click_listener_recursive(children(i));
+                end
+            catch
+                % No children or children not accessible
+            end
+        end
+        
+        function inspect_component(app, component)
+            % Inspect clicked component and display details
+            if ~app.dev_mode_enabled
+                return;  % Only active in dev mode
+            end
+            
+            app.selected_component = component;
+            
+            % Get component type
+            comp_type = class(component);
+            app.handles.dev_type.Text = comp_type;
+            
+            % Get parent
+            try
+                parent = component.Parent;
+                parent_type = class(parent);
+                app.handles.dev_parent.Text = parent_type;
+            catch
+                app.handles.dev_parent.Text = '(no parent)';
+            end
+            
+            % Get Layout properties
+            try
+                if isprop(component, 'Layout')
+                    layout = component.Layout;
+                    
+                    if isprop(layout, 'Row')
+                        app.handles.dev_row.Text = mat2str(layout.Row);
+                    else
+                        app.handles.dev_row.Text = '(not grid layout)';
+                    end
+                    
+                    if isprop(layout, 'Column')
+                        app.handles.dev_col.Text = mat2str(layout.Column);
+                    else
+                        app.handles.dev_col.Text = '(not grid layout)';
+                    end
+                else
+                    app.handles.dev_row.Text = '(no Layout property)';
+                    app.handles.dev_col.Text = '(no Layout property)';
+                end
+            catch
+                app.handles.dev_row.Text = '(error)';
+                app.handles.dev_col.Text = '(error)';
+            end
+            
+            % Get parent grid properties
+            try
+                parent = component.Parent;
+                if isa(parent, 'matlab.ui.container.GridLayout')
+                    app.handles.dev_parent_rows.Text = sprintf('%d rows', length(parent.RowHeight));
+                    app.handles.dev_parent_cols.Text = sprintf('%d cols', length(parent.ColumnWidth));
+                else
+                    app.handles.dev_parent_rows.Text = '(parent not grid)';
+                    app.handles.dev_parent_cols.Text = '(parent not grid)';
+                end
+            catch
+                app.handles.dev_parent_rows.Text = '(error)';
+                app.handles.dev_parent_cols.Text = '(error)';
+            end
+            
+            % Get callbacks
+            callback_names = {};
+            try
+                props = properties(component);
+                for i = 1:length(props)
+                    prop = props{i};
+                    if contains(lower(prop), 'callback') || contains(lower(prop), 'fcn')
+                        if ~isempty(component.(prop))
+                            callback_names{end+1} = prop; %#ok<AGROW>
+                        end
+                    end
+                end
+                if isempty(callback_names)
+                    app.handles.dev_callbacks.Text = '(none)';
+                else
+                    app.handles.dev_callbacks.Text = strjoin(callback_names, ', ');
+                end
+            catch
+                app.handles.dev_callbacks.Text = '(error)';
+            end
+            
+            % Get Tag
+            try
+                if isprop(component, 'Tag')
+                    tag_val = component.Tag;
+                    if isempty(tag_val)
+                        app.handles.dev_tag.Text = '(no tag)';
+                    else
+                        app.handles.dev_tag.Text = tag_val;
+                    end
+                else
+                    app.handles.dev_tag.Text = '(no Tag property)';
+                end
+            catch
+                app.handles.dev_tag.Text = '(error)';
+            end
+            
+            % Log to inspector
+            log_msg = sprintf('Inspected: %s', comp_type);
+            app.append_dev_log(log_msg);
+        end
+        
+        function append_dev_log(app, msg)
+            % Append message to developer log
+            if ~isfield(app.handles, 'dev_log') || ~ishghandle(app.handles.dev_log)
+                return;
+            end
+            
+            current = app.handles.dev_log.Value;
+            current{end+1} = sprintf('[%s] %s', datestr(now, 'HH:MM:SS'), msg);
+            
+            % Keep last 50 messages
+            if length(current) > 50
+                current = current(end-49:end);
+            end
+            
+            app.handles.dev_log.Value = current;
+            scroll(app.handles.dev_log, 'bottom');
+        end
+        
+        function validate_all_layouts(app)
+            % Validate all layouts in UI (check for errors)
+            app.append_dev_log('Running layout validation...');
+            
+            issues = {};
+            
+            % Check for leftover Position usage
+            issues = app.check_position_usage_recursive(app.fig, issues);
+            
+            % Check for invalid row/col indices
+            % (TODO: implement full validation)
+            
+            if isempty(issues)
+                app.append_dev_log('✓ Validation passed: No issues found');
+                app.append_to_terminal('Layout validation PASSED', 'success');
+            else
+                for i = 1:length(issues)
+                    app.append_dev_log(sprintf('⚠ Issue: %s', issues{i}));
+                end
+                app.append_to_terminal(sprintf('Layout validation found %d issue(s)', length(issues)), 'warning');
+            end
+        end
+        
+        function issues = check_position_usage_recursive(app, obj, issues)
+            % Recursively check for Position property usage
+            if ~ishghandle(obj)
+                return;
+            end
+            
+            try
+                if isprop(obj, 'Units') && strcmp(obj.Units, 'normalized') && isprop(obj, 'Position')
+                    % Check if Position is being used (non-default)
+                    % Skip tab group (allowed for now)
+                    if ~isa(obj, 'matlab.ui.container.TabGroup')
+                        issues{end+1} = sprintf('%s uses Position (should use grid layout)', class(obj)); %#ok<AGROW>
+                    end
+                end
+            catch
+                % Skip
+            end
+            
+            % Recurse
+            try
+                children = obj.Children;
+                for i = 1:length(children)
+                    issues = app.check_position_usage_recursive(children(i), issues);
+                end
+            catch
+                % No children
+            end
+        end
+        
+        function dump_ui_map(app)
+            % Dump UI component map to console and inspector log
+            app.append_dev_log('Dumping UI map to console...');
+            fprintf('\n===== UI COMPONENT MAP =====\n');
+            app.dump_component_tree_recursive(app.fig, 0);
+            fprintf('===== END UI MAP =====\n\n');
+            app.append_dev_log('✓ UI map dumped to console');
+        end
+        
+        function dump_component_tree_recursive(~, obj, depth)
+            % Recursively dump component tree
+            if ~ishghandle(obj)
+                return;
+            end
+            
+            indent = repmat('  ', 1, depth);
+            comp_type = class(obj);
+            
+            % Get layout info if available
+            layout_info = '';
+            try
+                if isprop(obj, 'Layout') && isprop(obj.Layout, 'Row')
+                    layout_info = sprintf(' [Row=%s, Col=%s]', ...
+                        mat2str(obj.Layout.Row), mat2str(obj.Layout.Column));
+                end
+            catch
+                % No layout info
+            end
+            
+            % Get tag if available
+            tag_info = '';
+            try
+                if isprop(obj, 'Tag') && ~isempty(obj.Tag)
+                    tag_info = sprintf(' (Tag: %s)', obj.Tag);
+                end
+            catch
+                % No tag
+            end
+            
+            fprintf('%s- %s%s%s\n', indent, comp_type, layout_info, tag_info);
+            
+            % Recurse
+            try
+                children = obj.Children;
+                for i = 1:length(children)
+                    dump_component_tree_recursive(children(i), depth + 1);
+                end
+            catch
+                % No children
+            end
+        end
+        
+        function reset_layout(app)
+            % Reset UI to default layout configuration
+            app.append_dev_log('Resetting layout to defaults...');
+            app.append_to_terminal('Layout reset not yet implemented', 'warning');
+            % TODO: Full implementation would recreate UI from LayoutCfg
+        end
+        
     end
 end
 
