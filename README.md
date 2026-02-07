@@ -4,12 +4,14 @@ Numerical simulation of tsunami-induced vortex dynamics using vorticity–stream
 
 ## Key Features
 
-- **Dual-mode operation**: UI mode (3-tab MATLAB interface) or Standard mode (command-line)
+- **Dual-mode operation**: UI mode (3-tab MATLAB interface with Developer Mode) or Standard mode (command-line)
 - **Four FD simulation modes**: Evolution, Convergence, ParameterSweep, Plotting
 - **Adaptive convergence agent**: Intelligent mesh refinement using learning-based navigation
 - **Run tracking**: Unique run IDs, professional reports, master CSV table
 - **User-editable configuration**: Centralized parameter/settings files in `Scripts/Editable/`
+- **Grid-based UI layout**: Intuitive editing via `UI_Layout_Config.m` with Developer Mode inspector
 - **Organized outputs**: Structured directory tree in `Data/Output/` (gitignored)
+- **CI/CD**: GitHub Actions workflow for automated testing and static analysis
 
 ## Quick Start
 
@@ -37,10 +39,16 @@ cd Scripts/Drivers
 Analysis
 ```
 
-A startup dialog appears. Select "UI Mode" to access the 3-tab interface for:
-- **Tab 1**: Configuration (method, mode, parameters, initial conditions)
-- **Tab 2**: Live monitor (real-time metrics, progress, terminal output)
-- **Tab 3**: Results browser (load and visualize previous runs)
+A startup dialog appears. Select "UI Mode" to access the 3-tab interface:
+- **Tab 1: Configuration** — Method, mode, parameters, initial conditions
+- **Tab 2: Live Monitor** — Real-time metrics, progress, terminal output
+- **Tab 3: Results & Figures** — Load and visualize previous runs
+
+**Developer Mode (for UI editing):**
+- Click **"🔧 Developer Mode"** button in menu bar to enable
+- Click any component to inspect its properties (type, parent, Layout.Row/Column)
+- Use validation tools to check layout correctness
+- Edit layout parameters in `Scripts/UI/UI_Layout_Config.m` only
 
 **Expected output**: Interactive UI opens. Configure and run simulations from Tab 1. Results save to `Data/Output/FD/<Mode>/<run_id>/`.
 
@@ -242,14 +250,87 @@ Data/Output/
 
 ## Testing
 
-Run the test suite to verify installation:
+Run the comprehensive test suite to verify installation:
 
 ```matlab
 cd tests
 Run_All_Tests
 ```
 
-Expected output: Summary of passed/failed tests for core infrastructure, solvers, and UI components.
+**Expected output**: Summary of passed/failed tests for core infrastructure, solvers, and UI components.
+
+**Static analysis** (check code quality):
+```matlab
+cd tests
+static_analysis
+```
+
+**CI/CD**: GitHub Actions workflow automatically runs tests on every push (see `.github/workflows/matlab-tests.yml`).
+
+## Editing the UI Layout (Developer Mode)
+
+The UI uses a **grid-based layout** for intuitive editing. All layout parameters are centralized in `Scripts/UI/UI_Layout_Config.m`.
+
+### How to Edit Layout Safely
+
+1. **Enable Developer Mode:**
+   - Launch UI: `app = UIController();`
+   - Click menu bar button: **"🔧 Developer Mode: OFF"** → turns ON
+   - Inspector panel appears showing component details
+
+2. **Inspect a Component:**
+   - Click any UI element (dropdown, button, panel)
+   - Inspector displays:
+     - Type (e.g., `matlab.ui.control.DropDown`)
+     - Parent container
+     - `Layout.Row` and `Layout.Column` (grid position)
+     - Parent grid dimensions
+
+3. **Edit Layout Config:**
+   - Open `Scripts/UI/UI_Layout_Config.m`
+   - Find the relevant grid definition (e.g., `cfg.config_tab.left.row_heights`)
+   - Modify row/column sizes, spacing, or padding
+   - Save the file
+
+4. **Validate Changes:**
+   - In Developer Inspector, click **"Validate All Layouts"**
+   - Checks for invalid row/col indices, leftover `Position` usage
+   - Click **"Dump UI Map to Console"** to see full component tree
+
+5. **Reload UI:**
+   - Close UI figure
+   - Rerun: `app = UIController();`
+   - Verify changes took effect
+
+### Rules for UI Editing
+
+✅ **DO:**
+- Edit `UI_Layout_Config.m` only
+- Use `Layout.Row` and `Layout.Column` for placement
+- Use grid layout row/column sizes (`'fit'`, `'1x'`, `'2x'`, pixels)
+
+❌ **DON'T:**
+- Add `Position` properties to components
+- Edit layout parameters directly in `UIController.m`
+- Change callback function signatures (breaks functionality)
+
+### Adding a New Component
+
+1. Add entry to `cfg.placement` in `UI_Layout_Config.m`:
+   ```matlab
+   'my_new_button', 'config_left', 3, 1, [1 1];  % row 3, col 1, no span
+   ```
+
+2. Create component in appropriate `create_*_tab` method in `UIController.m`:
+   ```matlab
+   app.handles.my_new_button = uibutton(parent_grid, 'Text', 'My Button');
+   app.handles.my_new_button.Layout.Row = 3;
+   app.handles.my_new_button.Layout.Column = 1;
+   ```
+
+3. Validate with Developer Mode before committing
+
+**Reference:** See [MATLAB uigridlayout documentation](https://www.mathworks.com/help/matlab/ref/matlab.ui.container.gridlayout-properties.html)
 
 ## Documentation
 
