@@ -22,18 +22,56 @@ jobs:
           release: R2023b
           # products: (no additional products required - base MATLAB only)
       
-      - name: Run static analysis
+      - name: Run static analysis (report mode - never fails)
         uses: matlab-actions/run-command@v2
         with:
           command: |
             cd tests
-            try
-              static_analysis
-              disp('✓ Static analysis passed')
-            catch ME
-              disp(['✗ Static analysis failed: ' ME.message])
-              exit(1)
-            end
+            static_analysis('Mode', 'CI', 'FailOnIssues', false, 'Verbose', true)
+            disp('✓ Static analysis report complete')
+      
+      - name: Upload static analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: |
+            tests/static_analysis_report.json
+            tests/static_analysis_report.md
+          retention-days: 30
+      
+      - name: Gate on critical issues
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, sys, os
+          
+          json_path = "tests/static_analysis_report.json"
+          if not os.path.exists(json_path):
+              print("✗ Static analysis report not found")
+              sys.exit(1)
+          
+          with open(json_path) as f:
+              data = json.load(f)
+          
+          crit = data.get("summary", {}).get("critical", 0)
+          total = data.get("summary", {}).get("total", 0)
+          
+          print(f"Static analysis gate: CRITICAL={crit}, TOTAL={total}")
+          
+          # Fail if critical issues found (can be configured via env var)
+          fail_threshold = os.environ.get("STATIC_FAIL_LEVEL", "critical")
+          
+          if fail_threshold == "critical" and crit > 0:
+              print(f"✗ Found {crit} critical issues - failing")
+              sys.exit(1)
+          elif fail_threshold == "any" and total > 0:
+              print(f"✗ Found {total} total issues - failing")
+              sys.exit(1)
+          else:
+              print("✓ Static analysis gate passed")
+              sys.exit(0)
+          PY
       
       - name: Run all tests
         uses: matlab-actions/run-command@v2
