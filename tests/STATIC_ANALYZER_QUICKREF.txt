@@ -1,0 +1,100 @@
+╔═══════════════════════════════════════════════════════════════╗
+║         STATIC ANALYZER v2.0 - QUICK REFERENCE                ║
+╚═══════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────┐
+│ USAGE                                                         │
+└───────────────────────────────────────────────────────────────┘
+  Desktop:    cd tests; static_analysis
+  CI/Batch:   matlab -batch "cd tests; static_analysis"
+  Check:      echo $?  (0=pass, 1=fail, 2=error)
+
+┌───────────────────────────────────────────────────────────────┐
+│ OUTPUT FILES                                                  │
+└───────────────────────────────────────────────────────────────┘
+  Console:    Progress + summary (always)
+  JSON:       tests/static_analysis_report.json (machine)
+  Markdown:   tests/static_analysis_report.md (human)
+  
+  ⚠️  Reports are gitignored (regenerate each run)
+
+┌───────────────────────────────────────────────────────────────┐
+│ EXIT CODES                                                    │
+└───────────────────────────────────────────────────────────────┘
+  0   ✓ PASS      No issues found
+  1   ✗ FAIL      Issues detected (see reports)
+  2   ✗✗ ERROR    Analyzer crashed (check console/JSON)
+
+┌───────────────────────────────────────────────────────────────┐
+│ ISSUE CODE TAXONOMY                                           │
+└───────────────────────────────────────────────────────────────┘
+  MLAB-CRIT-xxx   Critical MATLAB issues (NODEF, NOSEM, etc.)
+  MLAB-MAJR-xxx   Major MATLAB issues (AGROW, PSIZE, etc.)
+  MLAB-MINR-xxx   Minor MATLAB issues (style)
+  REPO-001        Missing required directory
+  REPO-002        Missing entry point file
+  CUST-001        Position usage in UIController
+  ANLZ-001        checkcode failed for file
+  ANLZ-002        Failed to read/check file
+
+┌───────────────────────────────────────────────────────────────┐
+│ ANALYSIS PHASES                                               │
+└───────────────────────────────────────────────────────────────┘
+  1. FILE_COLLECTION    Gather .m files (pre-allocated)
+  2. CODE_ANALYZER      Run checkcode per-file (crash-safe)
+  3. CUSTOM_CHECKS      Repo-specific checks (3 checks)
+  4. AGGREGATION        Count and classify by severity
+  5. REPORTING          Write JSON + Markdown reports
+
+┌───────────────────────────────────────────────────────────────┐
+│ CRASH SAFETY FEATURES                                         │
+└───────────────────────────────────────────────────────────────┘
+  ✓ Pre-allocated arrays (no growing in loops)
+  ✓ Per-file exception handling (continues on errors)
+  ✓ Incremental reporting (partial reports on crash)
+  ✓ Phase tracking (knows where it failed)
+  ✓ Memory-efficient (processes files one at a time)
+
+┌───────────────────────────────────────────────────────────────┐
+│ COMMON CRITICAL ISSUES                                        │
+└───────────────────────────────────────────────────────────────┘
+  NODEF   Function called but not defined
+  NOSEM   Missing semicolon (causes output)
+  INUSD   Variable set but never used
+  MCNPR   File name doesn't match function name
+  AGROW   Variable growing in loop (pre-allocate!)
+
+┌───────────────────────────────────────────────────────────────┐
+│ CUSTOM CHECKS                                                 │
+└───────────────────────────────────────────────────────────────┘
+  [1/3] Required directories exist
+  [2/3] Entry point files exist
+  [3/3] UIController Position usage (allowlist applied)
+
+┌───────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                               │
+└───────────────────────────────────────────────────────────────┘
+  Exit 2?     Check console for exception, last completed phase
+  No JSON?    Check write permissions in tests/
+  Slow?       Check phase timings in Markdown report
+  False +?    Review allowlist in run_custom_checks_safe()
+
+┌───────────────────────────────────────────────────────────────┐
+│ DOCUMENTATION                                                 │
+└───────────────────────────────────────────────────────────────┘
+  Full guide:        tests/STATIC_ANALYZER_GUIDE.md
+  Improvements:      tests/STATIC_ANALYZER_IMPROVEMENTS.md
+  This reference:    tests/STATIC_ANALYZER_QUICKREF.txt
+
+┌───────────────────────────────────────────────────────────────┐
+│ EXTENDING                                                     │
+└───────────────────────────────────────────────────────────────┘
+  Add check?    Edit run_custom_checks_safe() function
+  New code?     Define in map_checkcode_issue() or custom check
+  Allowlist?    Add pattern to allowed_patterns array
+
+═══════════════════════════════════════════════════════════════
+ Version: 2.0 (Crash-Hardened)
+ Updated: 2026-02-08
+ Single file: tests/static_analysis.m (29KB, 688 lines, 8 funcs)
+═══════════════════════════════════════════════════════════════
