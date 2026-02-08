@@ -33,3 +33,5 @@ Thumbs.db
 
 # Test outputs
 tests/test_results.mat
+tests/static_analysis_report.json
+tests/static_analysis_report.md
