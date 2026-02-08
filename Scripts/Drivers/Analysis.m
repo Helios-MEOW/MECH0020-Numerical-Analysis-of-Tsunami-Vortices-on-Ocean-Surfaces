@@ -53,6 +53,32 @@ fprintf('═══════════════════════�
 fprintf('  MECH0020 TSUNAMI VORTEX SIMULATION - STANDARD MODE\n');
 fprintf('═══════════════════════════════════════════════════════════════\n\n');
 
+% ===== PREFLIGHT CONFIRMATION =====
+fprintf('───────────────────────────────────────────────────────────────\n');
+fprintf('  PREFLIGHT CHECK\n');
+fprintf('───────────────────────────────────────────────────────────────\n\n');
+
+% Ask user if they have edited parameters
+response = input('Have you edited parameters in this script? (Y/N): ', 's');
+
+if isempty(response) || ~strcmpi(response, 'y')
+    fprintf('\n');
+    ErrorHandler.log('WARN', 'CFG-VAL-0003', ...
+        'message', 'Running with default parameters. Edit Analysis.m lines 60-78 to customize.', ...
+        'file', mfilename);
+    fprintf('\n');
+
+    cont_response = input('Continue anyway? (Y/N): ', 's');
+    if ~strcmpi(cont_response, 'y')
+        fprintf('\nAborted by user.\n');
+        return;
+    end
+    fprintf('\n');
+else
+    ErrorHandler.log_success('Parameters edited - proceeding with custom configuration');
+    fprintf('\n');
+end
+
 % ===== BUILD CONFIGURATION =====
 % Use builder functions from Scripts/Infrastructure/
 
@@ -77,30 +103,105 @@ Settings.append_to_master = true;
 Settings.monitor_enabled = true;
 Settings.monitor_theme = 'dark';
 
+% ===== CONFIGURATION REPORT =====
+fprintf('───────────────────────────────────────────────────────────────\n');
+fprintf('  CONFIGURATION REPORT\n');
+fprintf('───────────────────────────────────────────────────────────────\n\n');
+
+fprintf('[METHOD & MODE]\n');
+fprintf('  Method:              %s\n', Run_Config.method);
+fprintf('  Mode:                %s\n', Run_Config.mode);
+fprintf('  Initial Condition:   %s\n\n', Run_Config.ic_type);
+
+fprintf('[GRID & DOMAIN]\n');
+fprintf('  Nx × Ny:             %d × %d\n', Parameters.Nx, Parameters.Ny);
+fprintf('  Lx × Ly:             %.2f × %.2f\n', Parameters.Lx, Parameters.Ly);
+fprintf('  dx × dy:             %.4f × %.4f\n', ...
+    Parameters.Lx/Parameters.Nx, Parameters.Ly/Parameters.Ny);
+fprintf('  Total Grid Points:   %d\n\n', Parameters.Nx * Parameters.Ny);
+
+fprintf('[TIME INTEGRATION]\n');
+fprintf('  dt:                  %.6f\n', Parameters.dt);
+fprintf('  Tfinal:              %.2f\n', Parameters.Tfinal);
+fprintf('  Steps:               %d\n', ceil(Parameters.Tfinal / Parameters.dt));
+fprintf('  Snapshots:           %d\n\n', length(Parameters.snap_times));
+
+fprintf('[PHYSICS]\n');
+fprintf('  Viscosity (nu):      %.6f\n\n', Parameters.nu);
+
+% CFL check
+dx = Parameters.Lx / Parameters.Nx;
+dy = Parameters.Ly / Parameters.Ny;
+max_velocity_est = 1.0;  % Conservative estimate
+cfl = max_velocity_est * Parameters.dt / min(dx, dy);
+fprintf('[STABILITY]\n');
+fprintf('  CFL number (est):    %.4f', cfl);
+if cfl < 0.5
+    fprintf('  ✓ SAFE\n');
+elseif cfl < 1.0
+    fprintf('  ⚠ CAUTION\n');
+else
+    fprintf('  ✗ UNSTABLE\n');
+end
+fprintf('\n');
+
+fprintf('[OUTPUT SETTINGS]\n');
+fprintf('  Save Figures:        %s\n', bool2str(Settings.save_figures));
+fprintf('  Save Data:           %s\n', bool2str(Settings.save_data));
+fprintf('  Save Reports:        %s\n', bool2str(Settings.save_reports));
+fprintf('  Append to Master:    %s\n', bool2str(Settings.append_to_master));
+fprintf('  Monitor Enabled:     %s\n\n', bool2str(Settings.monitor_enabled));
+
+fprintf('───────────────────────────────────────────────────────────────\n\n');
+
+pause(1);  % Give user time to review
+
 % ===== RUN SIMULATION VIA DISPATCHER =====
-fprintf('Configuration:\n');
-fprintf('  Method: %s\n', Run_Config.method);
-fprintf('  Mode: %s\n', Run_Config.mode);
-fprintf('  IC: %s\n', Run_Config.ic_type);
-fprintf('  Grid: %dx%d\n', Parameters.Nx, Parameters.Ny);
-fprintf('  Time: dt=%.4f, Tfinal=%.2f\n\n', Parameters.dt, Parameters.Tfinal);
+ErrorHandler.log_info('Launching simulation via ModeDispatcher...');
+fprintf('\n');
 
-% Dispatch to appropriate mode module
-[Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
+try
+    % Dispatch to appropriate mode module
+    [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
 
-% ===== DISPLAY RESULTS =====
-fprintf('\n═══════════════════════════════════════════════════════════════\n');
-fprintf('  SIMULATION COMPLETE\n');
-fprintf('═══════════════════════════════════════════════════════════════\n\n');
+    % ===== DISPLAY RESULTS =====
+    fprintf('\n═══════════════════════════════════════════════════════════════\n');
+    fprintf('  SIMULATION COMPLETE\n');
+    fprintf('═══════════════════════════════════════════════════════════════\n\n');
 
-fprintf('Run ID: %s\n', Results.run_id);
-fprintf('Wall Time: %.2f s\n', Results.wall_time);
-fprintf('Final Time: %.4f\n', Results.final_time);
-fprintf('Max Vorticity: %.4e\n\n', Results.max_omega);
+    ErrorHandler.log_success(sprintf('Simulation completed successfully (%.2f s)', Results.wall_time));
+    fprintf('\n');
 
-fprintf('Output Directory: %s\n', paths.base);
-fprintf('Report: %s\n', fullfile(paths.reports, 'Report.txt'));
-fprintf('Master Table: %s\n\n', PathBuilder.get_master_table_path());
+    fprintf('Run ID:              %s\n', Results.run_id);
+    fprintf('Wall Time:           %.2f s\n', Results.wall_time);
+    fprintf('Final Time:          %.4f\n', Results.final_time);
+    fprintf('Max Vorticity:       %.4e\n\n', Results.max_omega);
+
+    fprintf('Output Directory:    %s\n', paths.base);
+    if isfield(paths, 'reports')
+        fprintf('Report:              %s\n', fullfile(paths.reports, 'Report.txt'));
+    end
+    fprintf('Master Table:        %s\n\n', PathBuilder.get_master_table_path());
+
+catch ME
+    % Simulation failed - use structured error logging
+    fprintf('\n');
+    ErrorHandler.log('ERROR', 'RUN-EXEC-0003', ...
+        'message', sprintf('Simulation failed: %s', ME.message), ...
+        'file', mfilename, ...
+        'context', struct('error_id', ME.identifier));
+
+    fprintf('\nFull error details:\n');
+    fprintf('  Identifier: %s\n', ME.identifier);
+    fprintf('  Message:    %s\n', ME.message);
+    if ~isempty(ME.stack)
+        fprintf('  Location:   %s (line %d)\n', ME.stack(1).name, ME.stack(1).line);
+    end
+    fprintf('\n');
+
+    rethrow(ME);
+end
+
 
 % ===== EXAMPLE: OTHER MODES =====
 % Uncomment to try other modes:
@@ -120,3 +221,14 @@ fprintf('Master Table: %s\n\n', PathBuilder.get_master_table_path());
 % Run_Config = Build_Run_Config('FD', 'Plotting', 'Lamb-Oseen', 'source_run_id', '<run_id>');
 % Parameters.plot_types = {'contours', 'streamlines', 'evolution'};
 % [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
+
+
+%% Helper Function
+function str = bool2str(val)
+    % Convert boolean to 'Yes'/'No' string
+    if val
+        str = 'Yes';
+    else
+        str = 'No';
+    end
+end
