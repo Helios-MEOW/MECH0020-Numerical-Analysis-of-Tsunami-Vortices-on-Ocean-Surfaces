@@ -61,27 +61,66 @@ cd Scripts/Drivers
 Analysis
 ```
 
-When the startup dialog appears, select "Standard Mode". The script continues in command-line mode with these defaults:
+When the startup dialog appears, select **"Standard Mode"**.
+
+**Preflight Workflow:**
+1. Prompt: "Have you edited parameters in this script? (Y/N)"
+   - If **No**: Warning + option to continue or abort
+   - If **Yes**: Proceeds with confirmation
+2. Comprehensive configuration report displayed
+   - Method, mode, IC
+   - Grid and domain parameters
+   - Time integration (dt, Tfinal, steps, snapshots)
+   - Physics (viscosity)
+   - Stability (CFL check with ✓/⚠/✗ indicator)
+   - Output settings
+3. Simulation launches via ModeDispatcher
+
+**Default Parameters:**
 - Method: Finite Difference (FD)
 - Mode: Evolution
 - IC: Lamb-Oseen vortex
 - Grid: 128×128
 - Time: dt=0.001, Tfinal=1.0
 
+**To Customize:** Edit `Analysis.m` lines 86-104 before running.
+
 **Expected output**:
 ```
-MECH0020 TSUNAMI VORTEX SIMULATION - STANDARD MODE
-Configuration:
-  Method: FD
-  Mode: Evolution
-  IC: Lamb-Oseen
-  Grid: 128x128
-...
-Output Directory: Data/Output/FD/Evolution/FD_Evol_LambOseen_YYYYMMDD_HHMMSS/
-Report: Data/Output/FD/Evolution/.../Reports/Report.txt
-```
+═══════════════════════════════════════════════════════════════
+  MECH0020 TSUNAMI VORTEX SIMULATION - STANDARD MODE
+═══════════════════════════════════════════════════════════════
 
-To customize parameters, edit the values in `Analysis.m` lines 56-74 before running.
+───────────────────────────────────────────────────────────────
+  PREFLIGHT CHECK
+───────────────────────────────────────────────────────────────
+
+Have you edited parameters in this script? (Y/N): Y
+
+[SUCCESS] Parameters edited - proceeding with custom configuration
+
+───────────────────────────────────────────────────────────────
+  CONFIGURATION REPORT
+───────────────────────────────────────────────────────────────
+
+[METHOD & MODE]
+  Method:              FD
+  Mode:                Evolution
+  Initial Condition:   Lamb-Oseen
+
+[GRID & DOMAIN]
+  Nx × Ny:             128 × 128
+  ...
+
+[INFO] Launching simulation via ModeDispatcher...
+
+... (simulation runs) ...
+
+[SUCCESS] Simulation completed successfully (12.34 s)
+
+Run ID:              FD_Evol_LambOseen_YYYYMMDD_HHMMSS
+Output Directory:    Data/Output/FD/Evolution/FD_Evol_LambOseen_.../
+```
 
 ## Repository Structure
 
@@ -412,8 +451,25 @@ The UI uses a **grid-based layout** for intuitive editing. All layout parameters
 
 ## Documentation
 
-Additional documentation:
-- [Complete Analysis Guide (Jupyter Notebook)](docs/03_NOTEBOOKS/Tsunami_Vortex_Analysis_Complete_Guide.ipynb)
+This README serves as the central replication manual. Additional documentation:
+
+**Research & Constraints:**
+- [research.md](research.md) - Method/mode compatibility matrix, unviable combinations, experimental features, future work, known limitations
+- [research_log.md](research_log.md) - Literature references (Vancouver-style), research notes, implementation sources
+
+**Notebooks:**
+- [Complete Analysis Guide (Jupyter)](docs/03_NOTEBOOKS/Tsunami_Vortex_Analysis_Complete_Guide.ipynb) - Interactive tutorial and examples
+
+**Implementation Details:**
+- Error codes: See "Error Codes" section above
+- Test suite: `tests/Run_All_Tests.m` - omnipotent test harness (static + unit + integration)
+- UI layout: `Scripts/UI/UI_Layout_Config.m` - grid-based layout configuration
+
+**What to Read First:**
+1. This README for quick start and basic usage
+2. `research.md` for compatibility matrix and constraints
+3. Jupyter notebook for in-depth analysis examples
+4. `research_log.md` for literature references and research notes
 
 ## License
 
