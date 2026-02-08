@@ -57,18 +57,35 @@ classdef PathBuilder
                     paths.base = fullfile(results_root, method, mode);
                     
                 otherwise
-                    error('PathBuilder:UnknownMode', 'Unknown mode: %s', mode);
+                    % Unknown mode - use structured error
+                    ErrorHandler.throw('RUN-EXEC-0002', ...
+                        'file', 'PathBuilder', ...
+                        'line', 60, ...
+                        'context', struct(...
+                            'requested_mode', mode, ...
+                            'valid_modes', {{'Evolution', 'Convergence', 'ParameterSweep', 'Plotting'}}));
             end
         end
         
         function ensure_directories(paths)
             % Create all directories in paths struct idempotently
+            % Uses structured error handling for mkdir failures
+
             fields = fieldnames(paths);
             for i = 1:length(fields)
                 field_val = paths.(fields{i});
                 if ischar(field_val) || isstring(field_val)
                     if ~exist(field_val, 'dir')
-                        mkdir(field_val);
+                        try
+                            mkdir(field_val);
+                        catch ME
+                            % mkdir failed - use structured error
+                            ErrorHandler.throw('IO-FS-0001', ...
+                                'file', 'PathBuilder', ...
+                                'line', 76, ...
+                                'cause', ME, ...
+                                'context', struct('target_directory', field_val));
+                        end
                     end
                 end
             end
@@ -77,13 +94,26 @@ classdef PathBuilder
         function add_parameter_dir(paths, param_name)
             % Add parameter-specific directory for ParameterSweep mode
             if ~strcmpi(paths.mode, 'ParameterSweep')
-                error('PathBuilder:WrongMode', 'add_parameter_dir only valid for ParameterSweep mode');
+                ErrorHandler.throw('RUN-EXEC-0002', ...
+                    'file', 'PathBuilder', ...
+                    'line', 90, ...
+                    'message', 'add_parameter_dir only valid for ParameterSweep mode', ...
+                    'context', struct('current_mode', paths.mode));
             end
             param_path = fullfile(paths.base, param_name);
             paths.(matlab.lang.makeValidName(param_name)) = param_path;
             if ~exist(param_path, 'dir')
-                mkdir(param_path);
-                mkdir(fullfile(param_path, 'Figures'));
+                try
+                    mkdir(param_path);
+                    mkdir(fullfile(param_path, 'Figures'));
+                catch ME
+                    % mkdir failed - use structured error
+                    ErrorHandler.throw('IO-FS-0001', ...
+                        'file', 'PathBuilder', ...
+                        'line', 101, ...
+                        'cause', ME, ...
+                        'context', struct('target_directory', param_path));
+                end
             end
         end
         

@@ -239,14 +239,92 @@ Data/Output/
 **Fix**: Directory is created on first run. If error persists, manually create: `mkdir Data/Output`
 
 ### Very slow simulations
-**Symptom**: Simulation takes hours for small grids  
-**Cause**: Likely high resolution or small dt causing many timesteps  
+**Symptom**: Simulation takes hours for small grids
+**Cause**: Likely high resolution or small dt causing many timesteps
 **Fix**: Check `Parameters.dt` and `Parameters.Tfinal`. Reduce `Nx`, `Ny`, or increase `dt` (watch CFL < 1).
 
 ### Standard mode vs UI mode confusion
-**Symptom**: Unsure which mode is running  
-**Cause**: Startup dialog is modal  
+**Symptom**: Unsure which mode is running
+**Cause**: Startup dialog is modal
 **Fix**: The dialog forces a choice. "UI Mode" opens tabs, "Standard Mode" continues script execution in command window.
+
+## Error Codes
+
+The repository uses a structured error code system for consistent debugging and error reporting.
+
+### Error Code Format
+
+Format: `PREFIX-CATEGORY-NNNN`
+- `PREFIX`: Module/subsystem (SYS, CFG, UI, RUN, SOL, IO, MON, TST, GEN)
+- `CATEGORY`: Error category or severity
+- `NNNN`: Unique number
+
+### Error Code Categories
+
+**SYS-BOOT-xxxx**: System Bootstrap & Initialization
+- `SYS-BOOT-0001`: Failed to locate repository root
+- `SYS-BOOT-0002`: Required directory missing
+- `SYS-BOOT-0003`: Required MATLAB function not found
+
+**CFG-VAL-xxxx**: Configuration Validation
+- `CFG-VAL-0001`: Invalid grid resolution (Nx/Ny)
+- `CFG-VAL-0002`: Invalid time step or final time
+- `CFG-VAL-0003`: CFL condition warning
+- `CFG-VAL-0004`: Invalid initial condition type
+- `CFG-VAL-0005`: Method/mode combination not supported
+
+**UI-LAY-xxxx / UI-CB-xxxx**: User Interface
+- `UI-LAY-0001`: Component grid position out of bounds
+- `UI-LAY-0002`: Component uses Position instead of grid layout
+- `UI-CB-0001`: Callback execution failed
+- `UI-CB-0002`: Launch simulation with invalid configuration
+
+**RUN-EXEC-xxxx**: Runner & Dispatcher
+- `RUN-EXEC-0001`: Unknown method specified
+- `RUN-EXEC-0002`: Unknown mode for method
+- `RUN-EXEC-0003`: Simulation failed during execution
+
+**SOL-FD-xxxx / SOL-SP-xxxx / SOL-FV-xxxx**: Solvers
+- `SOL-FD-0001`: FD solver encountered NaN/Inf
+- `SOL-FD-0002`: Poisson solver failed to converge
+- `SOL-SP-0001`: Spectral method not implemented
+- `SOL-FV-0001`: Finite Volume method not implemented
+
+**IO-FS-xxxx**: File I/O
+- `IO-FS-0001`: Failed to create output directory
+- `IO-FS-0002`: Failed to save output file
+- `IO-FS-0003`: Failed to load previous run data
+
+**MON-SUS-xxxx**: Monitoring & Sustainability
+- `MON-SUS-0001`: Hardware monitor bridge unavailable
+- `MON-SUS-0002`: iCUE bridge unavailable
+
+**TST-xxxx**: Testing Framework
+- `TST-0001`: Test case failed
+- `TST-0002`: Test harness infrastructure error
+
+**GEN-xxxx**: Generic
+- `GEN-0001`: Unclassified error
+
+### Using Error Codes
+
+**Print error registry**:
+```matlab
+ErrorRegistry.print_registry();
+```
+
+**Lookup specific code**:
+```matlab
+info = ErrorRegistry.lookup('CFG-VAL-0001');
+fprintf('%s\n', info.remediation);
+```
+
+**All error codes**:
+```matlab
+codes = ErrorRegistry.get_all_codes();
+```
+
+For implementation details, see `Scripts/Infrastructure/Utilities/ErrorRegistry.m` and `ErrorHandler.m`.
 
 ## Testing
 

@@ -5,6 +5,7 @@ function [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings)
     %   Single entry point to route runs to appropriate mode modules
     %   Enforces method/mode compatibility
     %   Provides consistent interface across all methods
+    %   Uses structured error handling with ErrorHandler
     %
     % Inputs:
     %   Run_Config - method, mode, ic_type, identifiers
@@ -17,36 +18,70 @@ function [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings)
     %
     % Usage:
     %   [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings);
-    
+
     % Validate required fields
     if ~isfield(Run_Config, 'method')
-        error('ModeDispatcher:MissingMethod', 'Run_Config.method is required');
+        ErrorHandler.throw('RUN-EXEC-0001', ...
+            'file', mfilename, ...
+            'line', 23, ...
+            'message', 'Run_Config.method is required but not provided', ...
+            'context', struct('Run_Config_fields', fieldnames(Run_Config)));
     end
     if ~isfield(Run_Config, 'mode')
-        error('ModeDispatcher:MissingMode', 'Run_Config.mode is required');
+        ErrorHandler.throw('RUN-EXEC-0002', ...
+            'file', mfilename, ...
+            'line', 29, ...
+            'message', 'Run_Config.mode is required but not provided', ...
+            'context', struct('Run_Config_fields', fieldnames(Run_Config)));
     end
-    
+
     method = upper(Run_Config.method);
     mode = Run_Config.mode;
-    
+
     % Normalize mode name
     mode_normalized = normalize_mode_name(mode);
-    
-    % Route to appropriate method/mode handler
-    switch method
-        case 'FD'
-            [Results, paths] = dispatch_FD_mode(mode_normalized, Run_Config, Parameters, Settings);
-            
-        case {'FFT', 'SPECTRAL'}
-            % Future: Spectral method modes
-            error('ModeDispatcher:NotImplemented', 'Spectral method not yet implemented');
-            
-        case 'FV'
-            % Future: Finite Volume modes
-            error('ModeDispatcher:NotImplemented', 'Finite Volume method not yet implemented');
-            
-        otherwise
-            error('ModeDispatcher:UnknownMethod', 'Unknown method: %s', method);
+
+    % Route to appropriate method/mode handler with structured error handling
+    try
+        switch method
+            case 'FD'
+                [Results, paths] = dispatch_FD_mode(mode_normalized, Run_Config, Parameters, Settings);
+
+            case {'FFT', 'SPECTRAL'}
+                % Spectral method not implemented - use structured error
+                ErrorHandler.throw('SOL-SP-0001', ...
+                    'file', mfilename, ...
+                    'line', 50, ...
+                    'context', struct('requested_method', method));
+
+            case 'FV'
+                % Finite Volume not implemented - use structured error
+                ErrorHandler.throw('SOL-FV-0001', ...
+                    'file', mfilename, ...
+                    'line', 56, ...
+                    'context', struct('requested_method', method));
+
+            otherwise
+                % Unknown method - use structured error
+                ErrorHandler.throw('RUN-EXEC-0001', ...
+                    'file', mfilename, ...
+                    'line', 62, ...
+                    'context', struct('requested_method', method, 'valid_methods', {{'FD', 'Spectral', 'FV'}}));
+        end
+
+    catch ME
+        % Wrap any errors from mode execution with context
+        if strcmp(ME.identifier(1:min(3,end)), 'RUN') || strcmp(ME.identifier(1:min(3,end)), 'SOL')
+            % Already a structured error, just rethrow
+            rethrow(ME);
+        else
+            % Unexpected error - wrap with structured error
+            ErrorHandler.throw('RUN-EXEC-0003', ...
+                'file', mfilename, ...
+                'line', 78, ...
+                'cause', ME, ...
+                'context', struct('method', method, 'mode', mode));
+        end
     end
 end
 
@@ -73,25 +108,47 @@ end
 function [Results, paths] = dispatch_FD_mode(mode, Run_Config, Parameters, Settings)
     % Dispatch to FD mode modules
     % Enforces FD modes: Evolution, Convergence, ParameterSweep, Plotting
-    
+    % Uses structured error handling
+
     % Update Run_Config with normalized mode
     Run_Config.mode = mode;
-    
-    switch mode
-        case 'Evolution'
-            [Results, paths] = FD_Evolution_Mode(Run_Config, Parameters, Settings);
-            
-        case 'Convergence'
-            [Results, paths] = FD_Convergence_Mode(Run_Config, Parameters, Settings);
-            
-        case 'ParameterSweep'
-            [Results, paths] = FD_ParameterSweep_Mode(Run_Config, Parameters, Settings);
-            
-        case 'Plotting'
-            [Results, paths] = FD_Plotting_Mode(Run_Config, Parameters, Settings);
-            
-        otherwise
-            error('ModeDispatcher:InvalidFDMode', ...
-                'Invalid FD mode: %s. Valid modes: Evolution, Convergence, ParameterSweep, Plotting', mode);
+
+    try
+        switch mode
+            case 'Evolution'
+                [Results, paths] = FD_Evolution_Mode(Run_Config, Parameters, Settings);
+
+            case 'Convergence'
+                [Results, paths] = FD_Convergence_Mode(Run_Config, Parameters, Settings);
+
+            case 'ParameterSweep'
+                [Results, paths] = FD_ParameterSweep_Mode(Run_Config, Parameters, Settings);
+
+            case 'Plotting'
+                [Results, paths] = FD_Plotting_Mode(Run_Config, Parameters, Settings);
+
+            otherwise
+                % Invalid FD mode - use structured error
+                ErrorHandler.throw('RUN-EXEC-0002', ...
+                    'file', mfilename, ...
+                    'line', 25, ...
+                    'context', struct(...
+                        'requested_mode', mode, ...
+                        'valid_modes', {{'Evolution', 'Convergence', 'ParameterSweep', 'Plotting'}}));
+        end
+
+    catch ME
+        % Wrap mode execution errors with context
+        if contains(ME.identifier, {'RUN', 'SOL', 'CFG', 'IO'})
+            % Already a structured error, just rethrow
+            rethrow(ME);
+        else
+            % Unexpected error - wrap
+            ErrorHandler.throw('RUN-EXEC-0003', ...
+                'file', mfilename, ...
+                'line', 41, ...
+                'cause', ME, ...
+                'context', struct('method', 'FD', 'mode', mode));
+        end
     end
 end
