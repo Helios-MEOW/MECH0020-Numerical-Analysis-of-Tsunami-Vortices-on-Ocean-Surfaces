@@ -159,7 +159,7 @@ The analyzer executes in 5 phases:
 
 ### 1. Memory Management
 - Pre-allocated arrays instead of growing arrays in loops
-- Incremental JSON writing instead of building huge structs
+
 - Per-file processing instead of batch processing
 
 ### 2. Exception Handling
