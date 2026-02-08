@@ -10,6 +10,7 @@
 # Generated artefacts
 Data/Output/
 Results/
+Artifacts/
 diary
 *.log
 chat.json
@@ -35,3 +36,7 @@ Thumbs.db
 tests/test_results.mat
 tests/static_analysis_report.json
 tests/static_analysis_report.md
+
+# Temporary files
+tmpclaude-*
+*.tmp
