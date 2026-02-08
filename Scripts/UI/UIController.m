@@ -2035,7 +2035,11 @@ classdef UIController < handle
             end
             
             app.handles.dev_log.Value = current;
-            scroll(app.handles.dev_log, 'bottom');
+            try
+                scroll(app.handles.dev_log, 'bottom');
+            catch
+                % scroll may not be available in all MATLAB versions
+            end
         end
         
         function validate_all_layouts(app)
@@ -2135,7 +2139,7 @@ classdef UIController < handle
             try
                 children = obj.Children;
                 for i = 1:length(children)
-                    dump_component_tree_recursive(children(i), depth + 1);
+                    dump_component_tree_recursive([], children(i), depth + 1);
                 end
             catch
                 % No children

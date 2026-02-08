@@ -97,38 +97,7 @@ function cfg = UI_Layout_Config()
     cfg.results_tab.controls.padding = [5 5 5 5];
     cfg.results_tab.controls.col_spacing = 8;
     
-    % ===== COMPONENT PLACEMENT MAP =====
-    % Maps component names to their grid positions
-    % Format: {component_name, parent_grid, row, col, [row_span, col_span]}
-    
-    cfg.placement = {
-        % Config tab - left panel
-        'panel_method',     'config_left', 1, 1, [1 1];
-        'panel_grid',       'config_left', 2, 1, [1 1];
-        'panel_time',       'config_left', 3, 1, [1 1];
-        'panel_sim',        'config_left', 4, 1, [1 1];
-        'panel_conv',       'config_left', 5, 1, [1 1];
-        'panel_sus',        'config_left', 6, 1, [1 1];
-        % Row 7 is spacer (1x)
-        
-        % Config tab - right panel
-        'panel_checklist',  'config_right', 1, 1, [1 1];
-        'panel_ic',         'config_right', 2, 1, [1 1];
-        'panel_preview',    'config_right', 3, 1, [1 1];
-        
-        % Monitor tab - left panel (2x2 gauges)
-        'gauge_iter_time',  'monitor_left', 1, 1, [1 1];
-        'gauge_iter_per_s', 'monitor_left', 1, 2, [1 1];
-        'gauge_conv',       'monitor_left', 2, 1, [1 2];  % spans 2 cols
-        
-        % Monitor tab - right panel
-        'panel_metrics',    'monitor_right', 2, 1, [1 1];
-        
-        % Results tab
-        'panel_figures',    'results_root', 1, 1, [1 1];
-        'panel_metrics',    'results_root', 2, 1, [1 1];
-    };
-    
+
     % ===== STANDARD COMPONENT SIZES =====
     cfg.sizes.button_height = 40;
     cfg.sizes.dropdown_height = 30;

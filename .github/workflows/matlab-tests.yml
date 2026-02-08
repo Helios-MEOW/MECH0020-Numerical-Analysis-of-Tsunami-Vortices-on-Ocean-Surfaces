@@ -65,15 +65,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: Check README links
+      - name: Scan README for BROKEN_LINK markers
         run: |
-          echo "Checking README for broken links..."
-          # Basic link check (expand as needed)
+          echo 'Checking README for "BROKEN_LINK" markers...'
+          # Basic marker check (expand to real link checking if needed)
           if grep -q "BROKEN_LINK" README.md; then
-            echo "✗ Found broken links in README"
+            echo "✗ Found BROKEN_LINK markers in README"
             exit 1
           fi
-          echo "✓ README links OK"
+          echo "✓ No BROKEN_LINK markers found in README"
       
       - name: Verify notebook exists
         run: |
