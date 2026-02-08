@@ -1881,18 +1881,41 @@ classdef UIController < handle
         
         function enable_click_inspector(app)
             % Enable click-to-inspect on all UI components
-            % Recursively add ButtonDownFcn to all graphics objects
+            % Store original callbacks and replace with inspector
+            app.dev_original_callbacks = containers.Map('KeyType', 'double', 'ValueType', 'any');
             app.add_click_listener_recursive(app.fig);
         end
         
-        function disable_click_inspector(~)
-            % Disable click-to-inspect (remove listeners)
-            % For now, we'll leave listeners active but inactive in dev mode
-            % A full implementation would remove listeners here
+        function disable_click_inspector(app)
+            % Disable click-to-inspect (restore original callbacks)
+            if ~isfield(app, 'dev_original_callbacks') || isempty(app.dev_original_callbacks)
+                return;
+            end
+            
+            % Restore all original callbacks
+            keys_array = keys(app.dev_original_callbacks);
+            for i = 1:length(keys_array)
+                handle_id = keys_array{i};
+                original_callback = app.dev_original_callbacks(handle_id);
+                
+                % Find the handle and restore its callback
+                try
+                    h = handle(handle_id);
+                    if ishghandle(h) && isprop(h, 'ButtonDownFcn')
+                        h.ButtonDownFcn = original_callback;
+                    end
+                catch
+                    % Handle no longer exists or not accessible
+                end
+            end
+            
+            % Clear the stored callbacks
+            app.dev_original_callbacks = [];
         end
         
         function add_click_listener_recursive(app, obj)
             % Recursively add click listeners to all children
+            % Store original callbacks before overwriting
             if ~ishghandle(obj)
                 return;
             end
@@ -1900,6 +1923,14 @@ classdef UIController < handle
             % Add listener if component supports it
             try
                 if isprop(obj, 'ButtonDownFcn')
+                    % Store original callback using handle's double value as key
+                    handle_id = double(obj);
+                    if ~isempty(obj.ButtonDownFcn)
+                        app.dev_original_callbacks(handle_id) = obj.ButtonDownFcn;
+                    else
+                        app.dev_original_callbacks(handle_id) = [];
+                    end
+                    % Set inspector callback
                     obj.ButtonDownFcn = @(src, ~) app.inspect_component(src);
                 end
             catch

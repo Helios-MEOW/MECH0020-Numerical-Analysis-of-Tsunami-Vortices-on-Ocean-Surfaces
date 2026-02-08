@@ -24,9 +24,24 @@ repo_root = fileparts(test_dir);
 fprintf('Repository root: %s\n\n', repo_root);
 
 % ===== COLLECT MATLAB FILES =====
-fprintf('Scanning for .m files...\n');
-scripts_dir = fullfile(repo_root, 'Scripts');
-all_m_files = dir(fullfile(scripts_dir, '**', '*.m'));
+fprintf('Scanning for .m files across entire repository...\n');
+
+% Scan multiple directories (everything a user would download in the zip)
+scan_dirs = {'Scripts', 'utilities', 'tests'};
+all_m_files = [];
+
+for i = 1:length(scan_dirs)
+    dir_path = fullfile(repo_root, scan_dirs{i});
+    if exist(dir_path, 'dir')
+        files_in_dir = dir(fullfile(dir_path, '**', '*.m'));
+        all_m_files = [all_m_files; files_in_dir]; %#ok<AGROW>
+    end
+end
+
+% Also check for any .m files in the root directory
+root_m_files = dir(fullfile(repo_root, '*.m'));
+all_m_files = [all_m_files; root_m_files];
+
 n_files = length(all_m_files);
 fprintf('  Found %d MATLAB files\n\n', n_files);
 
@@ -140,12 +155,21 @@ if exist(ui_file, 'file')
     position_count = 0;
     for i = 1:length(ui_lines)
         line = ui_lines(i);
-        % Skip comments and allowed usages
-        if contains(line, 'Position') && ...
-           ~contains(line, '%') && ...
-           ~contains(line, 'dialog_fig') && ...
-           ~contains(line, 'inspector_fig') && ...
-           ~contains(line, 'rectangle')
+        
+        % Strip comments more robustly: find first unquoted %
+        % Simple approach: split on % and take first part (ignores strings for simplicity)
+        line_without_comment = line;
+        pct_idx = strfind(char(line), '%');
+        if ~isempty(pct_idx)
+            % Take everything before the first %
+            line_without_comment = extractBefore(line, pct_idx(1));
+        end
+        
+        % Now check for Position in the code part only
+        if contains(line_without_comment, 'Position') && ...
+           ~contains(line_without_comment, 'dialog_fig') && ...
+           ~contains(line_without_comment, 'inspector_fig') && ...
+           ~contains(line_without_comment, 'rectangle')
             position_count = position_count + 1;
             fprintf('  Line %d: %s\n', i, strip(line));
         end
