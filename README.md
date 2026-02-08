@@ -334,10 +334,7 @@ The UI uses a **grid-based layout** for intuitive editing. All layout parameters
 
 ## Documentation
 
-Additional documentation is available in the `docs/` directory:
-- [Repository Layout and File Documentation](docs/01_ARCHITECTURE/REPOSITORY_LAYOUT_AND_FILE_DOCUMENTATION.md)
-- [OWL Framework Design](docs/01_ARCHITECTURE/OWL_Framework_Design.md)
-- [UI Research and Redesign Plan](docs/02_DESIGN/UI_Research_And_Redesign_Plan.md)
+Additional documentation:
 - [Complete Analysis Guide (Jupyter Notebook)](docs/03_NOTEBOOKS/Tsunami_Vortex_Analysis_Complete_Guide.ipynb)
 
 ## License
