@@ -1,4 +1,4 @@
-function Parameters = Parameters()
+function params = Parameters()
     % Parameters - User-editable default parameters for Finite Difference
     %
     % Purpose:
@@ -14,29 +14,29 @@ function Parameters = Parameters()
     %   Parameters.Nx = 256;  % Override as needed
     
     % ===== PHYSICS =====
-    Parameters.nu = 0.001;              % Kinematic viscosity
-    Parameters.Lx = 2 * pi;             % Domain size X
-    Parameters.Ly = 2 * pi;             % Domain size Y
+    params.nu = 0.001;              % Kinematic viscosity
+    params.Lx = 2 * pi;             % Domain size X
+    params.Ly = 2 * pi;             % Domain size Y
     
     % ===== GRID =====
-    Parameters.Nx = 128;                % Grid points X
-    Parameters.Ny = 128;                % Grid points Y
-    Parameters.delta = 2;               % Grid spacing scaling factor
+    params.Nx = 128;                % Grid points X
+    params.Ny = 128;                % Grid points Y
+    params.delta = 2;               % Grid spacing scaling factor
     
     % ===== TIME INTEGRATION =====
-    Parameters.dt = 0.001;              % Timestep
-    Parameters.Tfinal = 1.0;            % Final time
+    params.dt = 0.001;              % Timestep
+    params.Tfinal = 1.0;            % Final time
     
     % ===== INITIAL CONDITION =====
-    Parameters.ic_type = 'Lamb-Oseen';  % IC type
-    Parameters.ic_coeff = [];           % IC coefficients (method-specific)
+    params.ic_type = 'Lamb-Oseen';  % IC type
+    params.ic_coeff = [];           % IC coefficients (method-specific)
     
     % ===== SNAPSHOTS =====
     % Snapshot times for output
-    Parameters.snap_times = linspace(0, Parameters.Tfinal, 11);
+    params.snap_times = linspace(0, params.Tfinal, 11);
     
     % ===== PROGRESS & PREVIEW =====
-    Parameters.progress_stride = 100;   % Console output every N steps (0 = off)
-    Parameters.live_preview = false;    % Live figure updates during run
-    Parameters.live_stride = 0;         % Update figure every N steps (0 = off)
+    params.progress_stride = 100;   % Console output every N steps (0 = off)
+    params.live_preview = false;    % Live figure updates during run
+    params.live_stride = 0;         % Update figure every N steps (0 = off)
 end

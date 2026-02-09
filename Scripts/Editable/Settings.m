@@ -1,4 +1,4 @@
-function Settings = Settings()
+function s = Settings()
     % Settings - User-editable operational settings
     %
     % Purpose:
@@ -14,22 +14,22 @@ function Settings = Settings()
     %   Settings.save_figures = false;  % Override as needed
     
     % ===== IO SETTINGS =====
-    Settings.save_figures = true;       % Save figures to disk
-    Settings.save_data = true;          % Save MAT/HDF5 data
-    Settings.save_reports = true;       % Generate run reports
+    s.save_figures = true;       % Save figures to disk
+    s.save_data = true;          % Save MAT/HDF5 data
+    s.save_reports = true;       % Generate run reports
     
     % ===== MONITOR/UI SETTINGS =====
-    Settings.monitor_enabled = true;    % Enable live monitor
-    Settings.monitor_theme = 'dark';    % 'dark' or 'light'
-    Settings.terminal_capture = true;   % Capture terminal output in UI
+    s.monitor_enabled = true;    % Enable live monitor
+    s.monitor_theme = 'dark';    % 'dark' or 'light'
+    s.terminal_capture = true;   % Capture terminal output in UI
     
     % ===== LOGGING SETTINGS =====
-    Settings.log_level = 'INFO';        % 'DEBUG', 'INFO', 'WARN', 'ERROR'
-    Settings.append_to_master = true;   % Append to master runs table
+    s.log_level = 'INFO';        % 'DEBUG', 'INFO', 'WARN', 'ERROR'
+    s.append_to_master = true;   % Append to master runs table
     
     % ===== PLOTTING POLICY =====
-    Settings.figure_format = 'png';     % 'png', 'pdf', 'eps', 'fig'
-    Settings.figure_dpi = 300;          % Resolution for raster formats
-    Settings.animation_enabled = false; % Generate animations (setting, not mode)
-    Settings.animation_fps = 10;        % Animation frame rate
+    s.figure_format = 'png';     % 'png', 'pdf', 'eps', 'fig'
+    s.figure_dpi = 300;          % Resolution for raster formats
+    s.animation_enabled = false; % Generate animations (setting, not mode)
+    s.animation_fps = 10;        % Animation frame rate
 end

@@ -75,7 +75,7 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
             yr = -sin(theta) * Xc + cos(theta) * Yc;
             omega = w0 * exp(-(xr.^2 / (2*sx^2) + yr.^2 / (2*sy^2)));
 
-        case 'stretched_gaussian'
+        case {'stretched_gaussian', 'gaussian'}  % 'gaussian' is alias for stretched_gaussian
             if isempty(ic_coeff) || numel(ic_coeff) < 2
                 x_coeff = -1.0;
                 y_coeff = -1.0;

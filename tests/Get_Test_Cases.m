@@ -48,8 +48,8 @@ end
 
 function tc = build_convergence_test()
     tc = struct();
-    tc.name = 'FD_Convergence_Gaussian_16_32';
-    tc.Run_Config = Build_Run_Config('FD', 'Convergence', 'Gaussian');
+    tc.name = 'FD_Convergence_LambOseen_16_32';
+    tc.Run_Config = Build_Run_Config('FD', 'Convergence', 'Lamb-Oseen');
     tc.Parameters = Parameters();
     tc.Parameters.Nx = 0;
     tc.Parameters.Ny = 0;
