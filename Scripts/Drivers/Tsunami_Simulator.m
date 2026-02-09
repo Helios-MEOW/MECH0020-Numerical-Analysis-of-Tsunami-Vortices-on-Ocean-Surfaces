@@ -44,8 +44,8 @@ function Tsunami_Simulator()
     fprintf('[1/4] Loading configuration...\n');
 
     % Load editable parameters and settings
-    Parameters = Parameters();  % From Scripts/Editable/Parameters.m
-    Settings = Settings();      % From Scripts/Editable/Settings.m
+    Parameters = Parameters();  %#ok<NODEF> % From Scripts/Editable/Parameters.m
+    Settings = Settings();      %#ok<NODEF> % From Scripts/Editable/Settings.m
 
     % ===== MODE SELECTION =====
     fprintf('\n[2/4] Select Mode:\n');
