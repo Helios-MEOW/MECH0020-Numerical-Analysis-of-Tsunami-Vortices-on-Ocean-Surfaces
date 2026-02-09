@@ -271,7 +271,7 @@ classdef HardwareMonitorBridge < handle
             fprintf('%s\n\n', repmat('=', 1, 70));
         end
         
-        function comparison = compare_runs(obj, log_files, labels)
+        function comparison = compare_runs(~, log_files, labels)
             % Compare energy metrics across multiple runs
             %
             % Args:

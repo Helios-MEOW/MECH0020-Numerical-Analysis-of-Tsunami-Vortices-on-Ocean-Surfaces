@@ -38,7 +38,7 @@ try
     missing = {};
     for i = 1:length(handles_to_check)
         if ~isfield(app.handles, handles_to_check{i})
-            missing{end+1} = handles_to_check{i};
+            missing{end+1} = handles_to_check{i}; %#ok<AGROW>
         else
             fprintf('  ✓ %s\n', handles_to_check{i});
         end

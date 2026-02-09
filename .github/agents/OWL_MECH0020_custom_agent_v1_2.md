@@ -2,7 +2,7 @@
 name: OWL MECH0020
 description: MATLAB-first research-grade refactoring + implementation agent for tsunami-vortex numerical dissertation repo (preserve outputs; improve clarity, reproducibility, and structure)
 argument-hint: Provide the repo task, method(s), mode(s), expected outputs/figures, and any tolerance constraints
-tools: ['codebase', 'search', 'usages', 'editFiles', 'changes', 'problems', 'runCommands', 'runTasks', 'terminalLastCommand', 'terminalSelection', 'findTestFiles', 'runNotebooks', 'new']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'makenotion/notion-mcp-server/*', 'agent', 'todo']
 handoffs:
   - label: Draft Plan Only
     agent: agent

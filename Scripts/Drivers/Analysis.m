@@ -13,7 +13,6 @@ repo_root = fullfile(script_dir, '..', '..');
 
 addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
 addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
-addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
 addpath(fullfile(repo_root, 'Scripts', 'Modes'));
 addpath(fullfile(repo_root, 'Scripts', 'Modes', 'Convergence'));
 addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteDifference'));

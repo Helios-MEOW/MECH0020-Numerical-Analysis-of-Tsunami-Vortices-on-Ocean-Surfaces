@@ -3,7 +3,7 @@
 
 function fig = create_live_monitor_dashboard()
     % Futuristic dark-mode dashboard (uifigure-based)
-    global monitor_data;
+    global monitor_data; %#ok<GVMIS>
 
     warning('off', 'MATLAB:ui:Figure:a11yTextScalingNotSupported');
 
@@ -53,7 +53,7 @@ function fig = create_live_monitor_dashboard()
     ax_progress.Color = panel_bg;
     hold(ax_progress, 'on');
     progress_bar = patch(ax_progress, [0 0 0 0], [0 0 1 1], accent, 'FaceAlpha', 0.85, 'EdgeColor', 'none');
-    progress_frame = rectangle(ax_progress, 'Position', [0 0 1 1], 'EdgeColor', panel_edge, 'LineWidth', 1.2);
+    rectangle(ax_progress, 'Position', [0 0 1 1], 'EdgeColor', panel_edge, 'LineWidth', 1.2);
     progress_text = text(ax_progress, 0.5, 0.5, 'Initializing...', 'Color', text_main, ...
         'FontSize', 13, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle');
 

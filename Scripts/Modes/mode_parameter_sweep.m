@@ -120,20 +120,20 @@ function [ok, issues] = validate_parameter_sweep(Run_Config, Parameters)
 
     if ~isfield(Run_Config, 'method')
         ok = false;
-        issues{end+1} = 'Run_Config.method is required';
+        issues{end+1} = 'Run_Config.method is required'; %#ok<AGROW>
     end
 
     if ~isfield(Parameters, 'sweep_parameter')
         ok = false;
-        issues{end+1} = 'Parameters.sweep_parameter is required';
+        issues{end+1} = 'Parameters.sweep_parameter is required'; %#ok<AGROW>
     end
 
     if ~isfield(Parameters, 'sweep_values')
         ok = false;
-        issues{end+1} = 'Parameters.sweep_values is required';
+        issues{end+1} = 'Parameters.sweep_values is required'; %#ok<AGROW>
     elseif length(Parameters.sweep_values) < 2
         ok = false;
-        issues{end+1} = 'At least 2 sweep values required';
+        issues{end+1} = 'At least 2 sweep values required'; %#ok<AGROW>
     end
 end
 
@@ -156,7 +156,7 @@ function [init_fn, step_fn, diag_fn] = resolve_method(method_name)
     end
 end
 
-function [QoI_struct, analysis] = run_sweep_simulation(params, Run_Config, Settings, init_fn, step_fn, diag_fn)
+function [QoI_struct, analysis] = run_sweep_simulation(params, Run_Config, ~, init_fn, step_fn, diag_fn)
     % Run single simulation for sweep
 
     cfg = struct();

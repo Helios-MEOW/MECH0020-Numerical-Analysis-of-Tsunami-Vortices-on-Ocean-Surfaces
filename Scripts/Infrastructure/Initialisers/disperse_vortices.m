@@ -89,8 +89,10 @@
             min_dist = max(Lx, Ly) / 10;  % Default: 10% of domain size
         end
         
-        x0_list = [];
-        y0_list = [];
+        % Pre-allocate output arrays
+        x0_list = zeros(1, n_vortices);
+        y0_list = zeros(1, n_vortices);
+        placed_count = 0;
         
         max_attempts = 10000;
         safety_counter = 0;
@@ -105,16 +107,18 @@
                 y_new = (rand - 0.5) * Ly * 0.9;
                 
                 % Check minimum distance to existing vortices
-                if isempty(x0_list)
+                if placed_count == 0
                     valid = true;
                 else
-                    distances = sqrt((x0_list - x_new).^2 + (y0_list - y_new).^2);
+                    distances = sqrt((x0_list(1:placed_count) - x_new).^2 + ...
+                                     (y0_list(1:placed_count) - y_new).^2);
                     valid = all(distances >= min_dist);
                 end
                 
                 if valid
-                    x0_list(end+1) = x_new;
-                    y0_list(end+1) = y_new;
+                    placed_count = placed_count + 1;
+                    x0_list(placed_count) = x_new;
+                    y0_list(placed_count) = y_new;
                     placed = true;
                 end
                 
@@ -128,9 +132,9 @@
             end
         end
         
-        % Ensure output has exactly n_vortices
-        x0_list = x0_list(1:min(length(x0_list), n_vortices));
-        y0_list = y0_list(1:min(length(y0_list), n_vortices));
+        % Trim to actually placed vortices
+        x0_list = x0_list(1:placed_count);
+        y0_list = y0_list(1:placed_count);
         
         return;
     end

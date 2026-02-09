@@ -152,18 +152,18 @@ function [ok, issues] = validate_convergence(Run_Config, Parameters)
 
     if ~isfield(Run_Config, 'method')
         ok = false;
-        issues{end+1} = 'Run_Config.method is required';
+        issues{end+1} = 'Run_Config.method is required'; %#ok<AGROW>
     end
 
     if ~isfield(Parameters, 'Tfinal') || Parameters.Tfinal <= 0
         ok = false;
-        issues{end+1} = 'Parameters.Tfinal must be > 0';
+        issues{end+1} = 'Parameters.Tfinal must be > 0'; %#ok<AGROW>
     end
 
     if isfield(Parameters, 'mesh_sizes')
         if length(Parameters.mesh_sizes) < 2
             ok = false;
-            issues{end+1} = 'At least 2 mesh sizes required for convergence study';
+            issues{end+1} = 'At least 2 mesh sizes required for convergence study'; %#ok<AGROW>
         end
     end
 end
@@ -188,7 +188,7 @@ function [init_fn, step_fn, diag_fn] = resolve_method(method_name)
     end
 end
 
-function [QoI, analysis] = run_convergence_simulation(params, Run_Config, Settings, init_fn, step_fn, diag_fn)
+function [QoI, analysis] = run_convergence_simulation(params, Run_Config, ~, init_fn, step_fn, diag_fn)
     % Run single simulation for convergence study
 
     % Prepare cfg

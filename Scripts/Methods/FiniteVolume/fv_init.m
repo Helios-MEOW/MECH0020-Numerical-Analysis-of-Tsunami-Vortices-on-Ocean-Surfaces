@@ -1,4 +1,4 @@
-function State = fv_init(cfg, ctx)
+function State = fv_init(~, ~)
     % fv_init - Initialize Finite Volume method state
     %
     % Purpose:
@@ -7,6 +7,7 @@ function State = fv_init(cfg, ctx)
     %
     % Status: ⚠️ STUB - throws SOL-FV-0001 error
 
+    State = struct();
     ErrorHandler.throw('SOL-FV-0001', ...
         'file', mfilename, ...
         'line', 12, ...

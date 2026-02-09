@@ -95,7 +95,7 @@ function [Results, paths] = FD_Evolution_Mode(Run_Config, Parameters, Settings)
     MonitorInterface.stop(Run_Summary);
 end
 
-function generate_evolution_figures(analysis, Parameters, Run_Config, paths, Settings)
+function generate_evolution_figures(analysis, Parameters, Run_Config, paths, ~)
     % Generate additional evolution figures (contours, vectors, streamlines)
     
     % Get snapshots

@@ -261,7 +261,7 @@ function exit_code = Run_All_Tests(varargin)
             missing = {};
             for i = 1:length(required_functions)
                 if ~exist(required_functions{i}, 'file') && ~exist(required_functions{i}, 'class')
-                    missing{end+1} = required_functions{i};
+                    missing{end+1} = required_functions{i}; %#ok<AGROW>
                 end
             end
 

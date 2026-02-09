@@ -113,12 +113,12 @@ function omega = ic_factory_lamb_dipole(X, Y, ic_coeff)
     omega = (Gamma/(pi*a2)) * (exp(-r1_2/a2) - exp(-r2_2/a2));
 end
 
-function omega = ic_factory_taylor_green(X, Y, ic_coeff)
+function omega = ic_factory_taylor_green(X, Y, ~)
     % Taylor-Green vortex
     omega = sin(2*pi*X) .* sin(2*pi*Y);
 end
 
-function omega = ic_factory_random_turbulence(X, Y, ic_coeff)
+function omega = ic_factory_random_turbulence(X, Y, ~)
     % Random turbulent field
     rng(42);  % Fixed seed for reproducibility
     kmax = 4;

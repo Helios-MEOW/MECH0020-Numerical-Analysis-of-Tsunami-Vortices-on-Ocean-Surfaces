@@ -40,7 +40,7 @@ classdef EnergySustainabilityAnalyzer < handle
             %   complexity (float): Computational complexity metric (e.g., grid points)
             %   energy_joules (float): Energy consumed (Joules)
             
-            obj.data_points = [obj.data_points; complexity, energy_joules];
+            obj.data_points = [obj.data_points; complexity, energy_joules]; %#ok<AGROW>
         end
         
         function add_data_from_log(obj, log_file, complexity)

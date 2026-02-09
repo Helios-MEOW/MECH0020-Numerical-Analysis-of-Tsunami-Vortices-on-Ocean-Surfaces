@@ -193,7 +193,7 @@ classdef iCUEBridge < handle
             obj.is_connected = true;
         end
         
-        function apply_solid_color(obj, rgb)
+        function apply_solid_color(~, rgb)
             % Apply solid RGB color to all devices
             
             % Placeholder for actual SDK call
@@ -209,7 +209,7 @@ classdef iCUEBridge < handle
             fprintf('[iCUE] Setting color: R=%d G=%d B=%d\n', rgb(1), rgb(2), rgb(3));
         end
         
-        function apply_pulsing_effect(obj, rgb)
+        function apply_pulsing_effect(~, rgb)
             % Apply pulsing effect with base color
             
             % Placeholder for pulsing animation

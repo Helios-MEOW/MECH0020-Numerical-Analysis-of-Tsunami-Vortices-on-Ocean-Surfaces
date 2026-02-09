@@ -1,4 +1,4 @@
-function Metrics = fv_diagnostics(State, cfg, ctx)
+function Metrics = fv_diagnostics(~, ~, ~)
     % fv_diagnostics - Compute diagnostic metrics for FV method
     %
     % Purpose:
@@ -7,6 +7,7 @@ function Metrics = fv_diagnostics(State, cfg, ctx)
     %
     % Status: ⚠️ STUB - throws SOL-FV-0001 error
 
+    Metrics = struct();
     ErrorHandler.throw('SOL-FV-0001', ...
         'file', mfilename, ...
         'line', 12, ...

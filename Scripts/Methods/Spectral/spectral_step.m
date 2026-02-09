@@ -1,4 +1,4 @@
-function State = spectral_step(State, cfg, ctx)
+function State = spectral_step(State, ~, ~)
     % spectral_step - Advance spectral solution by one time step
     %
     % Purpose:

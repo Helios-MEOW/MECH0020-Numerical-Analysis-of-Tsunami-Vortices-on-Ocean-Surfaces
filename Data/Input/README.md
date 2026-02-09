@@ -21,9 +21,4 @@ Data/Input/
 │   └── test_case_metadata.csv
 ├── bathymetry/
 │   └── example_bathymetry.mat
-└── validation/
-    └── reference_solutions.mat
-```
-
-## Note
-Generated outputs go to `Data/Output/` (gitignored).
+└── validation/  m

@@ -1,4 +1,4 @@
-function State = fv_step(State, cfg, ctx)
+function State = fv_step(State, ~, ~)
     % fv_step - Advance FV solution by one time step
     %
     % Purpose:

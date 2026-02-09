@@ -1,4 +1,4 @@
-function [Results, paths] = FD_Plotting_Mode(Run_Config, Parameters, Settings)
+function [Results, paths] = FD_Plotting_Mode(Run_Config, Parameters, ~)
     % FD_Plotting_Mode - Standalone plotting/visualization mode
     %
     % Purpose:
@@ -174,7 +174,7 @@ function generate_streamline_plots(analysis, Parameters, run_id, output_dir)
     end
 end
 
-function generate_evolution_plots(analysis, Parameters, run_id, output_dir)
+function generate_evolution_plots(analysis, ~, run_id, output_dir)
     % Generate time evolution plots (energy, enstrophy)
     time_vec = analysis.time_vec;
     

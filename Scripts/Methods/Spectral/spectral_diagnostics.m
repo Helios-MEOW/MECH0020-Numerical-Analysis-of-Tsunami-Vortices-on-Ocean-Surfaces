@@ -1,4 +1,4 @@
-function Metrics = spectral_diagnostics(State, cfg, ctx)
+function Metrics = spectral_diagnostics(~, ~, ~)
     % spectral_diagnostics - Compute diagnostic metrics for Spectral method
     %
     % Purpose:
@@ -7,6 +7,7 @@ function Metrics = spectral_diagnostics(State, cfg, ctx)
     %
     % Status: ⚠️ STUB - throws SOL-SP-0001 error
 
+    Metrics = struct();
     ErrorHandler.throw('SOL-SP-0001', ...
         'file', mfilename, ...
         'line', 12, ...

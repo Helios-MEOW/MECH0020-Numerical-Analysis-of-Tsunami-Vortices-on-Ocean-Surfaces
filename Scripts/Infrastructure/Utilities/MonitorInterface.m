@@ -11,15 +11,7 @@ classdef MonitorInterface
     %   MonitorInterface.update(Run_Status);
     %   MonitorInterface.stop(Run_Summary);
     
-    properties (Constant, Access = private)
-        % ANSI color codes for terminal
-        COLOR_RESET = '\033[0m';
-        COLOR_GREEN = '\033[92m';
-        COLOR_CYAN = '\033[96m';
-        COLOR_YELLOW = '\033[93m';
-        COLOR_RED = '\033[91m';
-        COLOR_GRAY = '\033[90m';
-    end
+    % No ANSI constants needed - ColorPrintf handles all coloring
     
     methods (Static)
         function start(Run_Config, Settings)
@@ -95,22 +87,8 @@ classdef MonitorInterface
     
     methods (Static, Access = private)
         function print_dark_header(Run_Config)
-            % Dark theme header
-            fprintf('\n');
-            fprintf('%s╔═══════════════════════════════════════════════════════╗%s\n', ...
-                MonitorInterface.COLOR_CYAN, MonitorInterface.COLOR_RESET);
-            fprintf('%s║         TSUNAMI VORTEX SIMULATION MONITOR            ║%s\n', ...
-                MonitorInterface.COLOR_CYAN, MonitorInterface.COLOR_RESET);
-            fprintf('%s╚═══════════════════════════════════════════════════════╝%s\n', ...
-                MonitorInterface.COLOR_CYAN, MonitorInterface.COLOR_RESET);
-            fprintf('%sMethod:%s %s  %s|%s  %sMode:%s %s  %s|%s  %sIC:%s %s\n', ...
-                MonitorInterface.COLOR_GREEN, MonitorInterface.COLOR_RESET, Run_Config.method, ...
-                MonitorInterface.COLOR_GRAY, MonitorInterface.COLOR_RESET, ...
-                MonitorInterface.COLOR_GREEN, MonitorInterface.COLOR_RESET, Run_Config.mode, ...
-                MonitorInterface.COLOR_GRAY, MonitorInterface.COLOR_RESET, ...
-                MonitorInterface.COLOR_GREEN, MonitorInterface.COLOR_RESET, Run_Config.ic_type);
-            fprintf('%s─────────────────────────────────────────────────────────%s\n', ...
-                MonitorInterface.COLOR_GRAY, MonitorInterface.COLOR_RESET);
+            % Dark theme header - uses ColorPrintf for colored output
+            ColorPrintf.monitor_header(Run_Config.method, Run_Config.mode, Run_Config.ic_type);
         end
         
         function print_light_header(Run_Config)
@@ -124,41 +102,28 @@ classdef MonitorInterface
             fprintf('───────────────────────────────────────────────────────\n');
         end
         
-        function print_dark_update(Run_Status, state)
-            % Dark theme update line
-            elapsed = seconds(datetime('now') - state.start_time);
-            
-            fprintf('\r%s[Step %d]%s  t=%.4f  dt=%.2e  %sCFL=%.3f%s  %s|ω|ₘₐₓ=%.2e%s  %sElapsed: %.1fs%s', ...
-                MonitorInterface.COLOR_GREEN, Run_Status.step, MonitorInterface.COLOR_RESET, ...
-                Run_Status.time, Run_Status.dt, ...
-                MonitorInterface.COLOR_YELLOW, Run_Status.CFL, MonitorInterface.COLOR_RESET, ...
-                MonitorInterface.COLOR_CYAN, Run_Status.max_omega, MonitorInterface.COLOR_RESET, ...
-                MonitorInterface.COLOR_GRAY, elapsed, MonitorInterface.COLOR_RESET);
+        function print_dark_update(Run_Status, ~)
+            % Dark theme update line - uses ColorPrintf
+            ColorPrintf.monitor_update(Run_Status.step, Run_Status.time, ...
+                Run_Status.dt, Run_Status.CFL, Run_Status.max_omega, 0);
         end
         
-        function print_light_update(Run_Status, state)
+        function print_light_update(Run_Status, ~)
             % Light theme update line
-            elapsed = seconds(datetime('now') - state.start_time);
-            
-            fprintf('\r[Step %d]  t=%.4f  dt=%.2e  CFL=%.3f  |ω|ₘₐₓ=%.2e  Elapsed: %.1fs', ...
+            fprintf('[Step %d]  t=%.4f  dt=%.2e  CFL=%.3f  |w|max=%.2e\n', ...
                 Run_Status.step, Run_Status.time, Run_Status.dt, ...
-                Run_Status.CFL, Run_Status.max_omega, elapsed);
+                Run_Status.CFL, Run_Status.max_omega);
         end
         
-        function print_dark_footer(Run_Summary, state)
-            % Dark theme footer
-            fprintf('\n%s─────────────────────────────────────────────────────────%s\n', ...
-                MonitorInterface.COLOR_GRAY, MonitorInterface.COLOR_RESET);
-            fprintf('%s✓ Simulation completed%s  |  Total time: %.2fs\n', ...
-                MonitorInterface.COLOR_GREEN, MonitorInterface.COLOR_RESET, Run_Summary.total_time);
-            fprintf('\n');
+        function print_dark_footer(Run_Summary, ~)
+            % Dark theme footer - uses ColorPrintf
+            ColorPrintf.monitor_footer(Run_Summary.total_time);
         end
         
-        function print_light_footer(Run_Summary, state)
+        function print_light_footer(Run_Summary, ~)
             % Light theme footer
-            fprintf('\n───────────────────────────────────────────────────────\n');
-            fprintf('✓ Simulation completed  |  Total time: %.2fs\n', Run_Summary.total_time);
-            fprintf('\n');
+            fprintf('\n---------------------------------------------------\n');
+            fprintf('Simulation completed  |  Total time: %.2fs\n\n', Run_Summary.total_time);
         end
     end
 end

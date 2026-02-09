@@ -47,48 +47,53 @@ function initialize_directory_structure(settings, Parameters)
 %
 % ========================================================================
 
-    % Initialize directory collection
-    dirs = {};
+    % Initialize directory collection (pre-allocate with known size)
+    % 6 root + 1 method + 5 modes + 3 sweep + 2 animation + 5 test cases + 2 convergence = 24
+    test_cases_list = {'Double Vortex', 'Three Vortex', 'Non-Uniform BC', 'Gaussian Merger', 'Counter-Rotating Pair'};
+    n_dirs = 24;
+    dirs = cell(1, n_dirs);
     method = Parameters.analysis_method;
+    idx = 0;
     
     % ====== ROOT DIRECTORIES ======
-    dirs{end+1} = settings.results_dir;
-    dirs{end+1} = settings.figures.root_dir;
-    dirs{end+1} = Parameters.energy_monitoring.output_dir;
-    dirs{end+1} = 'Data';
-    dirs{end+1} = 'Logs';
-    dirs{end+1} = 'Cache';
+    idx = idx + 1; dirs{idx} = settings.results_dir;
+    idx = idx + 1; dirs{idx} = settings.figures.root_dir;
+    idx = idx + 1; dirs{idx} = Parameters.energy_monitoring.output_dir;
+    idx = idx + 1; dirs{idx} = 'Data';
+    idx = idx + 1; dirs{idx} = 'Logs';
+    idx = idx + 1; dirs{idx} = 'Cache';
     
     % ====== METHOD-SPECIFIC DIRECTORIES ======
-    dirs{end+1} = fullfile(settings.figures.root_dir, method);
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method);
     
     % ====== MODE SUBDIRECTORIES (under method) ======
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Evolution');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Convergence');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Sweep');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Animations');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Experimentation');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Evolution');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Convergence');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Sweep');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Animations');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Experimentation');
     
     % ====== PARAMETER SWEEP SUBDIRECTORIES ======
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Sweep', 'Viscosity');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Sweep', 'Timestep');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Sweep', 'Coefficient');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Sweep', 'Viscosity');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Sweep', 'Timestep');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Sweep', 'Coefficient');
     
     % ====== ANIMATION DIRECTORIES ======
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Animations');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Animations', 'Convergence');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Animations', 'Experimentation');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Animations', 'Convergence');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Animations', 'Experimentation');
     
     % ====== TEST CASE SUBDIRECTORIES (under Experimentation) ======
-    test_cases_list = {'Double Vortex', 'Three Vortex', 'Non-Uniform BC', 'Gaussian Merger', 'Counter-Rotating Pair'};
     for tc_idx = 1:length(test_cases_list)
         test_case_name = test_cases_list{tc_idx};
-        dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Experimentation', test_case_name);
+        idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Experimentation', test_case_name);
     end
     
     % ====== CONVERGENCE DIRECTORIES ======
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Convergence', 'Iterations');
-    dirs{end+1} = fullfile(settings.figures.root_dir, method, 'Convergence', 'Refined Meshes');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Convergence', 'Iterations');
+    idx = idx + 1; dirs{idx} = fullfile(settings.figures.root_dir, method, 'Convergence', 'Refined Meshes');
+    
+    % Trim to actual count
+    dirs = dirs(1:idx);
     
     % ====== CREATE ALL DIRECTORIES ======
     fprintf('\n[INIT] Creating directory structure...\n');

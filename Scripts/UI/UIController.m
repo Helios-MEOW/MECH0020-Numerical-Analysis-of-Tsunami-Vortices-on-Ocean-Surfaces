@@ -838,41 +838,41 @@ classdef UIController < handle
             
             % Grid validation
             if app.handles.Nx.Value < 32
-                errors{end+1} = 'Nx must be >= 32 points';
+                errors{end+1} = 'Nx must be >= 32 points'; %#ok<AGROW>
             end
             if app.handles.Ny.Value < 32
-                errors{end+1} = 'Ny must be >= 32 points';
+                errors{end+1} = 'Ny must be >= 32 points'; %#ok<AGROW>
             end
             if app.handles.Nx.Value > 1024 || app.handles.Ny.Value > 1024
-                errors{end+1} = 'Grid size should not exceed 1024×1024 (memory limits)';
+                errors{end+1} = 'Grid size should not exceed 1024×1024 (memory limits)'; %#ok<AGROW>
             end
             
             % Time integration validation
             if app.handles.dt.Value <= 0 || app.handles.dt.Value > 0.1
-                errors{end+1} = 'dt must be in (0, 0.1]';
+                errors{end+1} = 'dt must be in (0, 0.1]'; %#ok<AGROW>
             end
             if app.handles.t_final.Value <= 0
-                errors{end+1} = 't_final must be positive';
+                errors{end+1} = 't_final must be positive'; %#ok<AGROW>
             end
             if app.handles.t_final.Value / app.handles.dt.Value > 100000
-                errors{end+1} = 'Too many timesteps (T/dt > 100k)';
+                errors{end+1} = 'Too many timesteps (T/dt > 100k)'; %#ok<AGROW>
             end
             
             % CFL stability check (rough estimate)
             dx = 10.0 / app.handles.Nx.Value;  % Assuming Lx = 10
             cfl = app.handles.dt.Value / (dx * dx);
             if cfl > 0.5
-                errors{end+1} = sprintf('CFL number %.2f may be unstable (should be < 0.5)', cfl);
+                errors{end+1} = sprintf('CFL number %.2f may be unstable (should be < 0.5)', cfl); %#ok<AGROW>
             end
             
             % Physics validation
             if app.handles.nu.Value < 0 || app.handles.nu.Value > 0.1
-                errors{end+1} = 'Viscosity must be in [0, 0.1]';
+                errors{end+1} = 'Viscosity must be in [0, 0.1]'; %#ok<AGROW>
             end
             
             % IC validation
             if isempty(app.handles.ic_dropdown.Value)
-                errors{end+1} = 'Initial condition type not selected';
+                errors{end+1} = 'Initial condition type not selected'; %#ok<AGROW>
             end
             
             if isempty(errors)
@@ -1224,7 +1224,7 @@ classdef UIController < handle
             timestamp = datestr(now, 'HH:MM:SS');
             formatted_msg = sprintf('[%s] %s', timestamp, message);
             
-            app.terminal_log{end+1} = formatted_msg;
+            app.terminal_log{end+1} = formatted_msg; %#ok<AGROW>
             
             % Only update UI if terminal_output exists
             if isfield(app.handles, 'terminal_output') && ishghandle(app.handles.terminal_output)
@@ -1236,7 +1236,7 @@ classdef UIController < handle
                     current_text = {};
                 end
                 
-                current_text{end+1} = formatted_msg;
+                current_text{end+1} = formatted_msg; %#ok<AGROW>
                 
                 % Keep only last 500 lines
                 if length(current_text) > 500
@@ -2066,7 +2066,7 @@ classdef UIController < handle
             end
             
             current = app.handles.dev_log.Value;
-            current{end+1} = sprintf('[%s] %s', datestr(now, 'HH:MM:SS'), msg);
+            current{end+1} = sprintf('[%s] %s', datestr(now, 'HH:MM:SS'), msg); %#ok<AGROW>
             
             % Keep last 50 messages
             if length(current) > 50

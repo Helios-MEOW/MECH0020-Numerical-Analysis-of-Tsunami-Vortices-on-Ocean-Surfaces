@@ -110,8 +110,8 @@ function txt = display_function_instructions(funcName)
         fullText = strings(0,1);
 
         for k = 1:numel(keys)
-            fullText = [fullText; db.(keys{k}); ""];
-            fullText = [fullText; "--------------------------------------------------"; ""];
+            fullText = [fullText; db.(keys{k}); ""]; %#ok<AGROW>
+            fullText = [fullText; "--------------------------------------------------"; ""]; %#ok<AGROW>
         end
 
         txt = join(fullText, newline);

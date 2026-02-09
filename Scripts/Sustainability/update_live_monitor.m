@@ -5,7 +5,7 @@ function update_live_monitor(iteration, total, phase, metrics)
     % Updates the live monitoring dashboard (uifigure)
 
     monitor_start = tic;
-    global script_start_time monitor_figure monitor_data;
+    global script_start_time monitor_figure monitor_data; %#ok<GVMIS>
 
     if isempty(monitor_figure) || ~isvalid(monitor_figure)
         return;
@@ -37,16 +37,8 @@ function update_live_monitor(iteration, total, phase, metrics)
         remaining_iters = total - iteration;
         est_remaining = avg_time_per_iter * remaining_iters;
 
-        if length(monitor_data.performance.iteration_times) >= iteration
-            iter_speed = 1 / avg_time_per_iter;
-        else
+        if length(monitor_data.performance.iteration_times) < iteration
             monitor_data.performance.iteration_times(end+1) = elapsed_time;
-            if length(monitor_data.performance.iteration_times) > 1
-                recent_time = monitor_data.performance.iteration_times(end) - monitor_data.performance.iteration_times(end-1);
-                iter_speed = 1 / max(recent_time, 0.001);
-            else
-                iter_speed = 0;
-            end
         end
 
         mem_info = memory;
@@ -55,7 +47,6 @@ function update_live_monitor(iteration, total, phase, metrics)
     else
         avg_time_per_iter = 0;
         est_remaining = 0;
-        iter_speed = 0;
         mem_used_mb = 0;
     end
 

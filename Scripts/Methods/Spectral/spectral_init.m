@@ -1,4 +1,4 @@
-function State = spectral_init(cfg, ctx)
+function State = spectral_init(~, ~)
     % spectral_init - Initialize Spectral (FFT-based) method state
     %
     % Purpose:
@@ -14,6 +14,7 @@ function State = spectral_init(cfg, ctx)
     %
     % Status: ⚠️ STUB - throws SOL-SP-0001 error
 
+    State = struct();
     ErrorHandler.throw('SOL-SP-0001', ...
         'file', mfilename, ...
         'line', 20, ...

@@ -170,7 +170,7 @@ function [is_valid, warnings, errors] = validate_simulation_parameters(Parameter
     
     for i = 1:length(required_dirs)
         if ~exist(required_dirs{i}, 'dir')
-            warnings{end+1} = sprintf('Directory missing: %s (will be created)', required_dirs{i});
+            warnings{end+1} = sprintf('Directory missing: %s (will be created)', required_dirs{i}); %#ok<AGROW>
         end
     end
     
@@ -189,7 +189,7 @@ function [is_valid, warnings, errors] = validate_simulation_parameters(Parameter
     
     for i = 1:length(required_functions)
         if exist(required_functions{i}, 'file') ~= 2
-            errors{end+1} = sprintf('Required function not found: %s', required_functions{i});
+            errors{end+1} = sprintf('Required function not found: %s', required_functions{i}); %#ok<AGROW>
         end
     end
     

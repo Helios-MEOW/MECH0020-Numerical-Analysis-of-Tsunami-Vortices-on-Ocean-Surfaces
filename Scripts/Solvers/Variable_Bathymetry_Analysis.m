@@ -52,7 +52,6 @@
     n = 0;
     
     snap_times = Parameters.snap_times;
-    snap_idx = 1;
     omega_snaps = zeros(Ny, Nx, length(snap_times));
     psi_snaps = zeros(Ny, Nx, length(snap_times));
     time_vec = [];
@@ -101,7 +100,7 @@
         while snap_idx <= length(snap_times) && t >= snap_times(snap_idx)
             omega_snaps(:,:,snap_idx) = omega;
             psi_snaps(:,:,snap_idx) = solve_poisson_bathy(omega, dx, dy);
-            time_vec = [time_vec, t];
+            time_vec = [time_vec, t]; %#ok<AGROW>
             snap_idx = snap_idx + 1;
         end
         
@@ -261,7 +260,7 @@ function [bath, x, y] = generate_synthetic_bathymetry(Nx, Ny, Lx, Ly)
     bath = max(bath, 100);  % Ensure minimum depth
 end
 
-function psi = solve_poisson_bathy(omega, dx, dy)
+function psi = solve_poisson_bathy(omega, ~, ~)
     [Ny, Nx] = size(omega);
     omega_hat = fft2(omega);
     kx = 2*pi/Nx * [0:Nx/2-1, -Nx/2:-1];

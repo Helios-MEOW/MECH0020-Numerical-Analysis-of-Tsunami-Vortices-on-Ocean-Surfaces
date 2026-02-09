@@ -154,7 +154,7 @@ function [fig_handle, analysis] = Finite_Difference_Analysis(Parameters)
     t0_solve = tic;
     
     % Initialize live monitoring for this simulation
-    global monitor_data monitor_figure;
+    global monitor_data monitor_figure; %#ok<GVMIS>
     if isempty(monitor_data)
         monitor_data = struct();
         monitor_data.performance = struct();

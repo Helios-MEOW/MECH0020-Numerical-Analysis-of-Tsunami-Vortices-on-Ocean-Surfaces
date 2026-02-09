@@ -85,8 +85,8 @@
                 % Run simulation at this resolution
                 t_start = tic;
                 params = prepare_simulation_params(obj.Parameters, N_preflight, []);
-                [figs, analysis, run_ok, wall_time, cpu_time] = execute_simulation(params);
-                t_elapsed = toc(t_start);
+                [figs, analysis, run_ok, wall_time, ~] = execute_simulation(params);
+                toc(t_start); % Wall time tracked via wall_time output
                 
                 if ~run_ok
                     fprintf('[PREFLIGHT ERROR] Simulation failed at N=%d. Skipping.\n', N_preflight);
@@ -344,7 +344,7 @@
                 fprintf('[BRACKET] Low: N=%d, High: N=%d\n', bracket_low, bracket_high);
                 
                 [N_star, binary_log] = obj.binary_search_bracket(bracket_low, bracket_high, tol);
-                obj.convergence_log = [obj.convergence_log; binary_log];
+                obj.convergence_log = [obj.convergence_log; binary_log]; %#ok<AGROW>
             elseif ~isempty(bracket_high)
                 N_star = bracket_high;
                 fprintf('[AGENT] Converged at N=%d (no lower bound found)\n', N_star);
@@ -458,7 +458,7 @@
             log_entry.N = N;
             log_entry.metric = metric;
             log_entry.wall_time = t_elapsed;
-            obj.convergence_log = [obj.convergence_log; log_entry];
+            obj.convergence_log = [obj.convergence_log; log_entry]; %#ok<AGROW>
         end
         
         function metric = compute_richardson_metric(obj, analysis1, analysis2, N1, N2)

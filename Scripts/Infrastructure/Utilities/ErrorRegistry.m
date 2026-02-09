@@ -75,16 +75,13 @@ classdef ErrorRegistry
 
             fprintf('Total error codes: %d\n\n', length(codes));
 
-            % Group by prefix
-            prefixes = {};
+            % Group by prefix using unique extraction
+            prefix_list = cell(length(codes), 1);
             for i = 1:length(codes)
                 parts = strsplit(codes{i}, '-');
-                prefix = parts{1};
-                if ~ismember(prefix, prefixes)
-                    prefixes{end+1} = prefix;
-                end
+                prefix_list{i} = parts{1};
             end
-            prefixes = sort(prefixes);
+            prefixes = sort(unique(prefix_list));
 
             for p = 1:length(prefixes)
                 prefix = prefixes{p};

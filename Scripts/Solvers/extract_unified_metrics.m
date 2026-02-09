@@ -155,7 +155,6 @@
     
     % ===== FINAL STATE DIAGNOSTICS =====
     omega_final = omega_snaps(:,:,end);
-    psi_final = psi_snaps(:,:,end);
     u_final = analysis.u_snaps(:,:,end);
     v_final = analysis.v_snaps(:,:,end);
     

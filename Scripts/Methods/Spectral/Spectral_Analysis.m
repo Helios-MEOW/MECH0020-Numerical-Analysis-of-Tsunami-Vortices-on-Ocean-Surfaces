@@ -54,7 +54,7 @@ function [fig_handle, analysis] = Spectral_Analysis(Parameters)
         snap_indices = [];
         for i = 1:length(Parameters.snap_times)
             [~, idx] = min(abs(T - Parameters.snap_times(i)));
-            snap_indices = [snap_indices; idx];
+            snap_indices = [snap_indices; idx]; %#ok<AGROW>
         end
     end
     
@@ -122,7 +122,7 @@ function [fig_handle, analysis] = Spectral_Analysis(Parameters)
     grid on;
 end
 
-function [T, omega, psi, meta] = Spectral_Analysis_Impl(X, Y, omega0, Parameters)
+function [T, omega, psi, meta] = Spectral_Analysis_Impl(X, ~, omega0, Parameters)
     % Spectral pseudospectral method for 2D vorticity dynamics
     
     % Grid parameters

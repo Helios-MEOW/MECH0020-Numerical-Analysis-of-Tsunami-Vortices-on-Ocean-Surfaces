@@ -30,14 +30,7 @@ classdef ErrorHandler
     %   INFO:            Cyan
     %   SUCCESS:         Green
 
-    properties (Constant, Access = private)
-        % ANSI color codes for terminal output
-        COLOR_RED = '\033[31m';
-        COLOR_YELLOW = '\033[33m';
-        COLOR_GREEN = '\033[32m';
-        COLOR_CYAN = '\033[36m';
-        COLOR_RESET = '\033[0m';
-    end
+    % No ANSI constants needed - ColorPrintf handles all coloring
 
     methods (Static)
         function err_struct = build(error_code, varargin)
@@ -182,58 +175,64 @@ classdef ErrorHandler
             % Output:
             %   msg - Formatted multi-line message
 
-            lines = {};
+            % Pre-allocate lines cell with estimated capacity
+            max_lines = 20;
+            lines = cell(1, max_lines);
+            n = 0;
 
             % Header
-            lines{end+1} = sprintf('[%s] %s', err_struct.severity, err_struct.code);
-            lines{end+1} = sprintf('Category: %s', err_struct.category);
+            n = n + 1; lines{n} = sprintf('[%s] %s', err_struct.severity, err_struct.code);
+            n = n + 1; lines{n} = sprintf('Category: %s', err_struct.category);
 
             % Location
             if ~isempty(err_struct.file)
                 if err_struct.line > 0
-                    lines{end+1} = sprintf('Location: %s:%d', err_struct.file, err_struct.line);
+                    n = n + 1; lines{n} = sprintf('Location: %s:%d', err_struct.file, err_struct.line);
                 else
-                    lines{end+1} = sprintf('Location: %s', err_struct.file);
+                    n = n + 1; lines{n} = sprintf('Location: %s', err_struct.file);
                 end
             end
 
             % Message
-            lines{end+1} = sprintf('Message: %s', err_struct.message);
+            n = n + 1; lines{n} = sprintf('Message: %s', err_struct.message);
 
             % Remediation
-            lines{end+1} = sprintf('Fix: %s', err_struct.remediation);
+            n = n + 1; lines{n} = sprintf('Fix: %s', err_struct.remediation);
 
             % Likely causes
             if ~isempty(err_struct.causes)
-                lines{end+1} = 'Likely causes:';
+                n = n + 1; lines{n} = 'Likely causes:';
                 for i = 1:length(err_struct.causes)
-                    lines{end+1} = sprintf('  - %s', err_struct.causes{i});
+                    n = n + 1; lines{n} = sprintf('  - %s', err_struct.causes{i});
                 end
             end
 
             % Context (if present)
             if ~isempty(fieldnames(err_struct.context))
-                lines{end+1} = 'Context:';
+                n = n + 1; lines{n} = 'Context:';
                 fields = fieldnames(err_struct.context);
                 for i = 1:length(fields)
                     val = err_struct.context.(fields{i});
                     if isnumeric(val) || islogical(val)
-                        lines{end+1} = sprintf('  %s = %s', fields{i}, mat2str(val));
+                        n = n + 1; lines{n} = sprintf('  %s = %s', fields{i}, mat2str(val));
                     elseif ischar(val)
-                        lines{end+1} = sprintf('  %s = ''%s''', fields{i}, val);
+                        n = n + 1; lines{n} = sprintf('  %s = ''%s''', fields{i}, val);
                     else
-                        lines{end+1} = sprintf('  %s = [%s]', fields{i}, class(val));
+                        n = n + 1; lines{n} = sprintf('  %s = [%s]', fields{i}, class(val));
                     end
                 end
             end
 
             % Underlying cause (if present)
             if ~isempty(err_struct.underlying_cause)
-                lines{end+1} = 'Underlying cause:';
-                lines{end+1} = sprintf('  %s: %s', ...
+                n = n + 1; lines{n} = 'Underlying cause:';
+                n = n + 1; lines{n} = sprintf('  %s: %s', ...
                     err_struct.underlying_cause.identifier, ...
                     err_struct.underlying_cause.message);
             end
+
+            % Trim and join
+            lines = lines(1:n);
 
             % Join lines
             msg = strjoin(lines, '\n');
@@ -241,38 +240,8 @@ classdef ErrorHandler
 
         function print_colored(severity, message)
             % Print message with color coding based on severity
-            %
-            % Inputs:
-            %   severity - 'CRITICAL' | 'ERROR' | 'WARN' | 'INFO' | 'SUCCESS'
-            %   message - Message to print
-
-            % Select color
-            switch upper(severity)
-                case {'CRITICAL', 'ERROR'}
-                    color = ErrorHandler.COLOR_RED;
-                case 'WARN'
-                    color = ErrorHandler.COLOR_YELLOW;
-                case {'INFO'}
-                    color = ErrorHandler.COLOR_CYAN;
-                case 'SUCCESS'
-                    color = ErrorHandler.COLOR_GREEN;
-                otherwise
-                    color = '';
-            end
-
-            % Print with color (if terminal supports it)
-            if usejava('desktop')
-                % MATLAB console - no ANSI color support
-                % Use fprintf with severity prefix
-                fprintf('%s\n', message);
-            else
-                % Terminal mode - use ANSI colors
-                if ~isempty(color)
-                    fprintf('%s%s%s\n', color, message, ErrorHandler.COLOR_RESET);
-                else
-                    fprintf('%s\n', message);
-                end
-            end
+            % Uses ColorPrintf for cross-platform colored output
+            ColorPrintf.print_severity(severity, '%s', message);
         end
 
         function pretty_print_error(err_struct)

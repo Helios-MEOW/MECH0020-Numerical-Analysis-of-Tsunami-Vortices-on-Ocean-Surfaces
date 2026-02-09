@@ -1,4 +1,4 @@
-function [Results, paths] = mode_plotting(Run_Config, Parameters, Settings)
+function [Results, paths] = mode_plotting(Run_Config, ~, ~)
     % mode_plotting - METHOD-AGNOSTIC Plotting Mode
     %
     % Purpose:
@@ -29,7 +29,7 @@ function [Results, paths] = mode_plotting(Run_Config, Parameters, Settings)
         error('Could not find data for run_id: %s', source_run_id);
     end
 
-    load(data_path, 'analysis', 'Results');
+    load(data_path, 'analysis');
 
     % ===== SETUP OUTPUT =====
     if ~isfield(Run_Config, 'run_id') || isempty(Run_Config.run_id)
@@ -146,7 +146,7 @@ function generate_evolution_plots(analysis, paths)
     close(fig);
 end
 
-function generate_streamline_plots(analysis, paths)
+function generate_streamline_plots(~, ~)
     % Generate streamline plots
     fprintf('[Plotting] Streamline plots not yet implemented\n');
 end

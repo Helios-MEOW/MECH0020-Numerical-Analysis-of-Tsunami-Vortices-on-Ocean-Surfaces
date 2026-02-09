@@ -1,15 +1,15 @@
-function State = fd_step(State, cfg, ctx)
+function State = fd_step(State, cfg, ~)
     % fd_step - Advance FD solution by one time step using RK4
     %
     % Purpose:
     %   Performs single RK4 step for vorticity equation:
-    %   ∂ω/∂t = -u·∇ω + ν∇²ω
+    %   dw/dt = -u.grad(w) + nu*laplacian(w)
     %   Uses Arakawa scheme for advection term
     %
     % Inputs:
     %   State - Current state (from fd_init or previous fd_step)
     %   cfg - Configuration (must contain .dt, .nu)
-    %   ctx - Context (mode-specific data, unused here)
+    %   ~   - Context (unused, interface consistency)
     %
     % Output:
     %   State - Updated state with new omega, psi, t, step

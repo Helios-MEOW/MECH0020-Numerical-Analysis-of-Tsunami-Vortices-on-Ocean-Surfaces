@@ -17,32 +17,32 @@
 classdef ConsoleUtils
     methods(Static)
         function fprintf_colored(color_name, format_str, varargin)
-            % Prints formatted text with consistent color support across MATLAB/terminals
-            is_matlab = usejava('desktop');
-            ansi_codes = struct(...
-                'red', '\x1b[31m', 'green', '\x1b[32m', 'yellow', '\x1b[33m', ...
-                'blue', '\x1b[34m', 'magenta', '\x1b[35m', 'cyan', '\x1b[36m', ...
-                'white', '\x1b[37m', 'black', '\x1b[30m', ...
-                'red_bg', '\x1b[41m\x1b[37m', 'yellow_bg', '\x1b[43m\x1b[30m', ...
-                'cyan_bg', '\x1b[46m\x1b[30m', 'green_bg', '\x1b[42m\x1b[37m', ...
-                'magenta_bg', '\x1b[45m\x1b[30m', 'blue_bg', '\x1b[44m\x1b[37m', ...
-                'reset', '\x1b[0m');
+            % Prints formatted text with consistent color support
+            % Delegates to ColorPrintf for cross-platform colored output
             formatted_text = sprintf(format_str, varargin{:});
-            if is_matlab
-                clean_text = ConsoleUtils.strip_ansi_codes(formatted_text);
-                fprintf('%s', clean_text);
+
+            % Map color_name to cprintf-compatible style
+            color_map = struct(...
+                'red',        '[0.8, 0.0, 0.0]', ...
+                'green',      '[0.0, 0.7, 0.0]', ...
+                'yellow',     '[0.85, 0.55, 0.0]', ...
+                'blue',       '[0.0, 0.3, 0.8]', ...
+                'magenta',    '[0.7, 0.0, 0.7]', ...
+                'cyan',       '[0.0, 0.6, 0.8]', ...
+                'white',      '[0.9, 0.9, 0.9]', ...
+                'black',      '[0.0, 0.0, 0.0]');
+
+            if isfield(color_map, lower(color_name))
+                ColorPrintf.colored(color_map.(lower(color_name)), '%s', formatted_text);
             else
-                if isfield(ansi_codes, color_name)
-                    fprintf('%s%s%s', ansi_codes.(color_name), formatted_text, ansi_codes.reset);
-                else
-                    fprintf('%s', formatted_text);
-                end
+                fprintf('%s', formatted_text);
             end
         end
         
         function clean = strip_ansi_codes(text)
             % Remove ANSI color escape codes from text
             clean = regexprep(string(text), '\\x1b\[\d+m', '');
+            clean = regexprep(clean, '\x1b\[\d+m', '');
         end
     end
 end

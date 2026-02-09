@@ -45,7 +45,6 @@
     n = 0;
     
     snap_times = Parameters.snap_times;
-    snap_idx = 1;
     omega_snaps = zeros(Ny, Nx, length(snap_times));
     psi_snaps = zeros(Ny, Nx, length(snap_times));
     time_vec = [];
@@ -75,7 +74,7 @@
         while snap_idx <= length(snap_times) && t >= snap_times(snap_idx)
             omega_snaps(:,:,snap_idx) = omega;
             psi_snaps(:,:,snap_idx) = solve_poisson_fv(omega, dx, dy);
-            time_vec = [time_vec, t];
+            time_vec = [time_vec, t]; %#ok<AGROW>
             snap_idx = snap_idx + 1;
         end
         
@@ -177,7 +176,7 @@ function omega_new = fv_update(omega, dt, dx, dy, nu)
     omega_new = omega_adv + omega_diff;
 end
 
-function psi = solve_poisson_fv(omega, dx, dy)
+function psi = solve_poisson_fv(omega, ~, ~)
     [Ny, Nx] = size(omega);
     omega_hat = fft2(omega);
     kx = 2*pi/Nx * [0:Nx/2-1, -Nx/2:-1];

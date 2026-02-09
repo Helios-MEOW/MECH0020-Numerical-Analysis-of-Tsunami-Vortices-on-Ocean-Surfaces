@@ -185,22 +185,22 @@ function [ok, issues] = validate_evolution(Run_Config, Parameters)
     % Check required fields
     if ~isfield(Run_Config, 'method')
         ok = false;
-        issues{end+1} = 'Run_Config.method is required';
+        issues{end+1} = 'Run_Config.method is required'; %#ok<AGROW>
     end
 
     if ~isfield(Parameters, 'Tfinal') || Parameters.Tfinal <= 0
         ok = false;
-        issues{end+1} = 'Parameters.Tfinal must be > 0';
+        issues{end+1} = 'Parameters.Tfinal must be > 0'; %#ok<AGROW>
     end
 
     if ~isfield(Parameters, 'dt') || Parameters.dt <= 0
         ok = false;
-        issues{end+1} = 'Parameters.dt must be > 0';
+        issues{end+1} = 'Parameters.dt must be > 0'; %#ok<AGROW>
     end
 
     if ~isfield(Parameters, 'Nx') || ~isfield(Parameters, 'Ny')
         ok = false;
-        issues{end+1} = 'Parameters.Nx and Parameters.Ny are required';
+        issues{end+1} = 'Parameters.Nx and Parameters.Ny are required'; %#ok<AGROW>
     end
 end
 
@@ -227,7 +227,7 @@ function [init_fn, step_fn, diag_fn] = resolve_method(method_name)
     end
 end
 
-function ctx = build_mode_context(Parameters, Settings)
+function ctx = build_mode_context(~, Settings)
     % Build mode-specific context data
     ctx = struct();
     ctx.save_data = Settings.save_data;
@@ -263,7 +263,7 @@ function cfg = prepare_cfg(Run_Config, Parameters)
     end
 end
 
-function generate_evolution_figures(analysis, Parameters, Run_Config, paths, Settings)
+function generate_evolution_figures(analysis, ~, Run_Config, paths, ~)
     % Generate evolution figures (contours, vectors, etc.)
     % Reuse existing visualization utilities
 

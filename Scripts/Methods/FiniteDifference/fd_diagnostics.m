@@ -1,4 +1,4 @@
-function Metrics = fd_diagnostics(State, cfg, ctx)
+function Metrics = fd_diagnostics(State, ~, ~)
     % fd_diagnostics - Compute diagnostic metrics for FD method
     %
     % Purpose:
@@ -7,14 +7,14 @@ function Metrics = fd_diagnostics(State, cfg, ctx)
     %
     % Inputs:
     %   State - Current state (omega, psi, t, setup)
-    %   cfg - Configuration (unused)
-    %   ctx - Context (unused)
+    %   ~     - Configuration (unused, interface consistency)
+    %   ~     - Context (unused, interface consistency)
     %
     % Output:
     %   Metrics - Struct with diagnostic data:
-    %             .max_vorticity - Max |ω|
-    %             .enstrophy - ∫ ω² dA
-    %             .kinetic_energy - ∫ |∇ψ|² dA
+    %             .max_vorticity - Max |omega|
+    %             .enstrophy - integral(omega^2 dA)
+    %             .kinetic_energy - integral(|grad(psi)|^2 dA)
     %             .t - Current time
     %
     % Usage:

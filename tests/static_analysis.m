@@ -453,7 +453,7 @@ function [issues, stats, global_issue_id] = run_code_analyzer_safe(file_list, re
                         'rule_id', info(j).id, ...
                         'remediation', remediation);
                     
-                    issues_cell{end+1} = issue_struct;  % FIX #2: Cell array append
+                    issues_cell{end+1} = issue_struct;  %#ok<AGROW> % FIX #2: Cell array append
                 end
             end
             
@@ -502,7 +502,7 @@ function [issues, stats, global_issue_id] = run_code_analyzer_safe(file_list, re
                 'rule_id', 'SA-RUNTIME-0001', ...
                 'remediation', 'File may have syntax errors or be unreadable');
             
-            issues_cell{end+1} = issue_struct;  % FIX #2: Cell array append
+            issues_cell{end+1} = issue_struct;  %#ok<AGROW> % FIX #2: Cell array append
             
             fprintf('  [FAIL] %s: Analyzer error - %s\n', rel_path, ME.message);
         end
@@ -532,6 +532,7 @@ end
 function [code, severity, remediation, impact] = map_checkcode_issue(checkcode_id)
     % Map MATLAB checkcode IDs to our taxonomy
     % FIX #7: Add impact labels (RUNTIME_ERROR_LIKELY, LOGIC_RISK, PERFORMANCE_STYLE, UNKNOWN)
+    % Enhanced: Detailed descriptions per issue type (see tests/ISSUE_TAXONOMY.md)
     
     % Critical issues (Runtime error likely)
     if any(strcmp(checkcode_id, {'NODEF', 'NBRAK', 'MCNPR', 'MCVID'}))
@@ -541,30 +542,32 @@ function [code, severity, remediation, impact] = map_checkcode_issue(checkcode_i
         
         switch checkcode_id
             case 'NODEF'
-                remediation = 'Function is called but not defined. Add function definition or check spelling.';
+                remediation = 'UNDEFINED FUNCTION/VARIABLE: Referenced name has no definition in scope. Will throw runtime error. Fix: add the missing file to the path, correct spelling, or define the variable before use.';
             case 'NBRAK'
-                remediation = 'Unbalanced brackets. Check syntax carefully.';
+                remediation = 'UNBALANCED BRACKETS: Mismatched parentheses/brackets/braces. MATLAB cannot parse the file. Fix: locate and correct the mismatch.';
             case 'MCNPR'
-                remediation = 'File name must match function name for proper calling.';
+                remediation = 'FILE/FUNCTION NAME MISMATCH: File is named differently from the function inside it. Fix: rename file or function to match.';
             case 'MCVID'
-                remediation = 'Invalid identifier. Use valid MATLAB variable/function names.';
+                remediation = 'INVALID IDENTIFIER: Name uses illegal characters. Fix: use only letters, digits, underscores, starting with a letter.';
             otherwise
                 remediation = 'Critical issue detected. Review and fix immediately.';
         end
         
     % Logic risk issues
-    elseif any(strcmp(checkcode_id, {'INUSD', 'GVMIS', 'NOPRT'}))
+    elseif any(strcmp(checkcode_id, {'INUSD', 'GVMIS', 'NOPRT', 'NASGU'}))
         severity = 'MAJOR';
         code = sprintf('MLAB-MAJR-%s', checkcode_id);
         impact = 'LOGIC_RISK';
         
         switch checkcode_id
             case 'INUSD'
-                remediation = 'Variable set but never used. Remove or use the variable.';
+                remediation = 'UNUSED INPUT ARGUMENT: Function parameter is declared but never read. Fix: replace with ~ in signature (e.g. function f(x,~,z)) or add %#ok<INUSD> if kept for interface consistency.';
             case 'GVMIS'
-                remediation = 'Global variable mismatch. Declare global consistently.';
+                remediation = 'GLOBAL VARIABLE MISMATCH: Global not declared consistently across functions. Fix: declare global consistently, or refactor to remove globals.';
             case 'NOPRT'
-                remediation = 'Function has no output. Consider returning a value or making it a script.';
+                remediation = 'NO OUTPUT SET: Function declares outputs but some paths never assign them. Fix: ensure all outputs are assigned on every code path.';
+            case 'NASGU'
+                remediation = 'ASSIGNED BUT UNUSED: Variable is assigned a value but never read afterward (dead code). Fix: remove the assignment, or use ~ for unwanted function outputs.';
             otherwise
                 remediation = 'Logic issue. Review for correctness.';
         end
@@ -577,23 +580,37 @@ function [code, severity, remediation, impact] = map_checkcode_issue(checkcode_i
         
         switch checkcode_id
             case 'AGROW'
-                remediation = 'Variable growing inside loop. Pre-allocate for better performance.';
+                remediation = 'ARRAY GROWING IN LOOP: Array extends via end+1 or concatenation inside a loop, causing O(n^2) memory copies. Fix: pre-allocate to known size with zeros/cell, use index counter, truncate at end. For bounded appends (<50 iterations), suppress with %#ok<AGROW>.';
             case 'SAGROW'
-                remediation = 'Variable growing inside loop (string). Pre-allocate or use string array.';
+                remediation = 'STRING GROWING IN LOOP: Same as AGROW but for string arrays. Fix: pre-allocate or suppress.';
             case 'PSIZE'
-                remediation = 'Variable size changes. Pre-allocate for better performance.';
+                remediation = 'VARIABLE SIZE CHANGES: Variable dimensions change unexpectedly. Fix: ensure consistent shape or use separate variables.';
             case 'NOSEM'
-                remediation = 'Missing semicolon may cause excessive output. Add semicolon.';
+                remediation = 'MISSING SEMICOLON: Statement result will print to Command Window, causing slow batch output. Fix: add ; at end of statement.';
             otherwise
                 remediation = 'Performance or style issue. Consider addressing for code quality.';
         end
         
-    % Minor issues (style, best practices)
+    % Minor issues (style, best practices) — with expanded descriptions
     else
         severity = 'MINOR';
         code = sprintf('MLAB-MINR-%s', checkcode_id);
-        impact = 'UNKNOWN';
-        remediation = 'Style or best practice issue. Consider addressing for code quality.';
+        impact = 'STYLE';
+        
+        switch checkcode_id
+            case 'AND'
+                remediation = 'USE && NOT &: Element-wise & used where short-circuit && is intended for scalar logic. Fix: replace & with && in conditionals.';
+            case 'OR'
+                remediation = 'USE || NOT |: Element-wise | used where short-circuit || is intended. Fix: replace | with || in conditionals.';
+            case 'ISMT'
+                remediation = 'EMPTY BLOCK: if/for/while block contains no statements. Fix: add logic or remove the empty block.';
+            case 'NUSED'
+                remediation = 'OUTPUT NOT ASSIGNED: Function output is declared but never set. Fix: assign the output or remove it from the signature.';
+            case 'SEPEX'
+                remediation = 'EXPRESSION AS STATEMENT: Expression result is not stored. Fix: assign to a variable or add semicolon.';
+            otherwise
+                remediation = sprintf('Style/best-practice issue (%s). Review and fix if it improves readability.', checkcode_id);
+        end
     end
 end
 
@@ -633,7 +650,7 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
                 'message', sprintf('Missing required directory: %s', required_dirs{i}), ...
                 'rule_id', 'REPO-001', ...
                 'remediation', 'Create the missing directory structure.');
-            issues_cell{end+1} = issue_struct;  % FIX #2: Cell array append
+            issues_cell{end+1} = issue_struct;  %#ok<AGROW> % FIX #2: Cell array append
         end
     end
     
@@ -664,7 +681,7 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
                 'message', sprintf('Missing entry point: %s', entry_points{i}), ...
                 'rule_id', 'REPO-002', ...
                 'remediation', 'Ensure all required entry point files exist.');
-            issues_cell{end+1} = issue_struct;  % FIX #2: Cell array append
+            issues_cell{end+1} = issue_struct;  %#ok<AGROW> % FIX #2: Cell array append
         end
     end
     
@@ -677,8 +694,9 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
             ui_text = fileread(ui_file);
             ui_lines = splitlines(string(ui_text));
             
-            % Allowlist patterns
-            allowed_patterns = {'dialog_fig', 'inspector_fig', 'rectangle'};
+            % Allowlist patterns (match on same or preceding line context)
+            allowed_patterns = {'dialog_fig', 'inspector_fig', 'rectangle', ...
+                                'isprop', 'Position)', '''Position'')'};
             
             for i = 1:length(ui_lines)
                 line = ui_lines(i);
@@ -691,10 +709,16 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
                 
                 % Check for Position usage
                 if contains(line, 'Position', 'IgnoreCase', false)
-                    % Check if it's in allowlist
+                    % Check if it's in allowlist (current line OR preceding
+                    % line, to handle MATLAB continuation lines with ...)
                     is_allowed = false;
+                    % Build context: current line + previous line (for continuations)
+                    context_lines = char(line);
+                    if i > 1
+                        context_lines = strcat(char(ui_lines(i-1)), ' ', context_lines);
+                    end
                     for j = 1:length(allowed_patterns)
-                        if contains(line, allowed_patterns{j})
+                        if contains(context_lines, allowed_patterns{j})
                             is_allowed = true;
                             break;
                         end
@@ -714,7 +738,7 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
                             'message', sprintf('Potentially problematic Position usage: %s', strip(line)), ...
                             'rule_id', 'CUST-001', ...
                             'remediation', 'Use Units=''normalized'' instead of absolute Position for cross-platform compatibility.');
-                        issues_cell{end+1} = issue_struct;  % FIX #2: Cell array append
+                        issues_cell{end+1} = issue_struct;  %#ok<AGROW> % FIX #2: Cell array append
                     end
                 end
             end
@@ -733,7 +757,7 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
                 'message', sprintf('Failed to check UIController: %s', ME.message), ...
                 'rule_id', 'SA-RUNTIME-0001', ...
                 'remediation', 'File may be corrupted or unreadable.');
-            issues_cell{end+1} = issue_struct;  % FIX #2: Cell array append
+            issues_cell{end+1} = issue_struct;  %#ok<AGROW> % FIX #2: Cell array append
         end
     else
         global_issue_id = global_issue_id + 1;  % FIX #3: Increment global counter
@@ -749,7 +773,7 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
             'message', 'UIController.m not found', ...
             'rule_id', 'REPO-002', ...
             'remediation', 'Ensure UIController.m exists in Scripts/UI/');
-        issues_cell{end+1} = issue_struct;  % FIX #2: Cell array append
+        issues_cell{end+1} = issue_struct;  %#ok<AGROW> % FIX #2: Cell array append
     end
     
     % FIX #2: Convert cell array to struct array at end

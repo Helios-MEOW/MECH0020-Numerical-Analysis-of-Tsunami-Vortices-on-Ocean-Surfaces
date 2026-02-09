@@ -1,4 +1,4 @@
-function State = fd_init(cfg, ctx)
+function State = fd_init(cfg, ~)
     % fd_init - Initialize Finite Difference method state
     %
     % Purpose:

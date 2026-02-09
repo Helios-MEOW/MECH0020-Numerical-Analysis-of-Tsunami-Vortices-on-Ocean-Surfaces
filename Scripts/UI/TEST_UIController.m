@@ -108,14 +108,14 @@ function results = run_ui_tests(category)
                 fprintf('   FAIL: %s\n\n', result.message);
             end
             
-            results.details{end+1} = result;
+            results.details{end+1} = result; %#ok<AGROW>
             
         catch ME
             results.failed = results.failed + 1;
             fprintf('   ERROR: %s\n', ME.message);
             fprintf('    Stack: %s (line %d)\n\n', ME.stack(1).name, ME.stack(1).line);
             
-            results.details{end+1} = struct('name', func2str(test_func), ...
+            results.details{end+1} = struct('name', func2str(test_func), ... %#ok<AGROW>
                 'passed', false, 'message', ME.message);
         end
     end
