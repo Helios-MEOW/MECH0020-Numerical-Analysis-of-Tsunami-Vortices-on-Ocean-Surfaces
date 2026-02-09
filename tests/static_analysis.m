@@ -44,6 +44,7 @@ function static_analysis(varargin)
     addParameter(p, 'Verbose', false, @islogical);
     addParameter(p, 'MaxIssuesPerFile', 10, @isnumeric);
     addParameter(p, 'MaxFilesDetailed', 20, @isnumeric);
+    addParameter(p, 'ExitOnComplete', true,  @islogical);  % New: control exit behavior
     parse(p, varargin{:});
     
     opts = p.Results;
@@ -82,20 +83,16 @@ function static_analysis(varargin)
     end
     
     % Determine exit behavior based on mode
-    if opts.FailOnIssues
-        % Gate mode: exit with code 1 if critical issues found
-        if analyzer_had_runtime_error || report.summary.critical > 0
-            if ~usejava('desktop')
+    if opts.ExitOnComplete && ~usejava('desktop')
+        if opts.FailOnIssues
+            % Gate mode: exit with code 1 if critical issues found
+            if analyzer_had_runtime_error || report.summary.critical > 0
                 exit(1);
-            end
-        else
-            if ~usejava('desktop')
+            else
                 exit(0);
             end
-        end
-    else
-        % Report mode: ALWAYS exit 0 (never fail the step)
-        if ~usejava('desktop')
+        else
+            % Report mode: ALWAYS exit 0 (never fail the step)
             exit(0);
         end
     end

@@ -90,7 +90,8 @@ function exit_code = Run_All_Tests(varargin)
         phase_start = tic;
         try
             % Run static_analysis.m with report mode (never fails)
-            static_analysis('Mode', 'CI', 'FailOnIssues', false, 'Verbose', opts.Verbose);
+            % ExitOnComplete=false prevents premature MATLAB termination
+            static_analysis('Mode', 'CI', 'FailOnIssues', false, 'Verbose', opts.Verbose, 'ExitOnComplete', false);
 
             % Read static analysis report
             static_report_path = fullfile(test_dir, 'static_analysis_report.json');
