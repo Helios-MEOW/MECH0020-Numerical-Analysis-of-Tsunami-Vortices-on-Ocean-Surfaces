@@ -45,12 +45,13 @@ function Test_Cases = Get_Test_Cases()
     tc.name = 'FD_Convergence_Gaussian_16_32';
     tc.Run_Config = Build_Run_Config('FD', 'Convergence', 'Gaussian');
     tc.Parameters = Parameters();
-    tc.Parameters.Nx = 0;  % Not used in Convergence mode (use 0 not [])
-    tc.Parameters.Ny = 0;   % Not used in Convergence mode (use 0 not [])
-    tc.Parameters.mesh_sizes = [16, 32];
+    % Set fields in SAME ORDER as test 1 & 3 for struct array compatibility
+    tc.Parameters.Nx = 0;  % Not used in Convergence mode
+    tc.Parameters.Ny = 0;  % Not used in Convergence mode
     tc.Parameters.Tfinal = 0.05;
     tc.Parameters.dt = 0.001;
     tc.Parameters.snap_times = [0, 0.05];
+    tc.Parameters.mesh_sizes = [16, 32];
     tc.Parameters.convergence_variable = 'max_omega';
     tc.Parameters.sweep_parameter = '';
     tc.Parameters.sweep_values = [];  % Empty array for unused array field
