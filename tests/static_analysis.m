@@ -230,7 +230,7 @@ function [report, analyzer_had_runtime_error, runtime_error_details] = run_analy
             if isempty(report.issues.all)
                 report.issues.all = custom_issues;
             else
-                report.issues.all = [report.issues.all, custom_issues];
+                report.issues.all = [report.issues.all; custom_issues];
             end
         end
         
