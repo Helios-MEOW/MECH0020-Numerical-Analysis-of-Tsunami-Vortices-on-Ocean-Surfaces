@@ -13,7 +13,7 @@ function Test_Cases = Get_Test_Cases()
     %   cases = Get_Test_Cases();
     %   [Results, paths] = ModeDispatcher(cases(1).Run_Config, cases(1).Parameters, cases(1).Settings);
     
-    Test_Cases = [];
+    Test_Cases = struct([]);  % Initialize as empty struct array, not numeric array
     idx = 1;
     
     % ===== FD Evolution Test Case =====
