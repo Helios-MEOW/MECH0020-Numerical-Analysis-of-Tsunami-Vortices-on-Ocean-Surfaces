@@ -34,6 +34,12 @@ function Tsunami_Simulator()
     fprintf('  Method-Agnostic Mode Architecture\n');
     fprintf('═══════════════════════════════════════════════════════════════\n\n');
 
+    % ===== PATH SETUP =====
+    % Ensure all required directories are on the path
+    repo_root = fileparts(fileparts(mfilename('fullpath')));  % Go up 2 levels from Drivers
+    addpath(genpath(fullfile(repo_root, 'Scripts')));
+    addpath(fullfile(repo_root, 'utilities'));
+
     % ===== LOAD CONFIGURATION =====
     fprintf('[1/4] Loading configuration...\n');
 
