@@ -410,17 +410,22 @@ ui_passed = true;
         fprintf(2, '  ERROR writing Markdown: %s\n', ME.message);
     end
 
-    %% Exit
-    if ~usejava('desktop')
-        exit(exit_code);
+    %% Return exit code (NO exit call - it terminates MATLAB)
+    % The exit_code is returned as the function output
+    % Caller or CI wrapper must interpret the return value
+    if exit_code ~= 0
+        warning('MECH0020:TestsFailed', 'Tests completed with failures. Exit code: %d', exit_code);
     end
 end
 
 %% Helper Functions
 function add_all_paths(repo_root)
     addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
+    addpath(fullfile(repo_root, 'Scripts', 'Modes'));
+    addpath(fullfile(repo_root, 'Scripts', 'Modes', 'Convergence'));
     addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
     addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
+    addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteDifference'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Builds'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'DataRelatedHelpers'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Initialisers'));

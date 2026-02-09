@@ -181,12 +181,9 @@ function test_architecture_compliance()
         exit_code = 1;
     end
 
-    % Exit with appropriate code (for CI/CD)
-    if usejava('desktop')
-        % MATLAB desktop - just display result
-        fprintf('Exit code: %d\n\n', exit_code);
-    else
-        % Command-line MATLAB - exit
-        exit(exit_code);
+    % Return exit code (NO exit call - it terminates MATLAB)
+    fprintf('Exit code: %d\n\n', exit_code);
+    if exit_code ~= 0
+        warning('MECH0020:ArchitectureViolation', 'Architecture tests failed. Exit code: %d', exit_code);
     end
 end

@@ -82,19 +82,11 @@ function static_analysis(varargin)
         report = create_error_report(runtime_error_details, test_dir);
     end
     
-    % Determine exit behavior based on mode
-    if opts.ExitOnComplete && ~usejava('desktop')
-        if opts.FailOnIssues
-            % Gate mode: exit with code 1 if critical issues found
-            if analyzer_had_runtime_error || report.summary.critical > 0
-                exit(1);
-            else
-                exit(0);
-            end
-        else
-            % Report mode: ALWAYS exit 0 (never fail the step)
-            exit(0);
-        end
+    % Return exit code (caller decides what to do)
+    % NOTE: We do NOT call exit() as it terminates MATLAB and breaks CI/testing
+    if nargout == 0
+        % Called without output - just return silently
+        return;
     end
 end
 

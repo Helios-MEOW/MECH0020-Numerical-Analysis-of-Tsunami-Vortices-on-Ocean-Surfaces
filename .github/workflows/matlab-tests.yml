@@ -79,11 +79,14 @@ jobs:
           command: |
             cd tests
             try
-              Run_All_Tests
+              exit_code = Run_All_Tests();
+              if exit_code ~= 0
+                error('MECH0020:TestsFailed', 'Tests returned exit code %d', exit_code);
+              end
               disp('✓ All tests passed')
             catch ME
               disp(['✗ Tests failed: ' ME.message])
-              exit(1)
+              rethrow(ME)
             end
       
       - name: Upload test results

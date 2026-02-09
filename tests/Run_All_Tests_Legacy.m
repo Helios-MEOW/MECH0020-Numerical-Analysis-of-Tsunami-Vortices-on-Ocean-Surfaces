@@ -133,10 +133,8 @@ else
     exit_code = 1;
 end
 
-% Return exit code (for CI/CD)
-if usejava('desktop')
-    % Interactive mode - don't exit
-else
-    % Non-interactive mode - exit with code
-    exit(exit_code);
+% Return exit code (NO exit call - it terminates MATLAB)
+% The exit_code variable is available for the caller
+if exit_code ~= 0
+    warning('MECH0020:LegacyTestsFailed', 'Legacy tests completed with failures. Exit code: %d', exit_code);
 end
