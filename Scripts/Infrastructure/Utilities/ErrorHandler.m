@@ -120,7 +120,15 @@ classdef ErrorHandler
             msg = ErrorHandler.format_error_message(err_struct);
 
             % Create and throw MException
-            ME = MException(strrep(error_code, '-', ':'), '%s', msg);
+            % Convert error_code 'CFG-VAL-0001' to MATLAB identifier 'CFG:VAL_0001'
+            % (component:mnemonic format, replace only first hyphen with colon)
+            parts = strsplit(error_code, '-');
+            if length(parts) >= 2
+                identifier = sprintf('%s:%s', parts{1}, strjoin(parts(2:end), '_'));
+            else
+                identifier = sprintf('REPO:%s', error_code);  % Fallback for malformed codes
+            end
+            ME = MException(identifier, '%s', msg);
 
             % Attach cause if present
             if ~isempty(err_struct.underlying_cause)
