@@ -90,6 +90,57 @@ This document records all errors encountered and resolved during development and
 - **Commit Hash:** `7a4afd8`
 - **Status:** RESOLVED
 
+### ERR-0004: RunIDGenerator string concatenation with char type
+
+- **Date:** 2026-02-09
+- **Identifier:** `MATLAB:sizeDimensionsMustMatch`
+- **Message:** Arrays have incompatible sizes for this operation
+- **Location:** `RunIDGenerator.m:147`
+- **Stack Excerpt:**
+  ```
+  Error in RunIDGenerator.struct_to_string (line 147)
+      str = str + sprintf('%s=%g;', fields{i}, val);
+  ```
+- **Reproduction:** Run `ModeDispatcher` with any configuration
+- **Root Cause:** Variable `str` initialized with single quotes (`str = ''`) creates a char array. The `+` operator for string concatenation requires MATLAB string type (double quotes). Char + string causes dimension mismatch.
+- **Fix Summary:** Changed `str = ''` to `str = ""` (string literal) and added `isscalar(val)` check with array handling for non-scalar numeric values
+- **Commit Hash:** `74d9ec6`
+- **Status:** RESOLVED
+
+### ERR-0005: IC type normalization missing hyphen conversion
+
+- **Date:** 2026-02-09
+- **Identifier:** (thrown error)
+- **Message:** Unknown ic_type: lamb-oseen
+- **Location:** `initialise_omega.m:167`
+- **Stack Excerpt:**
+  ```
+  Error in initialise_omega (line 167)
+      error('Unknown ic_type: %s', ic_type);
+  ```
+- **Reproduction:** Run Evolution mode with `ic_type = 'Lamb-Oseen'`
+- **Root Cause:** IC type normalization lowercased `Lamb-Oseen` to `lamb-oseen` but switch cases use underscore format `lamb_oseen`. Hyphen was not converted to underscore.
+- **Fix Summary:** Added `strrep(ic_type, '-', '_')` and `strrep(ic_type, ' ', '_')` after lowercasing in the normalizer block
+- **Commit Hash:** `74d9ec6`
+- **Status:** RESOLVED
+
+### ERR-0006: Run_All_Tests references non-existent path
+
+- **Date:** 2026-02-09
+- **Identifier:** (MATLAB warning)
+- **Message:** Name is nonexistent or not a directory: Scripts\Solvers\FD
+- **Location:** `Run_All_Tests.m:422` (add_all_paths function)
+- **Stack Excerpt:**
+  ```
+  Warning in addpath (line 96)
+  In Run_All_Tests>add_all_paths (line 422)
+  ```
+- **Reproduction:** Run `Run_All_Tests` from tests directory
+- **Root Cause:** Path setup function included `Scripts/Solvers/FD` which was removed during restructuring. Missing paths for Spectral and FiniteVolume methods.
+- **Fix Summary:** Removed non-existent `Scripts/Solvers/FD` path; added correct paths: `Scripts/Methods/FiniteVolume` and `Scripts/Methods/Spectral`
+- **Commit Hash:** `74d9ec6`
+- **Status:** RESOLVED
+
 ---
 
 ## Open Issues
