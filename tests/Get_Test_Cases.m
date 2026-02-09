@@ -12,11 +12,19 @@ function Test_Cases = Get_Test_Cases()
     % Usage:
     %   cases = Get_Test_Cases();
     %   [Results, paths] = ModeDispatcher(cases(1).Run_Config, cases(1).Parameters, cases(1).Settings);
-    
-    Test_Cases = struct([]);  % Initialize as empty struct array, not numeric array
-    idx = 1;
-    
-    % ===== FD Evolution Test Case =====
+
+    % Build test cases individually then concatenate into struct array
+    %this ensures all have identical field structure
+
+    tc1 = build_evolution_test();
+    tc2 = build_convergence_test();
+    tc3 = build_parameter_sweep_test();
+
+    % Concatenate into struct array
+    Test_Cases = [tc1; tc2; tc3];
+end
+
+function tc = build_evolution_test()
     tc = struct();
     tc.name = 'FD_Evolution_LambOseen_32x32';
     tc.Run_Config = Build_Run_Config('FD', 'Evolution', 'Lamb-Oseen');
@@ -26,45 +34,41 @@ function Test_Cases = Get_Test_Cases()
     tc.Parameters.Tfinal = 0.1;
     tc.Parameters.dt = 0.001;
     tc.Parameters.snap_times = [0, 0.05, 0.1];
-    % Add mode-specific fields (use [] for arrays, '' for strings, 0 for scalars)
-    tc.Parameters.mesh_sizes = [];  % Empty array for unused array field
+    tc.Parameters.mesh_sizes = [];
     tc.Parameters.convergence_variable = '';
     tc.Parameters.sweep_parameter = '';
-    tc.Parameters.sweep_values = [];  % Empty array for unused array field
+    tc.Parameters.sweep_values = [];
     tc.Settings = Settings();
     tc.Settings.save_figures = false;
     tc.Settings.save_data = false;
     tc.Settings.save_reports = false;
     tc.Settings.append_to_master = false;
     tc.Settings.monitor_enabled = false;
-    Test_Cases(idx) = tc;
-    idx = idx + 1;
-    
-    % ===== FD Convergence Test Case =====
+end
+
+function tc = build_convergence_test()
     tc = struct();
     tc.name = 'FD_Convergence_Gaussian_16_32';
     tc.Run_Config = Build_Run_Config('FD', 'Convergence', 'Gaussian');
     tc.Parameters = Parameters();
-    % Set fields in SAME ORDER as test 1 & 3 for struct array compatibility
-    tc.Parameters.Nx = 0;  % Not used in Convergence mode
-    tc.Parameters.Ny = 0;  % Not used in Convergence mode
+    tc.Parameters.Nx = 0;
+    tc.Parameters.Ny = 0;
     tc.Parameters.Tfinal = 0.05;
     tc.Parameters.dt = 0.001;
     tc.Parameters.snap_times = [0, 0.05];
     tc.Parameters.mesh_sizes = [16, 32];
     tc.Parameters.convergence_variable = 'max_omega';
     tc.Parameters.sweep_parameter = '';
-    tc.Parameters.sweep_values = [];  % Empty array for unused array field
+    tc.Parameters.sweep_values = [];
     tc.Settings = Settings();
     tc.Settings.save_figures = false;
     tc.Settings.save_data = false;
     tc.Settings.save_reports = false;
     tc.Settings.append_to_master = false;
     tc.Settings.monitor_enabled = false;
-    Test_Cases(idx) = tc;
-    idx = idx + 1;
-    
-    % ===== FD ParameterSweep Test Case =====
+end
+
+function tc = build_parameter_sweep_test()
     tc = struct();
     tc.name = 'FD_ParameterSweep_nu_2vals';
     tc.Run_Config = Build_Run_Config('FD', 'ParameterSweep', 'Lamb-Oseen');
@@ -74,8 +78,8 @@ function Test_Cases = Get_Test_Cases()
     tc.Parameters.Tfinal = 0.05;
     tc.Parameters.dt = 0.001;
     tc.Parameters.snap_times = [0, 0.05];
-    tc.Parameters.mesh_sizes = [];  % Empty array for unused array field
-    tc.Parameters.convergence_variable = '';  % Not used in ParameterSweep mode
+    tc.Parameters.mesh_sizes = [];
+    tc.Parameters.convergence_variable = '';
     tc.Parameters.sweep_parameter = 'nu';
     tc.Parameters.sweep_values = [0.001, 0.002];
     tc.Settings = Settings();
@@ -84,8 +88,4 @@ function Test_Cases = Get_Test_Cases()
     tc.Settings.save_reports = false;
     tc.Settings.append_to_master = false;
     tc.Settings.monitor_enabled = false;
-    Test_Cases(idx) = tc;
-    idx = idx + 1;
-    
-    % Add more test cases as needed
 end
