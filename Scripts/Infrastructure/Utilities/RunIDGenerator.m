@@ -142,11 +142,16 @@ classdef RunIDGenerator
             end
             
             fields = sort(fieldnames(s));
-            str = '';
+            str = "";  % Use string type (double quotes) for + operator
             for i = 1:length(fields)
                 val = s.(fields{i});
                 if isnumeric(val)
-                    str = str + sprintf('%s=%g;', fields{i}, val);
+                    if isscalar(val)
+                        str = str + sprintf('%s=%g;', fields{i}, val);
+                    else
+                        % Arrays: flatten to string representation
+                        str = str + sprintf('%s=[%s];', fields{i}, strjoin(string(val(:)'), ','));
+                    end
                 elseif ischar(val) || isstring(val)
                     str = str + sprintf('%s=%s;', fields{i}, val);
                 end

@@ -3,7 +3,10 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
     % Enables access from other methods (Spectral, Finite Volume, tests).
 
     if isstring(ic_type) || ischar(ic_type)
+        % Normalize: lowercase and replace hyphens/spaces with underscores
         ic_type = lower(char(ic_type));
+        ic_type = strrep(ic_type, '-', '_');
+        ic_type = strrep(ic_type, ' ', '_');
     end
 
     if ~isnumeric(ic_coeff) || isempty(ic_coeff)

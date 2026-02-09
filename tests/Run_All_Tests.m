@@ -424,8 +424,10 @@ function add_all_paths(repo_root)
     addpath(fullfile(repo_root, 'Scripts', 'Modes'));
     addpath(fullfile(repo_root, 'Scripts', 'Modes', 'Convergence'));
     addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
-    addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
+    % Note: Scripts\Solvers\FD doesn't exist - FD code is in Scripts\Methods\FiniteDifference
     addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteDifference'));
+    addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteVolume'));
+    addpath(fullfile(repo_root, 'Scripts', 'Methods', 'Spectral'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Builds'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'DataRelatedHelpers'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Initialisers'));
