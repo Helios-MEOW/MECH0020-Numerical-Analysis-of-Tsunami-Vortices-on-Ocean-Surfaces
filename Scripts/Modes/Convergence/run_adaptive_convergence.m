@@ -5,6 +5,8 @@
 %   AdaptiveConvergenceAgent class. This agent learns from preflight tests
 %   to intelligently navigate convergence rather than using fixed grid sweeps.
 %
+% Location: Scripts/Modes/Convergence/ (convergence-specific components)
+%
 % Features:
 %   - Preflight testing to gather training data
 %   - Pattern recognition for convergence behavior
@@ -15,7 +17,7 @@
 %   - Decision trace logging
 %
 % Usage:
-%   cd Scripts/Drivers
+%   cd Scripts/Modes/Convergence
 %   run_adaptive_convergence
 %
 % Outputs:
@@ -24,9 +26,8 @@
 %   - Final recommended converged configuration
 %
 % Dependencies:
-%   - AdaptiveConvergenceAgent.m
-%   - Analysis.m (for helper functions)
-%   - Finite_Difference_Analysis.m
+%   - AdaptiveConvergenceAgent.m (same directory)
+%   - Scripts/Infrastructure/* (paths added below)
 %
 % Author: MECH0020 Framework
 % Date: February 2026
@@ -38,13 +39,16 @@ fprintf('  ADAPTIVE CONVERGENCE AGENT - INTELLIGENT MESH REFINEMENT\n');
 fprintf('========================================================================\n\n');
 
 % ===== SETUP PATHS =====
+% Note: This script is in Scripts/Modes/Convergence, so repo_root is 3 levels up
 script_dir = fileparts(mfilename('fullpath'));
-repo_root = fullfile(script_dir, '..', '..');
+repo_root = fullfile(script_dir, '..', '..', '..');
 
 % Add all Scripts subdirectories to path
 addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
+addpath(fullfile(repo_root, 'Scripts', 'Modes'));
+addpath(fullfile(repo_root, 'Scripts', 'Modes', 'Convergence'));  % Self + agent
 addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
-addpath(fullfile(repo_root, 'Scripts', 'Solvers', 'FD'));
+addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteDifference'));
 addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Builds'));
 addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'DataRelatedHelpers'));
 addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Initialisers'));

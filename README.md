@@ -151,8 +151,7 @@ MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
 │   ├── Input/                # Reference data (tracked)
 │   └── Output/               # Generated results (gitignored)
 ├── docs/                     # Documentation
-│   ├── 01_ARCHITECTURE/
-│   ├── 02_DESIGN/
+│   ├── Extra/                # Error registry and additional docs
 │   └── 03_NOTEBOOKS/
 │       └── Tsunami_Vortex_Analysis_Complete_Guide.ipynb
 ├── utilities/                # Plotting helpers (optional)
@@ -162,8 +161,9 @@ MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
 ```
 
 **Key directories**:
-- **Drivers**: Main entry points (`Analysis.m`, `run_adaptive_convergence.m`)
-- **Solvers/FD/**: Four modes (Evolution, Convergence, ParameterSweep, Plotting)
+- **Drivers**: Main entry points (`Analysis.m`)
+- **Modes**: Simulation modes (Evolution, Convergence, ParameterSweep, Plotting)
+- **Modes/Convergence**: Adaptive convergence agent (`run_adaptive_convergence.m`, `AdaptiveConvergenceAgent.m`)
 - **Editable**: Configuration files users should modify
 - **Output** (created at runtime): `Data/Output/{Method}/{Mode}/{run_id}/`
 
@@ -202,7 +202,7 @@ Parameters.Tfinal = 5.0;  % Override end time
 
 ## Adaptive Convergence Agent
 
-The adaptive convergence agent (`run_adaptive_convergence.m`) provides intelligent mesh refinement:
+The adaptive convergence agent provides intelligent mesh refinement. Located in `Scripts/Modes/Convergence/`.
 
 **What it does**:
 - Runs preflight simulations to establish convergence patterns
@@ -214,7 +214,7 @@ The adaptive convergence agent (`run_adaptive_convergence.m`) provides intellige
 **How to run**:
 
 ```matlab
-cd Scripts/Drivers
+cd Scripts/Modes/Convergence
 run_adaptive_convergence
 ```
 
