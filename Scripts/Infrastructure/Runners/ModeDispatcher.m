@@ -108,6 +108,7 @@ end
 function [Results, paths] = dispatch_FD_mode(mode, Run_Config, Parameters, Settings)
     % Dispatch to FD mode modules
     % Enforces FD modes: Evolution, Convergence, ParameterSweep, Plotting
+    % Uses method-agnostic mode functions
     % Uses structured error handling
 
     % Update Run_Config with normalized mode
@@ -116,16 +117,16 @@ function [Results, paths] = dispatch_FD_mode(mode, Run_Config, Parameters, Setti
     try
         switch mode
             case 'Evolution'
-                [Results, paths] = FD_Evolution_Mode(Run_Config, Parameters, Settings);
+                [Results, paths] = mode_evolution(Run_Config, Parameters, Settings);
 
             case 'Convergence'
-                [Results, paths] = FD_Convergence_Mode(Run_Config, Parameters, Settings);
+                [Results, paths] = mode_convergence(Run_Config, Parameters, Settings);
 
             case 'ParameterSweep'
-                [Results, paths] = FD_ParameterSweep_Mode(Run_Config, Parameters, Settings);
+                [Results, paths] = mode_parameter_sweep(Run_Config, Parameters, Settings);
 
             case 'Plotting'
-                [Results, paths] = FD_Plotting_Mode(Run_Config, Parameters, Settings);
+                [Results, paths] = mode_plotting(Run_Config, Parameters, Settings);
 
             otherwise
                 % Invalid FD mode - use structured error
