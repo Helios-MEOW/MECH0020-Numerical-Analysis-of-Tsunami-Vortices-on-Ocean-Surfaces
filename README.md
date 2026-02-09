@@ -454,11 +454,14 @@ The UI uses a **grid-based layout** for intuitive editing. All layout parameters
 This README serves as the central replication manual. Additional documentation:
 
 **Research & Constraints:**
-- [research.md](research.md) - Method/mode compatibility matrix, unviable combinations, experimental features, future work, known limitations
-- [research_log.md](research_log.md) - Literature references (Vancouver-style), research notes, implementation sources
+- [docs/research.md](docs/research.md) - Method/mode compatibility matrix, unviable combinations, experimental features, future work, known limitations
+- [docs/research_log.md](docs/research_log.md) - Literature references (Vancouver-style), research notes, implementation sources
 
 **Notebooks:**
 - [Complete Analysis Guide (Jupyter)](docs/03_NOTEBOOKS/Tsunami_Vortex_Analysis_Complete_Guide.ipynb) - Interactive tutorial and examples
+
+**Error Tracking:**
+- [docs/Extra/Error_Registry.md](docs/Extra/Error_Registry.md) - Permanent log of all errors encountered and resolved
 
 **Implementation Details:**
 - Error codes: See "Error Codes" section above
@@ -467,9 +470,9 @@ This README serves as the central replication manual. Additional documentation:
 
 **What to Read First:**
 1. This README for quick start and basic usage
-2. `research.md` for compatibility matrix and constraints
+2. `docs/research.md` for compatibility matrix and constraints
 3. Jupyter notebook for in-depth analysis examples
-4. `research_log.md` for literature references and research notes
+4. `docs/research_log.md` for literature references and research notes
 
 ## License
 
