@@ -37,6 +37,14 @@ tests/test_results.mat
 tests/static_analysis_report.json
 tests/static_analysis_report.md
 
-# Temporary files
+# Temporary files and agent artifacts
 tmpclaude-*
+*claude*-cwd
 *.tmp
+.tmp/
+tmp/
+*.bak
+*.orig
+
+# Temporary agent worklog (must be deleted before PR merge)
+docs/Extra/_agent_progress_worklog.md
