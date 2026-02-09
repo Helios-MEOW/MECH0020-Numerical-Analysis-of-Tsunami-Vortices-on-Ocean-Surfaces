@@ -764,10 +764,17 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
     end
     
     % FIX #2: Convert cell array to struct array at end
-    if ~isempty(issues_cell)
-        issues = vertcat(issues_cell{:});
-    else
+    % Handle empty cell array case and ensure robust concatenation
+    if isempty(issues_cell) || numel(issues_cell) == 0
         issues = [];
+    else
+        % Filter out any empty cells before concatenation
+        non_empty = ~cellfun(@isempty, issues_cell);
+        if any(non_empty)
+            issues = vertcat(issues_cell{non_empty});
+        else
+            issues = [];
+        end
     end
 end
 
