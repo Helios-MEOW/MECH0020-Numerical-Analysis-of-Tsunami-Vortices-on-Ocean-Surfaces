@@ -141,6 +141,23 @@ This document records all errors encountered and resolved during development and
 - **Commit Hash:** `74d9ec6`
 - **Status:** RESOLVED
 
+### ERR-0007: Function/variable name collision causes infinite recursion
+
+- **Date:** 2026-02-09
+- **Identifier:** `MATLAB:recursionLimit`
+- **Message:** Maximum recursion limit reached (MATLAB crash with exit code 1)
+- **Location:** `Parameters.m:1` and `Settings.m:1`
+- **Stack Excerpt:**
+  ```
+  (MATLAB exits with code 1 before producing stack trace)
+  Symptoms: Test 2 (Convergence) crashes after Mesh 1 completes
+  ```
+- **Reproduction:** Run `Parameters()` or `Settings()` function, or run any test that calls them
+- **Root Cause:** Functions `Parameters.m` and `Settings.m` used the same name for output variable as the function name. In MATLAB, when a function body references `Parameters.x = value`, it attempts to call `Parameters()` recursively instead of creating a struct field, causing infinite recursion and immediate MATLAB termination.
+- **Fix Summary:** Renamed internal output variables: `Parameters` → `params` in Parameters.m, `Settings` → `s` in Settings.m. This breaks the name collision while preserving the external API.
+- **Commit Hash:** `5ee6ae5`
+- **Status:** RESOLVED
+
 ---
 
 ## Open Issues
