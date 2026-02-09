@@ -68,6 +68,7 @@ classdef UIController < handle
         dev_mode_enabled       % Developer Mode toggle
         dev_inspector_panel    % Developer Mode inspector panel
         selected_component     % Currently selected component in dev mode
+        dev_original_callbacks % Stores original callbacks for dev mode click inspection
     end
     
     properties (Access = private)
@@ -91,6 +92,7 @@ classdef UIController < handle
             app.figures_list = {};
             app.dev_mode_enabled = false;  % Developer Mode off by default
             app.selected_component = [];
+            app.dev_original_callbacks = [];  % Will be containers.Map when dev mode enabled
             
             % Load centralized layout configuration
             app.layout_cfg = UI_Layout_Config();
@@ -1888,7 +1890,13 @@ classdef UIController < handle
         
         function disable_click_inspector(app)
             % Disable click-to-inspect (restore original callbacks)
-            if ~isfield(app, 'dev_original_callbacks') || isempty(app.dev_original_callbacks)
+            if isempty(app.dev_original_callbacks)
+                return;
+            end
+            
+            % Check if it's a containers.Map with keys
+            if ~isa(app.dev_original_callbacks, 'containers.Map')
+                app.dev_original_callbacks = [];
                 return;
             end
             
