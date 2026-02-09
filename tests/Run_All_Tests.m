@@ -28,7 +28,7 @@
 %   >> Run_All_Tests_Omnipotent('Verbose', true)
 %   >> Run_All_Tests_Omnipotent('SkipStatic', true)  % Skip static analysis
 
-function exit_code = Run_All_Tests_Omnipotent(varargin)
+function exit_code = Run_All_Tests(varargin)
     %% Parse Options
     p = inputParser;
     addParameter(p, 'Verbose', false, @islogical);
