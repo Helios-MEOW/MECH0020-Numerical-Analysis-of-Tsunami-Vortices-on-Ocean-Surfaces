@@ -306,8 +306,8 @@ function exit_code = Run_All_Tests(varargin)
         phase_start = tic;
 ui_passed = true;
 
-        % Test 1: UIController  exists and can be instantiated
-        fprintf('  [1/2] UIController exists ... ');
+        % Test 1: UIController exists
+        fprintf('  [1/3] UIController exists ... ');
         try
             if exist('UIController', 'file') || exist('UIController', 'class')
                 print_result('PASS', 'UIController found');
@@ -321,7 +321,7 @@ ui_passed = true;
         end
 
         % Test 2: UI_Layout_Config exists
-        fprintf('  [2/2] UI_Layout_Config exists ... ');
+        fprintf('  [2/3] UI_Layout_Config exists ... ');
         try
             if exist('UI_Layout_Config', 'file') || exist('UI_Layout_Config', 'class')
                 print_result('PASS', 'UI_Layout_Config found');
@@ -332,6 +332,21 @@ ui_passed = true;
         catch ME
             ui_passed = false;
             print_result('FAIL', sprintf('[UI-LAY-0001] %s', ME.message));
+        end
+
+        % Test 3: Simulated user startup flow (select UI mode)
+        fprintf('  [3/3] UI user startup flow ... ');
+        try
+            [flow_passed, flow_details] = test_ui_user_flow();
+            if flow_passed
+                print_result('PASS', flow_details);
+            else
+                ui_passed = false;
+                print_result('FAIL', sprintf('[UI-CB-0001] %s', flow_details));
+            end
+        catch ME
+            ui_passed = false;
+            print_result('FAIL', sprintf('[UI-CB-0001] %s', ME.message));
         end
 
         report.phases.ui_contract = struct();

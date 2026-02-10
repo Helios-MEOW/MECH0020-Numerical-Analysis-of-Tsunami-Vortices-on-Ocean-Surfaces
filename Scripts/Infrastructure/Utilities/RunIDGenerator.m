@@ -55,8 +55,8 @@ classdef RunIDGenerator
             end
             
             % Short hash of full config (for uniqueness)
-            config_str = RunIDGenerator.struct_to_string(Run_Config) + ...
-                         RunIDGenerator.struct_to_string(Parameters);
+            config_str = char(RunIDGenerator.struct_to_string(Run_Config) + ...
+                              RunIDGenerator.struct_to_string(Parameters));
             hash_val = mod(RunIDGenerator.hash_string(config_str), 65536);
             hash_str = sprintf('h%04X', hash_val);
             
@@ -160,8 +160,15 @@ classdef RunIDGenerator
         
         function hash = hash_string(str)
             % Simple hash function for string
+            if isstring(str)
+                str = char(strjoin(str, ""));
+            end
+            if isempty(str)
+                hash = 0;
+                return;
+            end
             hash = 0;
-            for i = 1:min(length(str), 1000)  % Limit to avoid long strings
+            for i = 1:min(numel(str), 1000)  % Limit to avoid long strings
                 hash = mod(hash * 31 + double(str(i)), 2^32);
             end
         end

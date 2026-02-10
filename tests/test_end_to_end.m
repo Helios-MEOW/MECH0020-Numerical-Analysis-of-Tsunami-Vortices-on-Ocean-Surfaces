@@ -25,7 +25,7 @@ function test_end_to_end()
     fprintf('  END-TO-END SIMULATION TESTS\n');
     fprintf('===============================================================\n\n');
 
-    % Setup paths (same as MECH0020_Run)
+    % Setup paths (same as Tsunami_Vorticity_Emulator)
     test_dir = fileparts(mfilename('fullpath'));
     repo_root = fileparts(test_dir);
     setup_test_paths(repo_root);
@@ -86,13 +86,13 @@ function test_end_to_end()
         ctx = struct();
         ctx.mode = 'evolution';
 
-        State = fd_init(cfg, ctx);
+        State = FiniteDifferenceMethod('init', cfg, ctx);
         assert(isfield(State, 'omega'), 'State must have omega field');
         assert(isfield(State, 'psi'), 'State must have psi field');
         assert(size(State.omega, 1) == cfg.Ny, 'omega rows must match Ny');
         assert(size(State.omega, 2) == cfg.Nx, 'omega cols must match Nx');
         assert(max(abs(State.omega(:))) > 0, 'omega must be non-zero');
-        fprintf('  PASS: fd_init produces valid State (max|omega|=%.3e)\n\n', max(abs(State.omega(:))));
+        fprintf('  PASS: FiniteDifferenceMethod(init) produces valid State (max|omega|=%.3e)\n\n', max(abs(State.omega(:))));
         n_pass = n_pass + 1;
     catch ME
         fprintf('  FAIL: %s\n', ME.message);
@@ -119,11 +119,11 @@ function test_end_to_end()
         ctx = struct();
         ctx.mode = 'evolution';
 
-        State = fd_init(cfg, ctx);
+        State = FiniteDifferenceMethod('init', cfg, ctx);
         omega_initial = max(abs(State.omega(:)));
 
         for step = 1:5
-            State = fd_step(State, cfg, ctx);
+            State = FiniteDifferenceMethod('step', State, cfg, ctx);
         end
 
         omega_final = max(abs(State.omega(:)));
@@ -185,19 +185,20 @@ function test_end_to_end()
         failures{end+1} = sprintf('Test 5 (ModeDispatcher Evolution): %s', ME.message); %#ok<AGROW>
     end
 
-    % ===== TEST 6: MECH0020_Run Standard Mode =====
+    % ===== TEST 6: Tsunami_Vorticity_Emulator Standard Mode =====
     n_total = n_total + 1;
-    fprintf('[TEST 6/6] MECH0020_Run Standard mode (batch, 32x32, Tfinal=0.01)...\n');
+    fprintf('[TEST 6/6] Tsunami_Vorticity_Emulator Standard mode (batch, 32x32, Tfinal=0.01)...\n');
     try
-        MECH0020_Run('Mode', 'Standard', ...
+        Tsunami_Vorticity_Emulator('Mode', 'Standard', ...
             'Method', 'FD', ...
             'SimMode', 'Evolution', ...
             'IC', 'lamb_oseen', ...
             'Nx', 32, 'Ny', 32, ...
             'dt', 0.001, 'Tfinal', 0.01, ...
             'nu', 0.01, ...
-            'SaveFigs', 0, 'SaveData', 0, 'Monitor', 0);
-        fprintf('  PASS: MECH0020_Run completed without error\n\n');
+            'SaveFigs', 0, 'SaveData', 0, 'Monitor', 0, ...
+            'NoPrompt', true);
+        fprintf('  PASS: Tsunami_Vorticity_Emulator completed without error\n\n');
         n_pass = n_pass + 1;
     catch ME
         fprintf('  FAIL: %s\n', ME.message);
@@ -208,7 +209,7 @@ function test_end_to_end()
         end
         fprintf('\n');
         n_fail = n_fail + 1;
-        failures{end+1} = sprintf('Test 6 (MECH0020_Run): %s', ME.message); %#ok<AGROW>
+        failures{end+1} = sprintf('Test 6 (Tsunami_Vorticity_Emulator): %s', ME.message); %#ok<AGROW>
     end
 
     % ===== SUMMARY =====
@@ -236,12 +237,14 @@ function test_end_to_end()
 end
 
 function setup_test_paths(repo_root)
-    % Mirror the path setup from MECH0020_Run
+    % Mirror the path setup from Tsunami_Vorticity_Emulator
     addpath(fullfile(repo_root, 'Scripts', 'Drivers'));
     addpath(fullfile(repo_root, 'Scripts', 'Solvers'));
     addpath(fullfile(repo_root, 'Scripts', 'Modes'));
     addpath(fullfile(repo_root, 'Scripts', 'Modes', 'Convergence'));
     addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteDifference'));
+    addpath(fullfile(repo_root, 'Scripts', 'Methods', 'Spectral'));
+    addpath(fullfile(repo_root, 'Scripts', 'Methods', 'FiniteVolume'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Builds'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'Compatibility'));
     addpath(fullfile(repo_root, 'Scripts', 'Infrastructure', 'DataRelatedHelpers'));

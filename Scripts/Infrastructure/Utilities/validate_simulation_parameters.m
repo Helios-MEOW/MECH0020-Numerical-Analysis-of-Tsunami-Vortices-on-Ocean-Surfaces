@@ -19,7 +19,7 @@ function [is_valid, warnings, errors] = validate_simulation_parameters(Parameter
 %   3. Stability conditions (CFL, diffusion)
 %   4. Memory estimation
 %   5. Directory structure
-%   6. Required functions
+%   6. Required entrypoints
 %   7. Initial conditions
 %
 % Author: Analysis Framework
@@ -177,23 +177,27 @@ function [is_valid, warnings, errors] = validate_simulation_parameters(Parameter
     fprintf('   ✅ Directory structure validated\n');
     
     % ====================================================================
-    % 6. REQUIRED FUNCTIONS
+    % 6. REQUIRED ENTRYPOINTS
     % ====================================================================
-    fprintf('[6/7] Checking required functions...\n');
+    fprintf('[6/7] Checking required entrypoints...\n');
     
-    required_functions = {
-        'Finite_Difference_Analysis', ...
-        'initialise_omega', ...
-        'get_analysis_method'
+    required_entrypoints = {
+        'Tsunami_Vorticity_Emulator', ...
+        'ModeDispatcher', ...
+        'FiniteDifferenceMethod', ...
+        'SpectralMethod', ...
+        'FiniteVolumeMethod', ...
+        'initialise_omega'
     };
-    
-    for i = 1:length(required_functions)
-        if exist(required_functions{i}, 'file') ~= 2
-            errors{end+1} = sprintf('Required function not found: %s', required_functions{i}); %#ok<AGROW>
+
+    for i = 1:length(required_entrypoints)
+        name_i = required_entrypoints{i};
+        if exist(name_i, 'file') ~= 2 && exist(name_i, 'class') ~= 8
+            errors{end+1} = sprintf('Required entrypoint not found: %s', name_i); %#ok<AGROW>
         end
     end
     
-    fprintf('   ✅ Required functions found\n');
+    fprintf('   [OK] Required entrypoints found\n');
     
     % ====================================================================
     % 7. INITIAL CONDITIONS VALIDATION

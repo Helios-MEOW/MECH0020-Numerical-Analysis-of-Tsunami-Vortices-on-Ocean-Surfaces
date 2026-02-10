@@ -657,7 +657,7 @@ function [issues, global_issue_id] = run_custom_checks_safe(repo_root, global_is
     % Check 2: Required entry points
     fprintf('  [2/3] Entry point files...\n');
     entry_points = {
-        'Scripts/Drivers/Analysis.m';
+        'Scripts/Drivers/Tsunami_Vorticity_Emulator.m';
         'Scripts/Infrastructure/Runners/ModeDispatcher.m';
         'Scripts/Editable/Parameters.m';
         'Scripts/Editable/Settings.m';

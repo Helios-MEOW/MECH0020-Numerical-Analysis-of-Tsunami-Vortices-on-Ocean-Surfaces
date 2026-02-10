@@ -5,8 +5,8 @@ function test_architecture_compliance()
     %   Ensures repository complies with strict architectural rules:
     %   1. Exactly N mode scripts (one per mode) in Scripts/Modes/
     %   2. NO mode-per-method files (no FD_Evolution, Spectral_Convergence, etc.)
-    %   3. Each method has init/step/diagnostics entrypoints
-    %   4. Tsunami_Simulator exists as single entry point
+    %   3. Each method has one self-contained script entrypoint
+    %   4. Tsunami_Vorticity_Emulator exists as single driver entry point
     %   5. compatibility_matrix exists
     %
     % Usage:
@@ -87,18 +87,12 @@ function test_architecture_compliance()
 
     % ===== TEST 3: Method entrypoints exist =====
     test_count = test_count + 1;
-    fprintf('[TEST %d] Checking method entrypoints...\n', test_count);
+    fprintf('[TEST %d] Checking single-script method modules...\n', test_count);
 
     method_entrypoints = {
-        'Scripts/Methods/FiniteDifference/fd_init.m', ...
-        'Scripts/Methods/FiniteDifference/fd_step.m', ...
-        'Scripts/Methods/FiniteDifference/fd_diagnostics.m', ...
-        'Scripts/Methods/Spectral/spectral_init.m', ...
-        'Scripts/Methods/Spectral/spectral_step.m', ...
-        'Scripts/Methods/Spectral/spectral_diagnostics.m', ...
-        'Scripts/Methods/FiniteVolume/fv_init.m', ...
-        'Scripts/Methods/FiniteVolume/fv_step.m', ...
-        'Scripts/Methods/FiniteVolume/fv_diagnostics.m'
+        'Scripts/Methods/FiniteDifference/FiniteDifferenceMethod.m', ...
+        'Scripts/Methods/Spectral/SpectralMethod.m', ...
+        'Scripts/Methods/FiniteVolume/FiniteVolumeMethod.m'
     };
 
     entrypoints_ok = true;
@@ -110,25 +104,36 @@ function test_architecture_compliance()
     end
 
     if entrypoints_ok
-        fprintf('  ✓ PASS: All method entrypoints exist\n');
-        fprintf('  → Test PASSED: init/step/diagnostics interface complete\n\n');
+        fprintf('  ✓ PASS: All method modules exist\n');
+        fprintf('  → Test PASSED: one-script-per-method rule satisfied\n\n');
         pass_count = pass_count + 1;
     else
-        fprintf('  → Test FAILED: Missing method entrypoints\n\n');
+        fprintf('  → Test FAILED: Missing method module(s)\n\n');
         fail_count = fail_count + 1;
     end
 
-    % ===== TEST 4: Tsunami_Simulator exists =====
+    % ===== TEST 4: Tsunami_Vorticity_Emulator exists =====
     test_count = test_count + 1;
-    fprintf('[TEST %d] Checking Tsunami_Simulator entry point...\n', test_count);
+    fprintf('[TEST %d] Checking Tsunami_Vorticity_Emulator entry point...\n', test_count);
 
-    if exist('Scripts/Drivers/Tsunami_Simulator.m', 'file')
-        fprintf('  ✓ PASS: Tsunami_Simulator.m exists\n');
+    driver_files = dir(fullfile('Scripts', 'Drivers', '*.m'));
+    driver_names = {driver_files.name};
+    has_entry = any(strcmp(driver_names, 'Tsunami_Vorticity_Emulator.m'));
+    has_single_driver = numel(driver_files) == 1;
+
+    if has_entry && has_single_driver
+        fprintf('  ✓ PASS: Tsunami_Vorticity_Emulator.m exists and is the only driver file\n');
         fprintf('  → Test PASSED: Single entry point available\n\n');
         pass_count = pass_count + 1;
     else
-        fprintf('  ✗ FAIL: Tsunami_Simulator.m not found\n');
-        fprintf('  → Test FAILED: Missing single entry point\n\n');
+        if ~has_entry
+            fprintf('  ✗ FAIL: Tsunami_Vorticity_Emulator.m not found\n');
+        end
+        if ~has_single_driver
+            fprintf('  ✗ FAIL: Scripts/Drivers contains %d .m files (expected 1)\n', numel(driver_files));
+            fprintf('          Files: %s\n', strjoin(driver_names, ', '));
+        end
+        fprintf('  → Test FAILED: Driver layout violates single-entrypoint rule\n\n');
         fail_count = fail_count + 1;
     end
 

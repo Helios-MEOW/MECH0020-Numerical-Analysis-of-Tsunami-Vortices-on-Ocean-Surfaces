@@ -11,7 +11,7 @@
 %   • Initial Condition Designer (Default presets + custom configuration)
 %   • Live Execution Monitor (CPU, Memory, Iteration tracking)
 %   • Convergence Monitor (Real-time error decay, mesh refinement tracking)
-%   • Parameter Validation & Export to Analysis.m
+%   • Parameter Validation & Export to Tsunami_Vorticity_Emulator
 %   • Developer Mode (layout inspector, click-to-inspect, validation tools)
 %
 % Usage:
@@ -81,9 +81,16 @@ classdef UIController < handle
     end
     
     methods
-        function app = UIController()
+        function app = UIController(varargin)
             % Constructor - creates and initializes the UI
             close all;
+
+            % Optional constructor override for automated testing:
+            %   UIController('StartupMode', 'ui' | 'traditional')
+            p = inputParser;
+            addParameter(p, 'StartupMode', '', @(x) ischar(x) || isstring(x));
+            parse(p, varargin{:});
+            forced_startup_mode = lower(string(p.Results.StartupMode));
             
             % Initialize properties
             app.config = app.initialize_default_config();
@@ -104,8 +111,12 @@ classdef UIController < handle
             app.color_info = [0.3 0.8 1.0];        % Cyan
             app.color_debug = [0.7 0.7 0.7];       % Light gray
             
-            % Show startup decision dialog
-            choice = app.show_startup_dialog();
+            % Show startup decision dialog unless mode is forced by caller
+            if strlength(forced_startup_mode) > 0
+                choice = char(forced_startup_mode);
+            else
+                choice = app.show_startup_dialog();
+            end
             
             if strcmp(choice, 'traditional')
                 % User chose traditional mode - exit UI
@@ -809,7 +820,7 @@ classdef UIController < handle
                 app.config.enable_monitoring = app.handles.enable_monitoring.Value;
                 app.config.sample_interval = app.handles.sample_interval.Value;
                 
-                % Store config for Analysis.m
+                % Store config for the emulator driver
                 setappdata(app.fig, 'ui_config', app.config);
                 
                 % Log
@@ -1383,11 +1394,28 @@ classdef UIController < handle
                 if ~isempty(app.diary_timer) && isvalid(app.diary_timer)
                     stop(app.diary_timer);
                     delete(app.diary_timer);
+                    app.diary_timer = [];
                 end
                 diary off;
-                if ishandle(app.fig)
+                if ~isempty(app.fig) && isvalid(app.fig)
                     delete(app.fig);
                 end
+            catch
+            end
+        end
+
+        function delete(app)
+            % Defensive destructor: ensure background timer is never leaked
+            try
+                if ~isempty(app.diary_timer) && isvalid(app.diary_timer)
+                    stop(app.diary_timer);
+                    delete(app.diary_timer);
+                    app.diary_timer = [];
+                end
+            catch
+            end
+            try
+                diary off;
             catch
             end
         end
@@ -1622,7 +1650,7 @@ classdef UIController < handle
         
         function run_convergence_test(app)
             % Run a quick convergence test
-            app.append_to_terminal('🔧 Convergence test would run here (integrate with Analysis.m)');
+            app.append_to_terminal('🔧 Convergence test would run here (integrate with Tsunami_Vorticity_Emulator)');
             uialert(app.fig, 'Convergence test integration pending', 'Info', 'icon', 'info');
         end
         
@@ -1667,8 +1695,8 @@ classdef UIController < handle
         end
     end
     
-    methods (Static)
-        function config = initialize_default_config()
+    methods
+        function config = initialize_default_config(~)
             % Initialize default configuration by loading from create_default_parameters.m
             % This ensures UIController always uses the authoritative defaults
             try

@@ -172,17 +172,17 @@ function [init_fn, step_fn, diag_fn] = resolve_method(method_name)
     % Resolve method callbacks (same as in mode_evolution.m)
     switch lower(method_name)
         case 'fd'
-            init_fn = @fd_init;
-            step_fn = @fd_step;
-            diag_fn = @fd_diagnostics;
+            init_fn = @(cfg, ctx) FiniteDifferenceMethod('init', cfg, ctx);
+            step_fn = @(State, cfg, ctx) FiniteDifferenceMethod('step', State, cfg, ctx);
+            diag_fn = @(State, cfg, ctx) FiniteDifferenceMethod('diagnostics', State, cfg, ctx);
         case {'spectral', 'fft'}
-            init_fn = @spectral_init;
-            step_fn = @spectral_step;
-            diag_fn = @spectral_diagnostics;
+            init_fn = @(cfg, ctx) SpectralMethod('init', cfg, ctx);
+            step_fn = @(State, cfg, ctx) SpectralMethod('step', State, cfg, ctx);
+            diag_fn = @(State, cfg, ctx) SpectralMethod('diagnostics', State, cfg, ctx);
         case {'fv', 'finitevolume'}
-            init_fn = @fv_init;
-            step_fn = @fv_step;
-            diag_fn = @fv_diagnostics;
+            init_fn = @(cfg, ctx) FiniteVolumeMethod('init', cfg, ctx);
+            step_fn = @(State, cfg, ctx) FiniteVolumeMethod('step', State, cfg, ctx);
+            diag_fn = @(State, cfg, ctx) FiniteVolumeMethod('diagnostics', State, cfg, ctx);
         otherwise
             error('Unknown method: %s', method_name);
     end
