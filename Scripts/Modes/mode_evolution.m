@@ -185,22 +185,22 @@ function [ok, issues] = validate_evolution(Run_Config, Parameters)
     % Check required fields
     if ~isfield(Run_Config, 'method')
         ok = false;
-        issues{end+1} = 'Run_Config.method is required'; %#ok<AGROW>
+        issues{end+1} = 'Run_Config.method is required';
     end
 
     if ~isfield(Parameters, 'Tfinal') || Parameters.Tfinal <= 0
         ok = false;
-        issues{end+1} = 'Parameters.Tfinal must be > 0'; %#ok<AGROW>
+        issues{end+1} = 'Parameters.Tfinal must be > 0';
     end
 
     if ~isfield(Parameters, 'dt') || Parameters.dt <= 0
         ok = false;
-        issues{end+1} = 'Parameters.dt must be > 0'; %#ok<AGROW>
+        issues{end+1} = 'Parameters.dt must be > 0';
     end
 
     if ~isfield(Parameters, 'Nx') || ~isfield(Parameters, 'Ny')
         ok = false;
-        issues{end+1} = 'Parameters.Nx and Parameters.Ny are required'; %#ok<AGROW>
+        issues{end+1} = 'Parameters.Nx and Parameters.Ny are required';
     end
 end
 

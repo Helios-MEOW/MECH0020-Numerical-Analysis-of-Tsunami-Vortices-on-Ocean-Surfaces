@@ -126,7 +126,7 @@ classdef MasterRunsTable
             % Core identifiers
             row_data = struct();
             row_data.run_id = {run_id};
-            row_data.timestamp = {datestr(datetime('now'), 'yyyy-mm-dd HH:MM:SS')};
+            row_data.timestamp = {char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'))};
             row_data.method = {Run_Config.method};
             row_data.mode = {Run_Config.mode};
             

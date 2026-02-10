@@ -40,7 +40,7 @@ classdef EnergySustainabilityAnalyzer < handle
             %   complexity (float): Computational complexity metric (e.g., grid points)
             %   energy_joules (float): Energy consumed (Joules)
             
-            obj.data_points = [obj.data_points; complexity, energy_joules]; %#ok<AGROW>
+            obj.data_points = [obj.data_points; complexity, energy_joules];
         end
         
         function add_data_from_log(obj, log_file, complexity)
@@ -303,8 +303,8 @@ classdef EnergySustainabilityAnalyzer < handle
             subplot(2, 2, 4);
             if ~isempty(obj.scaling_model)
                 E_pred = obj.predict_energy(C);
-                residuals = E - E_pred;
-                plot(C, residuals, 'o', 'MarkerSize', 8);
+                resid_vals = E - E_pred;
+                plot(C, resid_vals, 'o', 'MarkerSize', 8);
                 hold on;
                 plot(C, zeros(size(C)), '--k', 'LineWidth', 1);
                 hold off;

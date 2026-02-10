@@ -66,7 +66,7 @@ classdef ErrorHandler
             err_struct.code = reg_info.code;
             err_struct.severity = reg_info.severity;
             err_struct.category = reg_info.category;
-            err_struct.timestamp = datestr(now, 'yyyy-mm-dd HH:MM:SS');
+            err_struct.timestamp = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
 
             % Message: custom or from registry
             if ~isempty(p.Results.message)

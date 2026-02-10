@@ -17,7 +17,7 @@ classdef RunIDGenerator
             % Generate unique run ID from configuration
             
             % Timestamp (UTC ISO 8601 basic format)
-            timestamp = datestr(datetime('now', 'TimeZone', 'UTC'), 'yyyymmddTHHMMSS');
+            timestamp = char(datetime('now', 'TimeZone', 'UTC', 'Format', 'yyyyMMdd''T''HHmmss'));
             timestamp = [timestamp 'Z'];  % Add UTC marker
             
             % Method and mode

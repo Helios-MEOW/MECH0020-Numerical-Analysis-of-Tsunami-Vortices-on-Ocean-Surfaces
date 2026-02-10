@@ -152,18 +152,18 @@ function [ok, issues] = validate_convergence(Run_Config, Parameters)
 
     if ~isfield(Run_Config, 'method')
         ok = false;
-        issues{end+1} = 'Run_Config.method is required'; %#ok<AGROW>
+        issues{end+1} = 'Run_Config.method is required';
     end
 
     if ~isfield(Parameters, 'Tfinal') || Parameters.Tfinal <= 0
         ok = false;
-        issues{end+1} = 'Parameters.Tfinal must be > 0'; %#ok<AGROW>
+        issues{end+1} = 'Parameters.Tfinal must be > 0';
     end
 
     if isfield(Parameters, 'mesh_sizes')
         if length(Parameters.mesh_sizes) < 2
             ok = false;
-            issues{end+1} = 'At least 2 mesh sizes required for convergence study'; %#ok<AGROW>
+            issues{end+1} = 'At least 2 mesh sizes required for convergence study';
         end
     end
 end

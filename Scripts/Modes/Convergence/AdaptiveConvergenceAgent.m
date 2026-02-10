@@ -287,7 +287,7 @@
             max_iterations = 20;
             for iter = 1:max_iterations
                 % Run at current N
-                [metric, run_data] = obj.evaluate_at_N(N_current);
+                [metric, ~] = obj.evaluate_at_N(N_current);
                 
                 if ~isfinite(metric)
                     fprintf('[AGENT ERROR] Metric invalid at N=%d. Aborting.\n', N_current);
@@ -324,7 +324,7 @@
                     if ratio > 10
                         jump_factor = min(obj.MAX_JUMP_FACTOR, jump_factor * 1.2);
                     elseif ratio > 3
-                        jump_factor = jump_factor;  % Keep steady
+                        % jump_factor unchanged — keep steady
                     else
                         jump_factor = max(obj.MIN_JUMP_FACTOR, jump_factor * 0.8);
                     end
@@ -344,7 +344,7 @@
                 fprintf('[BRACKET] Low: N=%d, High: N=%d\n', bracket_low, bracket_high);
                 
                 [N_star, binary_log] = obj.binary_search_bracket(bracket_low, bracket_high, tol);
-                obj.convergence_log = [obj.convergence_log; binary_log]; %#ok<AGROW>
+                obj.convergence_log = [obj.convergence_log; binary_log];
             elseif ~isempty(bracket_high)
                 N_star = bracket_high;
                 fprintf('[AGENT] Converged at N=%d (no lower bound found)\n', N_star);
@@ -394,7 +394,7 @@
             
             % Run at N
             params_N = prepare_simulation_params(obj.Parameters, N, []);
-            [figs_N, analysis_N, run_ok_N, wall_time_N, ~] = execute_simulation(params_N);
+            [figs_N, analysis_N, run_ok_N, wall_time_N, ~] = execute_simulation(params_N); %#ok<ASGLU>
             
             if ~run_ok_N
                 metric = NaN;
@@ -405,7 +405,7 @@
             % Run at 2N for Richardson comparison
             N2 = 2 * N;
             params_2N = prepare_simulation_params(obj.Parameters, N2, []);
-            [figs_2N, analysis_2N, run_ok_2N, wall_time_2N, ~] = execute_simulation(params_2N);
+            [figs_2N, analysis_2N, run_ok_2N, wall_time_2N, ~] = execute_simulation(params_2N); %#ok<ASGLU>
             
             if ~run_ok_2N
                 metric = NaN;
@@ -458,7 +458,7 @@
             log_entry.N = N;
             log_entry.metric = metric;
             log_entry.wall_time = t_elapsed;
-            obj.convergence_log = [obj.convergence_log; log_entry]; %#ok<AGROW>
+            obj.convergence_log = [obj.convergence_log; log_entry];
         end
         
         function metric = compute_richardson_metric(obj, analysis1, analysis2, N1, N2)

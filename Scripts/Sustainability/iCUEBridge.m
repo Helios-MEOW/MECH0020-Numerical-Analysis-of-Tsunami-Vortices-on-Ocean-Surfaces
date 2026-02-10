@@ -149,7 +149,7 @@ classdef iCUEBridge < handle
     end
     
     methods (Access = private)
-        function sdk_path = find_icue_sdk(obj)
+        function sdk_path = find_icue_sdk(~)
             % Locate iCUE SDK installation
             
             % Common installation paths

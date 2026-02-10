@@ -50,7 +50,7 @@ classdef RunReportGenerator
             fprintf(fid, '═══════════════════════════════════════════════════════════════════\n');
             fprintf(fid, '\n');
             fprintf(fid, 'Run ID: %s\n', run_id);
-            fprintf(fid, 'Generated: %s\n', datestr(datetime('now')));
+            fprintf(fid, 'Generated: %s\n', char(datetime('now')));
             fprintf(fid, '\n');
         end
         
@@ -61,8 +61,8 @@ classdef RunReportGenerator
             fprintf(fid, '───────────────────────────────────────────────────────────────────\n');
             
             % MATLAB version
-            ver_info = ver('MATLAB');
-            fprintf(fid, 'MATLAB Version: %s (%s)\n', ver_info.Version, ver_info.Release);
+            rel_info = matlabRelease;
+            fprintf(fid, 'MATLAB Version: %s (%s)\n', version, rel_info.Release);
             
             % Operating system
             if ispc

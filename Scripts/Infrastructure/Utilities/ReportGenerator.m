@@ -29,7 +29,7 @@ classdef ReportGenerator
             if ~exist(report_dir, 'dir')
                 mkdir(report_dir);
             end
-            ts = datestr(datetime("now"), 'yyyymmdd_HHMMSS');
+            ts = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
             report_name = sprintf('solver_report_%s_%s.html', string(run_mode), ts);
             report_path = fullfile(report_dir, report_name);
             fid = fopen(report_path, 'w');
@@ -122,7 +122,7 @@ classdef ReportGenerator
             % Format value for HTML display
             if isempty(val); out = ""; return; end
             if iscell(val)
-                if numel(val) == 1; out = ReportGenerator.format_report_value(val{1});
+                if isscalar(val); out = ReportGenerator.format_report_value(val{1});
                 else; out = mat2str(val); end
                 return;
             end

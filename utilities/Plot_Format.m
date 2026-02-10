@@ -17,7 +17,7 @@ function Plot_Format(X_Label_String, Y_Label_String, Title_String, FontSizes, Ax
             nums = str2double(regexp(string(FontSizes), "[-+]?[0-9]*\.?[0-9]+", "match"));
             if isempty(nums)
                 FontSizes = d.FontSizes;
-            elseif numel(nums) == 1
+            elseif isscalar(nums)
                 FontSizes = {nums, nums, nums};
             else
                 nums = nums(:).';

@@ -185,7 +185,7 @@
     omega_abs = abs(analysis.omega_snaps);
     if isempty(omega_abs)
         omega_max_t = [];
-    elseif ndims(omega_abs) < 3
+    elseif ismatrix(omega_abs)
         omega_max_t = max(omega_abs(:));
     else
         omega_max_t = squeeze(max(max(omega_abs, [], 1), [], 2));

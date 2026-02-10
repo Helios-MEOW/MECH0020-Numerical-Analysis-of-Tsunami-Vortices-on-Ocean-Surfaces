@@ -66,7 +66,7 @@ function [Results, paths] = mode_parameter_sweep(Run_Config, Parameters, Setting
 
         % Update parameter
         params_i = base_params;
-        params_i = setfield(params_i, sweep_param, param_val);
+        params_i.(sweep_param) = param_val;
 
         % Run simulation
         tic_sim = tic;
@@ -120,20 +120,20 @@ function [ok, issues] = validate_parameter_sweep(Run_Config, Parameters)
 
     if ~isfield(Run_Config, 'method')
         ok = false;
-        issues{end+1} = 'Run_Config.method is required'; %#ok<AGROW>
+        issues{end+1} = 'Run_Config.method is required';
     end
 
     if ~isfield(Parameters, 'sweep_parameter')
         ok = false;
-        issues{end+1} = 'Parameters.sweep_parameter is required'; %#ok<AGROW>
+        issues{end+1} = 'Parameters.sweep_parameter is required';
     end
 
     if ~isfield(Parameters, 'sweep_values')
         ok = false;
-        issues{end+1} = 'Parameters.sweep_values is required'; %#ok<AGROW>
+        issues{end+1} = 'Parameters.sweep_values is required';
     elseif length(Parameters.sweep_values) < 2
         ok = false;
-        issues{end+1} = 'At least 2 sweep values required'; %#ok<AGROW>
+        issues{end+1} = 'At least 2 sweep values required';
     end
 end
 

@@ -9,8 +9,8 @@
 %   - Error handling
 %
 % Usage:
-%   run_ui_tests()  % Run all tests
-%   run_ui_tests('validation')  % Run specific test category
+%   TEST_UIController()  % Run all tests
+%   TEST_UIController('validation')  % Run specific test category
 %
 % Test Categories:
 %   'creation'     - UI instantiation and component creation
@@ -20,7 +20,7 @@
 %   'terminal'     - Terminal logging
 %   'robustness'   - Error handling and edge cases
 
-function results = run_ui_tests(category)
+function results = TEST_UIController(category)
     % Run UI Controller test suite
     if nargin < 1
         category = 'all';
@@ -108,7 +108,7 @@ function results = run_ui_tests(category)
                 fprintf('   FAIL: %s\n\n', result.message);
             end
             
-            results.details{end+1} = result; %#ok<AGROW>
+            results.details{end+1} = result;
             
         catch ME
             results.failed = results.failed + 1;

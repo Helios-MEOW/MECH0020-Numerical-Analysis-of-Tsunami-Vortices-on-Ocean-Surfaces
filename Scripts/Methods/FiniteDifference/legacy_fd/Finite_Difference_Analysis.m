@@ -601,7 +601,7 @@ function [fig_handle, analysis] = Finite_Difference_Analysis(Parameters)
         fprintf('[ANIMATION] omega_snaps size: [%d x %d x %d]\n', size(omega_snaps, 1), size(omega_snaps, 2), size(omega_snaps, 3));
         
         % Construct filename with timestamp and parameters
-        timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+        timestamp = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
         filename_base = sprintf('vorticity_evolution_Nx%d_Ny%d_nu%.4f_dt%.4f_Tfinal%.1f_ic_%s_mode_%s_%s', ...
             Nx, Ny, nu, dt, Tfinal, ic_type, Parameters.mode, timestamp);
         
