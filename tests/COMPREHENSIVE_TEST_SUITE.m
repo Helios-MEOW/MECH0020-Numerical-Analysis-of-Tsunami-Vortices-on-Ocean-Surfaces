@@ -29,13 +29,7 @@ for method = methods
     for N = grids
         params = create_default_parameters();
         params.method = method{1};
-        params.Nx = N;
-        params.Ny = N;
-        params.Tfinal = 1.0;
-        params.num_snapshots = 5;
-        params.ic_type = 'stretched_gaussian';
-        params.ic_coeff = [2.0, 0.2];
-        params.snap_times = linspace(0, params.Tfinal, params.num_snapshots);
+
         
         try
             [fig_h, analysis] = run_simulation_with_method(params);

@@ -15,8 +15,8 @@ function params = Parameters()
     
     % ===== PHYSICS =====
     params.nu = 0.001;              % Kinematic viscosity
-    params.Lx = 2 * pi;             % Domain size X
-    params.Ly = 2 * pi;             % Domain size Y
+    params.Lx = 10;             % Domain size X
+    params.Ly = 10;             % Domain size Y
     
     % ===== GRID =====
     params.Nx = 128;                % Grid points X
@@ -25,15 +25,16 @@ function params = Parameters()
     
     % ===== TIME INTEGRATION =====
     params.dt = 0.001;              % Timestep
-    params.Tfinal = 1.0;            % Final time
+    params.Tfinal = 9.0;            % Final time
     
     % ===== INITIAL CONDITION =====
-    params.ic_type = 'Lamb-Oseen';  % IC type
-    params.ic_coeff = [];           % IC coefficients (method-specific)
+    params.ic_type = 'streched-gaussian';  % IC type
+    params.ic_coeff = [2 0.2];           % IC coefficients (method-specific)
     
     % ===== SNAPSHOTS =====
     % Snapshot times for output
-    params.snap_times = linspace(0, params.Tfinal, 11);
+    params.num_snapshots = 10;          % Number of snapshots to save
+    params.snap_times = linspace(0, params.Tfinal, params.num_snapshots);
     
     % ===== PROGRESS & PREVIEW =====
     params.progress_stride = 100;   % Console output every N steps (0 = off)
