@@ -20,7 +20,8 @@ function Tsunami_Vorticity_Emulator(varargin)
 %   Tsunami_Vorticity_Emulator('Mode', 'Standard', 'Method', 'FD', 'SimMode', 'Evolution')
 
     opts = parse_options(varargin{:});
-    setup_paths();
+    repo_root = setup_paths();
+    ensure_results_storage_ready(repo_root, 'Verbose', true);
 
     switch lower(opts.Mode)
         case 'ui'
@@ -54,9 +55,9 @@ function opts = parse_options(varargin)
     opts = p.Results;
 end
 
-function setup_paths()
+function repo_root = setup_paths()
     script_dir = fileparts(mfilename('fullpath'));
-    repo_root = fullfile(script_dir, '..', '..');
+    repo_root = fileparts(fileparts(script_dir));
     addpath(genpath(fullfile(repo_root, 'Scripts')));
     addpath(fullfile(repo_root, 'utilities'));
 end

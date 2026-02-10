@@ -9,8 +9,18 @@ fprintf('COMPREHENSIVE TEST SUITE - PHASE 6 VALIDATION\n');
 fprintf('Testing: FD | Spectral | Finite Volume | Bathymetry Methods\n');
 fprintf('================================================================================\n\n');
 
-addpath(genpath('./Scripts'));
-addpath(genpath('./utilities'));
+suite_dir = fileparts(mfilename('fullpath'));
+repo_root = fileparts(suite_dir);
+addpath(genpath(fullfile(repo_root, 'Scripts')));
+addpath(fullfile(repo_root, 'utilities'));
+
+storage = ensure_results_storage_ready(repo_root, 'Verbose', true); %#ok<NASGU>
+
+if exist('create_default_parameters', 'file') ~= 2
+    error('COMPREHENSIVE_TEST_SUITE:MissingFunction', ...
+        ['create_default_parameters.m is not on the MATLAB path. ', ...
+         'Expected under Scripts/Infrastructure/Initialisers.']);
+end
 
 %% TEST 1: Convergence Study (Grid Refinement)
 fprintf('\n[TEST 1] CONVERGENCE STUDY - Grid Refinement\n');
