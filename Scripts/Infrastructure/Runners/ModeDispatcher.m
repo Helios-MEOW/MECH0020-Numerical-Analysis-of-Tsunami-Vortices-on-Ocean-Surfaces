@@ -35,38 +35,66 @@ function [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings)
             'context', struct('Run_Config_fields', fieldnames(Run_Config)));
     end
 
-    method = upper(Run_Config.method);
+    method = normalize_method_token(Run_Config.method);
     mode = Run_Config.mode;
 
     % Normalize mode name
     mode_normalized = normalize_mode_name(mode);
 
+    % Accepted method aliases (cell-based matching)
+    fd_aliases = {'FD', 'Finite Difference', 'Finite_Difference', 'FiniteDifference'};
+    spectral_aliases = {'Spectral', 'FFT', 'PseudoSpectral', 'Spectral Method'};
+    fv_aliases = {'FV', 'Finite Volume', 'Finite_Volume', 'FiniteVolume'};
+    spectral3d_aliases = {'3D Spectral', '3D Spectral Method', '3D FFT', 'Spectral 3D', 'FFT 3D'};
+    placeholder_aliases = {'Placeholder', 'Placeholder Method', 'TBD', 'To Be Implemented'};
+
     % Route to appropriate method/mode handler with structured error handling
     try
-        switch method
-            case 'FD'
-                [Results, paths] = dispatch_FD_mode(mode_normalized, Run_Config, Parameters, Settings);
+        if method_matches(method, fd_aliases)
+            Run_Config.method = 'FD';
+            [Results, paths] = dispatch_FD_mode(mode_normalized, Run_Config, Parameters, Settings);
 
-            case {'FFT', 'SPECTRAL'}
-                % Spectral method not implemented - use structured error
-                ErrorHandler.throw('SOL-SP-0001', ...
-                    'file', mfilename, ...
-                    'line', 50, ...
-                    'context', struct('requested_method', method));
+        elseif method_matches(method, spectral_aliases)
+            % Spectral method not implemented - use structured error
+            ErrorHandler.throw('SOL-SP-0001', ...
+                'file', mfilename, ...
+                'line', 57, ...
+                'context', struct('requested_method', Run_Config.method));
 
-            case 'FV'
-                % Finite Volume not implemented - use structured error
-                ErrorHandler.throw('SOL-FV-0001', ...
-                    'file', mfilename, ...
-                    'line', 56, ...
-                    'context', struct('requested_method', method));
+        elseif method_matches(method, fv_aliases)
+            % Finite Volume not implemented - use structured error
+            ErrorHandler.throw('SOL-FV-0001', ...
+                'file', mfilename, ...
+                'line', 64, ...
+                'context', struct('requested_method', Run_Config.method));
 
-            otherwise
-                % Unknown method - use structured error
-                ErrorHandler.throw('RUN-EXEC-0001', ...
-                    'file', mfilename, ...
-                    'line', 62, ...
-                    'context', struct('requested_method', method, 'valid_methods', {{'FD', 'Spectral', 'FV'}}));
+        elseif method_matches(method, spectral3d_aliases)
+            % 3D Spectral method placeholder - use structured error
+            ErrorHandler.throw('SOL-SP-0002', ...
+                'file', mfilename, ...
+                'line', 71, ...
+                'context', struct('requested_method', Run_Config.method));
+
+        elseif method_matches(method, placeholder_aliases)
+            % Explicit placeholder method path
+            ErrorHandler.throw('SOL-PL-0001', ...
+                'file', mfilename, ...
+                'line', 78, ...
+                'context', struct('requested_method', Run_Config.method));
+
+        else
+            % Unknown method - use structured error
+            ErrorHandler.throw('RUN-EXEC-0001', ...
+                'file', mfilename, ...
+                'line', 85, ...
+                'context', struct( ...
+                    'requested_method', Run_Config.method, ...
+                    'valid_methods', {{'FD', 'Spectral', 'FV', '3D Spectral', 'Placeholder'}}, ...
+                    'fd_aliases', {fd_aliases}, ...
+                    'spectral_aliases', {spectral_aliases}, ...
+                    'fv_aliases', {fv_aliases}, ...
+                    'spectral3d_aliases', {spectral3d_aliases}, ...
+                    'placeholder_aliases', {placeholder_aliases}));
         end
 
     catch ME
@@ -78,7 +106,7 @@ function [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings)
             % Unexpected error - wrap with structured error
             ErrorHandler.throw('RUN-EXEC-0003', ...
                 'file', mfilename, ...
-                'line', 78, ...
+                'line', 101, ...
                 'cause', ME, ...
                 'context', struct('method', method, 'mode', mode));
         end
@@ -103,6 +131,29 @@ function mode_normalized = normalize_mode_name(mode)
             % Keep original (will error in mode-specific dispatcher)
             mode_normalized = mode;
     end
+end
+
+function tf = method_matches(method, aliases)
+    % Return true when method matches any alias in the provided cell array
+    tf = false;
+    for i = 1:numel(aliases)
+        if strcmp(method, normalize_method_token(aliases{i}))
+            tf = true;
+            return;
+        end
+    end
+end
+
+function method_token = normalize_method_token(method_raw)
+    % Normalize user-facing method strings for robust alias matching
+    if isstring(method_raw) || ischar(method_raw)
+        method_token = char(string(method_raw));
+    else
+        method_token = '';
+    end
+    method_token = strtrim(method_token);
+    method_token = regexprep(method_token, '[\s_-]+', ' ');
+    method_token = upper(method_token);
 end
 
 function [Results, paths] = dispatch_FD_mode(mode, Run_Config, Parameters, Settings)
