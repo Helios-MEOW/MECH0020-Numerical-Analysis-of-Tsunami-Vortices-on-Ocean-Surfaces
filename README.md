@@ -4,14 +4,19 @@ Numerical simulation of tsunami-induced vortex dynamics using vorticity–stream
 
 ## Key Features
 
+- **Unified Driver**: Single entry point (`Tsunami_Vorticity_Emulator.m`) with comprehensive documentation
+- **9 Initial Conditions**: Full catalog including Lamb-Oseen, Rankine, Taylor-Green, and more
+- **Independent Plot/Animation Control**: Separate temporal resolution for snapshots vs smooth animations
 - **Dual-mode operation**: UI mode (3-tab MATLAB interface with Developer Mode) or Standard mode (command-line)
 - **Four FD simulation modes**: Evolution, Convergence, ParameterSweep, Plotting
+- **Method Framework**: Settings for FD (implemented), Spectral, and FV (framework ready)
 - **Adaptive convergence agent**: Intelligent mesh refinement using learning-based navigation
 - **Run tracking**: Unique run IDs, professional reports, master CSV table
 - **User-editable configuration**: Centralized parameter/settings files in `Scripts/Editable/`
 - **Grid-based UI layout**: Intuitive editing via `UI_Layout_Config.m` with Developer Mode inspector
 - **Organized outputs**: Structured directory tree in `Data/Output/` (gitignored)
 - **CI/CD**: GitHub Actions workflow for automated testing and static analysis
+- **Future-Ready**: Framework for AMR, GPU acceleration, ML integration, multi-physics coupling
 
 ## Quick Start
 
@@ -30,16 +35,22 @@ cd MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces
 
 ### Running a Simulation
 
-**Option 1: UI Mode (Interactive)**
+**Recommended: Tsunami Vorticity Emulator (Unified Driver)**
 
 Launch MATLAB, navigate to the repository, and run:
 
 ```matlab
 cd Scripts/Drivers
-Analysis
+Tsunami_Vorticity_Emulator()
 ```
 
-A startup dialog appears. Select "UI Mode" to access the 3-tab interface:
+This is the **unified entry point** that combines all previous drivers (Analysis.m, Tsunami_Simulator.m, MECH0020_Run.m) with enhanced documentation.
+
+**Interactive Mode** (default): A startup dialog appears where you can choose:
+
+**Option 1: UI Mode (Interactive)**
+
+Select "UI Mode" from the startup dialog to access the 3-tab interface:
 - **Tab 1: Configuration** — Method, mode, parameters, initial conditions
 - **Tab 2: Live Monitor** — Real-time metrics, progress, terminal output
 - **Tab 3: Results & Figures** — Load and visualize previous runs
@@ -54,14 +65,21 @@ A startup dialog appears. Select "UI Mode" to access the 3-tab interface:
 
 **Option 2: Standard Mode (Command-line)**
 
-Launch MATLAB, navigate to the repository, and run:
+Select **"Standard Mode"** from the startup dialog, or run directly:
 
 ```matlab
-cd Scripts/Drivers
-Analysis
+Tsunami_Vorticity_Emulator('Mode', 'Standard')
 ```
 
-When the startup dialog appears, select **"Standard Mode"**.
+**Option 3: Batch Mode (Fully Automated)**
+
+For automated runs without prompts:
+
+```matlab
+Tsunami_Vorticity_Emulator('Mode', 'Standard', ...
+    'Method', 'FD', 'SimMode', 'Evolution', ...
+    'IC', 'Lamb-Oseen', 'Nx', 256, 'Tfinal', 1.0)
+```
 
 **Preflight Workflow:**
 1. Prompt: "Have you edited parameters in this script? (Y/N)"
@@ -83,7 +101,19 @@ When the startup dialog appears, select **"Standard Mode"**.
 - Grid: 128×128
 - Time: dt=0.001, Tfinal=1.0
 
-**To Customize:** Edit `Analysis.m` lines 86-104 before running.
+**To Customize:** Edit configuration files in `Scripts/Editable/`:
+- `Parameters.m` — Physics, numerics, initial conditions (9 types available!)
+- `Settings.m` — I/O, plotting, animations, monitoring
+
+**NEW Features**:
+- **9 Initial Conditions**: Comprehensive catalog with detailed documentation
+- **Independent Plot/Animation Control**: Different temporal resolutions for snapshots vs animations
+- **Method Framework**: Settings for FD, Spectral, and FV methods
+- **Future-Ready**: Framework for AMR, GPU, ML, multi-physics
+
+See `docs/TSUNAMI_VORTICITY_EMULATOR_GUIDE.md` for complete documentation.
+
+**Legacy Note**: `Analysis.m` is still available for backward compatibility but is superseded by `Tsunami_Vorticity_Emulator.m`.
 
 **Expected output**:
 ```
@@ -128,7 +158,8 @@ Output Directory:    Data/Output/FD/Evolution/FD_Evol_LambOseen_.../
 MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
 ├── Scripts/
 │   ├── Drivers/              # Entry points
-│   │   ├── Analysis.m        # Main UI/Standard mode launcher
+│   │   ├── Tsunami_Vorticity_Emulator.m  # ⭐ Unified driver (RECOMMENDED)
+│   │   ├── Analysis.m        # Legacy UI/Standard mode launcher
 │   │   └── run_adaptive_convergence.m  # Convergence agent runner
 │   ├── Solvers/
 │   │   ├── FD/               # Finite difference kernels and modes
