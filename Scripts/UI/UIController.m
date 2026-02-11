@@ -3810,6 +3810,7 @@ classdef UIController < handle
             if nargin < 3 || isempty(cfg)
                 cfg = app.config;
             end
+            cfg = app.normalize_monitor_cfg(cfg);
 
             n_steps = max(16, min(400, round(cfg.Tfinal / max(cfg.dt, eps))));
             t = linspace(0, cfg.Tfinal, n_steps);
@@ -3952,8 +3953,10 @@ classdef UIController < handle
             suggested_n = NaN;
             if strcmpi(run_mode, 'convergence') && isfinite(tol) && tol > 0 && isfinite(conv_metric)
                 if conv_metric <= 1.15 * tol
-                    suggested_n = max(8, round(0.8 * cfg.convergence_N_max));
-                else
+                    if isfield(cfg, 'convergence_N_max') && isfinite(cfg.convergence_N_max)
+                        suggested_n = max(8, round(0.8 * cfg.convergence_N_max));
+                    end
+                elseif isfield(cfg, 'convergence_N_max')
                     suggested_n = cfg.convergence_N_max;
                 end
             end
@@ -3979,6 +3982,62 @@ classdef UIController < handle
                 'Collectors', collectors, '-', 'SystemProfile'
             };
             app.handles.monitor_numeric_table.Data = rows;
+        end
+
+        function cfg = normalize_monitor_cfg(app, cfg)
+            % Normalize monitor config aliases to avoid missing-field warnings.
+            if nargin < 2 || isempty(cfg) || ~isstruct(cfg)
+                cfg = struct();
+            end
+
+            if ~isfield(cfg, 'Tfinal')
+                if isfield(cfg, 't_final')
+                    cfg.Tfinal = cfg.t_final;
+                elseif app.has_valid_handle('t_final')
+                    cfg.Tfinal = app.handles.t_final.Value;
+                else
+                    cfg.Tfinal = 10;
+                end
+            end
+            if ~isfield(cfg, 'dt')
+                if app.has_valid_handle('dt')
+                    cfg.dt = app.handles.dt.Value;
+                else
+                    cfg.dt = 0.01;
+                end
+            end
+            if ~isfield(cfg, 'mode')
+                if app.has_valid_handle('mode_dropdown')
+                    cfg.mode = lower(char(string(app.handles.mode_dropdown.Value)));
+                else
+                    cfg.mode = 'evolution';
+                end
+            end
+            if ~isfield(cfg, 'method')
+                if app.has_valid_handle('method_dropdown')
+                    cfg.method = char(string(app.handles.method_dropdown.Value));
+                else
+                    cfg.method = 'finite_difference';
+                end
+            end
+            if ~isfield(cfg, 'Nx') && app.has_valid_handle('Nx')
+                cfg.Nx = app.handles.Nx.Value;
+            end
+            if ~isfield(cfg, 'Ny') && app.has_valid_handle('Ny')
+                cfg.Ny = app.handles.Ny.Value;
+            end
+            if ~isfield(cfg, 'Lx') && app.has_valid_handle('Lx')
+                cfg.Lx = app.handles.Lx.Value;
+            end
+            if ~isfield(cfg, 'Ly') && app.has_valid_handle('Ly')
+                cfg.Ly = app.handles.Ly.Value;
+            end
+            if ~isfield(cfg, 'convergence_N_max') && app.has_valid_handle('conv_N_max')
+                cfg.convergence_N_max = app.handles.conv_N_max.Value;
+            end
+            if ~isfield(cfg, 'convergence_tol') && app.has_valid_handle('conv_tolerance')
+                cfg.convergence_tol = app.handles.conv_tolerance.Value;
+            end
         end
 
         function out = if_nan_num(~, value)
