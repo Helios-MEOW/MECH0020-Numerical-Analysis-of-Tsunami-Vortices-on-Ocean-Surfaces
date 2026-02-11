@@ -48,3 +48,6 @@ tmp/
 
 # Temporary agent worklog (must be deleted before PR merge)
 docs/Extra/_agent_progress_worklog.md
+
+# Residual root-level run folders (legacy timestamped runs)
+/20????????T??????Z_*/
