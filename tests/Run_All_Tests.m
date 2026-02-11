@@ -307,7 +307,7 @@ function exit_code = Run_All_Tests(varargin)
 ui_passed = true;
 
         % Test 1: UIController exists
-        fprintf('  [1/3] UIController exists ... ');
+        fprintf('  [1/4] UIController exists ... ');
         try
             if exist('UIController', 'file') || exist('UIController', 'class')
                 print_result('PASS', 'UIController found');
@@ -321,7 +321,7 @@ ui_passed = true;
         end
 
         % Test 2: UI_Layout_Config exists
-        fprintf('  [2/3] UI_Layout_Config exists ... ');
+        fprintf('  [2/4] UI_Layout_Config exists ... ');
         try
             if exist('UI_Layout_Config', 'file') || exist('UI_Layout_Config', 'class')
                 print_result('PASS', 'UI_Layout_Config found');
@@ -335,7 +335,7 @@ ui_passed = true;
         end
 
         % Test 3: Simulated user startup flow (select UI mode)
-        fprintf('  [3/3] UI user startup flow ... ');
+        fprintf('  [3/4] UI user startup flow ... ');
         try
             [flow_passed, flow_details] = test_ui_user_flow();
             if flow_passed
@@ -347,6 +347,21 @@ ui_passed = true;
         catch ME
             ui_passed = false;
             print_result('FAIL', sprintf('[UI-CB-0001] %s', ME.message));
+        end
+
+        % Test 4: Monitor/layout contracts
+        fprintf('  [4/4] UI monitor layout contracts ... ');
+        try
+            [monitor_passed, monitor_details] = test_ui_monitor_contracts();
+            if monitor_passed
+                print_result('PASS', monitor_details);
+            else
+                ui_passed = false;
+                print_result('FAIL', sprintf('[UI-LAY-0002] %s', monitor_details));
+            end
+        catch ME
+            ui_passed = false;
+            print_result('FAIL', sprintf('[UI-LAY-0002] %s', ME.message));
         end
 
         report.phases.ui_contract = struct();
@@ -453,6 +468,7 @@ function add_all_paths(repo_root)
     addpath(fullfile(repo_root, 'Scripts', 'Plotting'));
     addpath(fullfile(repo_root, 'Scripts', 'Sustainability'));
     addpath(fullfile(repo_root, 'utilities'));
+    addpath(fullfile(repo_root, 'tests', 'ui'));
     addpath(fullfile(repo_root, 'tests'));
 end
 
