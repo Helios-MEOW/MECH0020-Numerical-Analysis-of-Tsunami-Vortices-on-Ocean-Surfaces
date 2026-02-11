@@ -36,6 +36,20 @@ If you want to change animation frame behavior, edit:
 ## UI Mode Expectations
 UI mode is for interactive setup and live monitoring. The canonical run execution still routes through shared infrastructure (build config + dispatch + save paths), not a separate solver stack.
 
+### Interactive vs UI vs Standard
+- `Mode='Interactive'`: opens startup choice dialog and lets you pick UI or Standard at runtime.
+- `Mode='UI'`: launches `Scripts/UI/UIController.m` directly.
+- `Mode='Standard'`: skips UI and runs from editable defaults in `Scripts/Editable`.
+
+### Developer Mode (inside UI)
+- Developer mode is a UI editing aid only.
+- It enables component inspection and layout debugging; it does not change solver numerics or output semantics.
+
+### Live Monitor Contract
+- Live monitor dashboard is fixed to a 3x3 tile layout (9 tiles).
+- 8 tiles are ranked plots and tile 9 is a scrollable numerical metrics table.
+- Terminal and telemetry source readiness live in the sidebar.
+
 ## Architecture Flow
 ```mermaid
 flowchart TD
