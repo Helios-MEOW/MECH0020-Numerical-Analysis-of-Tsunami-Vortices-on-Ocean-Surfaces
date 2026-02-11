@@ -1,4 +1,4 @@
-function [Results, paths] = mode_plotting(Run_Config, ~, ~)
+function [Results, paths] = mode_plotting(Run_Config, ~, Settings)
     % mode_plotting - METHOD-AGNOSTIC Plotting Mode
     %
     % Purpose:
@@ -23,8 +23,13 @@ function [Results, paths] = mode_plotting(Run_Config, ~, ~)
     source_run_id = Run_Config.source_run_id;
     fprintf('[Plotting] Loading data from run: %s\n', source_run_id);
 
+    output_root = 'Results';
+    if nargin >= 3 && isstruct(Settings) && isfield(Settings, 'output_root') && ~isempty(Settings.output_root)
+        output_root = char(string(Settings.output_root));
+    end
+
     % Attempt to load results (method-agnostic path search)
-    data_path = find_run_data(source_run_id);
+    data_path = find_run_data(source_run_id, output_root);
     if isempty(data_path)
         error('Could not find data for run_id: %s', source_run_id);
     end
@@ -36,7 +41,7 @@ function [Results, paths] = mode_plotting(Run_Config, ~, ~)
         Run_Config.run_id = sprintf('plot_%s', source_run_id);
     end
 
-    paths = PathBuilder.get_run_paths('Plotting', 'Plotting', Run_Config.run_id);
+    paths = PathBuilder.get_run_paths('Plotting', 'Plotting', Run_Config.run_id, output_root);
     PathBuilder.ensure_directories(paths);
 
     % ===== GENERATE PLOTS =====
@@ -73,7 +78,7 @@ end
 
 %% ===== LOCAL FUNCTIONS =====
 
-function data_path = find_run_data(run_id)
+function data_path = find_run_data(run_id, output_root)
     % Search for run data in canonical Results root.
     % This replaces legacy Data/Output lookup and keeps plotting aligned
     % with PathBuilder-produced output trees.
@@ -83,7 +88,10 @@ function data_path = find_run_data(run_id)
         this_file = mfilename('fullpath');
         repo_root = fullfile(fileparts(this_file), '..', '..');
     end
-    results_root = fullfile(repo_root, 'Results');
+    if nargin < 2 || isempty(output_root)
+        output_root = 'Results';
+    end
+    results_root = fullfile(repo_root, char(string(output_root)));
 
     methods = {'FD', 'Spectral', 'FV', 'Bathymetry', 'Plotting'};
     modes = {'Evolution', 'Convergence', 'ParameterSweep', 'Plotting'};

@@ -32,10 +32,11 @@ function [Results, paths] = mode_parameter_sweep(Run_Config, Parameters, Setting
         Run_Config.study_id = RunIDGenerator.generate(Run_Config, Parameters);
     end
 
-    paths = PathBuilder.get_run_paths(Run_Config.method, Run_Config.mode, Run_Config.study_id);
+    output_root = resolve_output_root(Settings);
+    paths = PathBuilder.get_run_paths(Run_Config.method, Run_Config.mode, Run_Config.study_id, output_root);
     PathBuilder.ensure_directories(paths);
 
-    config_path = fullfile(paths.base, 'Config.mat');
+    config_path = fullfile(paths.config, 'Config.mat');
     save(config_path, 'Run_Config', 'Parameters', 'Settings');
 
     % ===== SWEEP SETTINGS =====
@@ -237,4 +238,11 @@ function generate_sweep_figures(Results, Run_Config, paths)
     fig_path = fullfile(paths.figures_sweep, 'sweep_plot.png');
     saveas(fig, fig_path);
     close(fig);
+end
+
+function output_root = resolve_output_root(Settings)
+    output_root = 'Results';
+    if isfield(Settings, 'output_root') && ~isempty(Settings.output_root)
+        output_root = char(string(Settings.output_root));
+    end
 end

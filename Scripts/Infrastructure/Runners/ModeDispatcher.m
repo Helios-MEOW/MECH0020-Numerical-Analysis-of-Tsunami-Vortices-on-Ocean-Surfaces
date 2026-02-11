@@ -97,6 +97,20 @@ function [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings)
                     'placeholder_aliases', {placeholder_aliases}));
         end
 
+        % Ensure downstream artifacts always have a stable run identifier.
+        Results = attach_run_identifier(Results, Run_Config);
+
+        % Finalize manifest/report/sustainability artifacts once per run.
+        try
+            if exist('RunArtifactsManager', 'class') == 8 || exist('RunArtifactsManager', 'file') == 2
+                artifact_summary = RunArtifactsManager.finalize(Run_Config, Parameters, Settings, Results, paths);
+                Results.artifacts = artifact_summary;
+            end
+        catch artifact_error
+            warning('ModeDispatcher:ArtifactFinalizationFailed', ...
+                'Artifact finalization failed: %s', artifact_error.message);
+        end
+
     catch ME
         % Wrap any errors from mode execution with context
         if strcmp(ME.identifier(1:min(3,end)), 'RUN') || strcmp(ME.identifier(1:min(3,end)), 'SOL')
@@ -110,6 +124,21 @@ function [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings)
                 'cause', ME, ...
                 'context', struct('method', method, 'mode', mode));
         end
+    end
+end
+
+function Results = attach_run_identifier(Results, Run_Config)
+    % Ensure each run has one canonical identifier for reporting/ledger rows.
+    if isfield(Results, 'run_id') && ~isempty(Results.run_id)
+        return;
+    end
+
+    if isfield(Run_Config, 'run_id') && ~isempty(Run_Config.run_id)
+        Results.run_id = Run_Config.run_id;
+    elseif isfield(Run_Config, 'study_id') && ~isempty(Run_Config.study_id)
+        Results.run_id = Run_Config.study_id;
+    else
+        Results.run_id = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
     end
 end
 

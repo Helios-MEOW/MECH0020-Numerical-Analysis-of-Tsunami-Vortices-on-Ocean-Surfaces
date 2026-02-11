@@ -1,18 +1,24 @@
 function s = Settings()
-% Settings - Unified editable operational settings
+% Settings - Unified operational settings for run output and tooling.
 %
-% This file controls IO, monitoring, logging, and animation policy.
-% Snapshot policy:
-%   - tile_snapshot_count is for the 3x3 summary panels.
-%   - animation_frame_rate/frame_count are for animation sampling.
-%   - They are intentionally independent.
+% Canonical sections:
+%   output_root
+%   reporting.*
+%   media.*
+%   sustainability.*
+%
+% Compatibility aliases are preserved for existing scripts.
 
     % ---------------------------------------------------------------------
-    % Output and persistence
+    % Output root
+    % ---------------------------------------------------------------------
+    s.output_root = 'Results';
+
+    % ---------------------------------------------------------------------
+    % Persistence toggles
     % ---------------------------------------------------------------------
     s.save_figures = true;
     s.save_data = true;
-    s.save_reports = true;
     s.append_to_master = true;
 
     % ---------------------------------------------------------------------
@@ -21,10 +27,6 @@ function s = Settings()
     s.monitor_enabled = true;
     s.monitor_theme = 'dark';
     s.terminal_capture = true;
-
-    % ---------------------------------------------------------------------
-    % Logging
-    % ---------------------------------------------------------------------
     s.log_level = 'INFO';       % DEBUG | INFO | WARN | ERROR
 
     % ---------------------------------------------------------------------
@@ -34,18 +36,52 @@ function s = Settings()
     s.figure_dpi = 300;
 
     % ---------------------------------------------------------------------
-    % Animation policy (separate from tiled plotting snapshots)
+    % Reporting policy
     % ---------------------------------------------------------------------
-    s.animation_enabled = true;
-    s.tile_snapshot_count = 9;      % For 3x3 tiled summary plots
-    s.animation_frame_rate = 30;    % Frames per second for generated animation
-    s.animation_frame_count = 100;  % Total sampled frames for animation timeline
-    s.animation_format = 'mp4';
-    s.animation_quality = 90;
-    s.animation_codec = 'MPEG-4';
+    s.reporting = struct();
+    s.reporting.enabled = true;
+    s.reporting.engine = 'quarto';   % quarto with internal fallback
+    s.reporting.template = 'default';
+    s.reporting.formats = {'html', 'pdf'};
+    s.reporting.max_rows = 500;
+    s.reporting.max_figures = 24;
 
-    % Compatibility alias used by existing scripts
+    % Compatibility alias used across current code.
+    s.save_reports = s.reporting.enabled;
+
+    % ---------------------------------------------------------------------
+    % Media/animation policy
+    % ---------------------------------------------------------------------
+    s.media = struct();
+    s.media.enabled = true;
+    s.media.format = 'mp4';          % mp4 | avi | gif
+    s.media.codec = 'MPEG-4';        % VideoWriter profile for MP4 path
+    s.media.fps = 30;
+    s.media.frame_count = 100;
+    s.media.quality = 90;
+    s.media.fallback_format = 'gif'; % Used when video writer fails
+
+    % Compatibility aliases used by existing scripts.
+    s.animation_enabled = s.media.enabled;
+    s.tile_snapshot_count = 9;             % For 3x3 tiled summary plots
+    s.animation_frame_rate = s.media.fps;  % Frames per second
+    s.animation_frame_count = s.media.frame_count;
+    s.animation_format = s.media.format;
+    s.animation_quality = s.media.quality;
+    s.animation_codec = s.media.codec;
     s.animation_fps = s.animation_frame_rate;
+
+    % ---------------------------------------------------------------------
+    % Sustainability policy (always-on ledger, optional enrichers)
+    % ---------------------------------------------------------------------
+    s.sustainability = struct();
+    s.sustainability.enabled = true;
+    s.sustainability.machine_id = 'auto';      % auto uses hostname/computername
+    s.sustainability.machine_label = '';       % optional display label
+    s.sustainability.external_collectors = struct( ...
+        'cpuz', false, ...
+        'hwinfo', false, ...
+        'icue', false);
 
     % ---------------------------------------------------------------------
     % Validation/normalization guards

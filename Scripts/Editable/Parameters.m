@@ -1,14 +1,13 @@
 function params = Parameters()
-% Parameters - Unified editable simulation parameters (all methods + all modes)
+% Parameters - Unified editable simulation parameters (all methods + modes).
 %
-% Edit this file for standard runs.
-% Driver reference:
+% Edit this file for standard runs:
 %   Scripts/Drivers/Tsunami_Vorticity_Emulator.m
 %
-% Notes on timing:
-%   - num_plot_snapshots controls the tiled 3x3 evolution panels.
-%   - num_animation_frames controls animation sampling.
-%   - These are intentionally separate knobs.
+% Canonical sections introduced by repo hardening:
+%   output_root
+%   media.*
+%   reporting.*
 
     % ---------------------------------------------------------------------
     % Global run defaults
@@ -17,13 +16,14 @@ function params = Parameters()
     params.default_mode = 'Evolution';       % Evolution | Convergence | ParameterSweep | Plotting
     params.available_methods = {'FD', 'Spectral', 'FV', 'Bathymetry'};
     params.available_modes = {'Evolution', 'Convergence', 'ParameterSweep', 'Plotting'};
+    params.output_root = 'Results';
 
     % Keep method naming compatible with existing infrastructure.
     params.method = 'finite_difference';
     params.analysis_method = 'Finite Difference';
 
     % ---------------------------------------------------------------------
-    % Core physics + numerics (default values aligned with create_default_parameters)
+    % Core physics + numerics
     % ---------------------------------------------------------------------
     params.Lx = 10;
     params.Ly = 10;
@@ -35,7 +35,7 @@ function params = Parameters()
     params.nu = 1e-6;
     params.dt = 0.01;
     params.Tfinal = 8;
-    params.t_final = params.Tfinal;          % Alias used by some legacy helpers.
+    params.t_final = params.Tfinal;          % Legacy alias
 
     % ---------------------------------------------------------------------
     % Initial condition
@@ -45,16 +45,13 @@ function params = Parameters()
 
     % ---------------------------------------------------------------------
     % Sampling policy
-    % Relationship:
-    %   - plot snapshots are for tiled diagnostics/figures
-    %   - animation frames are for video/gif generation
     % ---------------------------------------------------------------------
-    params.num_plot_snapshots = 9;           % For 3x3 tiled plots
-    params.num_snapshots = params.num_plot_snapshots;  % Compatibility alias
+    params.num_plot_snapshots = 9;
+    params.num_snapshots = params.num_plot_snapshots;  % Legacy alias
     params.plot_snap_times = linspace(0, params.Tfinal, params.num_plot_snapshots);
-    params.snap_times = params.plot_snap_times;         % ModeDispatcher currently consumes snap_times
+    params.snap_times = params.plot_snap_times;         % Consumed by dispatcher modes
 
-    params.num_animation_frames = 100;       % Independent from plot snapshots
+    params.num_animation_frames = 100;
     params.animation_times = linspace(0, params.Tfinal, params.num_animation_frames);
 
     % ---------------------------------------------------------------------
@@ -65,14 +62,36 @@ function params = Parameters()
     params.live_stride = 0;
 
     % ---------------------------------------------------------------------
-    % Evolution mode options
+    % Media policy
     % ---------------------------------------------------------------------
+    params.media = struct();
+    params.media.format = 'mp4';
+    params.media.codec = 'MPEG-4';
+    params.media.fps = 30;
+    params.media.num_frames = params.num_animation_frames;
+    params.media.quality = 90;
+    params.media.fallback_format = 'gif';
+
+    % Compatibility aliases used by existing analysis helpers.
     params.mode = 'solve';
     params.create_animations = true;
-    params.animation_format = 'mp4';
-    params.animation_quality = 90;
-    params.animation_codec = 'MPEG-4';
-    params.animation_dir = fullfile('Figures', params.analysis_method, 'Animations');
+    params.animation_format = params.media.format;
+    params.animation_quality = params.media.quality;
+    params.animation_codec = params.media.codec;
+    params.animation_fps = params.media.fps;
+    params.animation_dir = '';   % Resolved at runtime to canonical Results/<...>/Media/Animation
+
+    % ---------------------------------------------------------------------
+    % Reporting policy
+    % ---------------------------------------------------------------------
+    params.reporting = struct();
+    params.reporting.template = 'default';
+    params.reporting.template_by_mode = struct( ...
+        'Evolution', 'evolution', ...
+        'Convergence', 'convergence', ...
+        'ParameterSweep', 'parameter_sweep', ...
+        'Plotting', 'plotting');
+    params.report_template = params.reporting.template;  % Alias
 
     % ---------------------------------------------------------------------
     % Convergence mode options
@@ -120,7 +139,7 @@ function params = Parameters()
         'bathymetry_resolution', 1, ...
         'use_dry_mask', true);
 
-    % Compatibility aliases used in existing analysis helpers
+    % Compatibility aliases used in existing analysis helpers.
     params.bathymetry_enabled = params.method_config.bathymetry.enabled;
     params.bathymetry_file = params.method_config.bathymetry.bathymetry_file;
     params.bathymetry_resolution = params.method_config.bathymetry.bathymetry_resolution;
@@ -135,7 +154,8 @@ function params = Parameters()
         'output_dir', '../../sensor_logs');
 
     params.sustainability = struct( ...
-        'enabled', false, ...
+        'enabled', true, ...
         'build_model', false, ...
-        'auto_compare', false);
+        'auto_compare', false, ...
+        'machine_tag', 'auto');
 end

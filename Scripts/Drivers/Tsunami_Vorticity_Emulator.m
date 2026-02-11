@@ -185,6 +185,31 @@ function [params, settings] = apply_runtime_overrides(params, settings, opts)
 end
 
 function [params, settings] = ensure_time_sampling(params, settings)
+    % Normalize media aliases <-> canonical structs before sampling math.
+    if isfield(settings, 'media') && isstruct(settings.media)
+        if isfield(settings.media, 'fps') && settings.media.fps > 0
+            settings.animation_frame_rate = settings.media.fps;
+        end
+        if isfield(settings.media, 'frame_count') && settings.media.frame_count >= 2
+            settings.animation_frame_count = settings.media.frame_count;
+        end
+        if isfield(settings.media, 'format') && ~isempty(settings.media.format)
+            settings.animation_format = char(string(settings.media.format));
+        end
+    end
+
+    if isfield(params, 'media') && isstruct(params.media)
+        if isfield(params.media, 'num_frames') && params.media.num_frames >= 2
+            params.num_animation_frames = params.media.num_frames;
+        end
+        if isfield(params.media, 'fps') && params.media.fps > 0
+            settings.animation_frame_rate = params.media.fps;
+        end
+        if isfield(params.media, 'format') && ~isempty(params.media.format)
+            params.animation_format = char(string(params.media.format));
+        end
+    end
+
     if ~isfield(params, 'num_plot_snapshots') || params.num_plot_snapshots < 1
         if isfield(params, 'num_snapshots') && params.num_snapshots > 0
             params.num_plot_snapshots = params.num_snapshots;
@@ -205,6 +230,31 @@ function [params, settings] = ensure_time_sampling(params, settings)
     params.animation_times = linspace(0, params.Tfinal, params.num_animation_frames);
     params.snap_times = params.plot_snap_times;
     params.num_snapshots = params.num_plot_snapshots;
+
+    % Keep canonical structs synced for downstream scripts.
+    if ~isfield(settings, 'media') || ~isstruct(settings.media)
+        settings.media = struct();
+    end
+    settings.media.fps = settings.animation_frame_rate;
+    settings.media.frame_count = settings.animation_frame_count;
+    settings.media.format = settings.animation_format;
+    settings.media.quality = settings.animation_quality;
+    settings.media.codec = settings.animation_codec;
+    if ~isfield(settings.media, 'fallback_format')
+        settings.media.fallback_format = 'gif';
+    end
+
+    if ~isfield(params, 'media') || ~isstruct(params.media)
+        params.media = struct();
+    end
+    params.media.fps = settings.animation_frame_rate;
+    params.media.num_frames = params.num_animation_frames;
+    params.media.format = params.animation_format;
+    params.media.quality = params.animation_quality;
+    params.media.codec = params.animation_codec;
+    if ~isfield(params.media, 'fallback_format')
+        params.media.fallback_format = 'gif';
+    end
 end
 
 function show_standard_mode_summary(params, settings)
