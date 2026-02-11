@@ -52,21 +52,15 @@ function [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings)
     try
         if method_matches(method, fd_aliases)
             Run_Config.method = 'FD';
-            [Results, paths] = dispatch_FD_mode(mode_normalized, Run_Config, Parameters, Settings);
+            [Results, paths] = dispatch_method_mode('FD', mode_normalized, Run_Config, Parameters, Settings);
 
         elseif method_matches(method, spectral_aliases)
-            % Spectral method not implemented - use structured error
-            ErrorHandler.throw('SOL-SP-0001', ...
-                'file', mfilename, ...
-                'line', 57, ...
-                'context', struct('requested_method', Run_Config.method));
+            Run_Config.method = 'Spectral';
+            [Results, paths] = dispatch_method_mode('Spectral', mode_normalized, Run_Config, Parameters, Settings);
 
         elseif method_matches(method, fv_aliases)
-            % Finite Volume not implemented - use structured error
-            ErrorHandler.throw('SOL-FV-0001', ...
-                'file', mfilename, ...
-                'line', 64, ...
-                'context', struct('requested_method', Run_Config.method));
+            Run_Config.method = 'FV';
+            [Results, paths] = dispatch_method_mode('FV', mode_normalized, Run_Config, Parameters, Settings);
 
         elseif method_matches(method, spectral3d_aliases)
             % 3D Spectral method placeholder - use structured error
@@ -113,7 +107,8 @@ function [Results, paths] = ModeDispatcher(Run_Config, Parameters, Settings)
 
     catch ME
         % Wrap any errors from mode execution with context
-        if strcmp(ME.identifier(1:min(3,end)), 'RUN') || strcmp(ME.identifier(1:min(3,end)), 'SOL')
+        err_id = char(string(ME.identifier));
+        if startsWith(err_id, 'RUN') || startsWith(err_id, 'SOL')
             % Already a structured error, just rethrow
             rethrow(ME);
         else
@@ -185,14 +180,10 @@ function method_token = normalize_method_token(method_raw)
     method_token = upper(method_token);
 end
 
-function [Results, paths] = dispatch_FD_mode(mode, Run_Config, Parameters, Settings)
-    % Dispatch to FD mode modules
-    % Enforces FD modes: Evolution, Convergence, ParameterSweep, Plotting
-    % Uses method-agnostic mode functions
-    % Uses structured error handling
-
-    % Update Run_Config with normalized mode
+function [Results, paths] = dispatch_method_mode(method_name, mode, Run_Config, Parameters, Settings)
+    % Dispatch to method-agnostic mode modules with method-specific gating.
     Run_Config.mode = mode;
+    Run_Config.method = method_name;
 
     try
         switch mode
@@ -200,36 +191,53 @@ function [Results, paths] = dispatch_FD_mode(mode, Run_Config, Parameters, Setti
                 [Results, paths] = mode_evolution(Run_Config, Parameters, Settings);
 
             case 'Convergence'
+                if strcmp(method_name, 'FV')
+                    ErrorHandler.throw('SOL-FV-0001', ...
+                        'file', mfilename, ...
+                        'line', 28, ...
+                        'message', 'Finite Volume convergence is not enabled in this checkpoint', ...
+                        'context', struct('requested_method', Run_Config.method, 'requested_mode', mode));
+                end
                 [Results, paths] = mode_convergence(Run_Config, Parameters, Settings);
 
             case 'ParameterSweep'
+                if strcmp(method_name, 'Spectral')
+                    ErrorHandler.throw('SOL-SP-0001', ...
+                        'file', mfilename, ...
+                        'line', 39, ...
+                        'message', 'Spectral parameter sweep is not enabled in this checkpoint', ...
+                        'context', struct('requested_method', Run_Config.method, 'requested_mode', mode));
+                elseif strcmp(method_name, 'FV')
+                    ErrorHandler.throw('SOL-FV-0001', ...
+                        'file', mfilename, ...
+                        'line', 45, ...
+                        'message', 'Finite Volume parameter sweep is not enabled in this checkpoint', ...
+                        'context', struct('requested_method', Run_Config.method, 'requested_mode', mode));
+                end
                 [Results, paths] = mode_parameter_sweep(Run_Config, Parameters, Settings);
 
             case 'Plotting'
                 [Results, paths] = mode_plotting(Run_Config, Parameters, Settings);
 
             otherwise
-                % Invalid FD mode - use structured error
                 ErrorHandler.throw('RUN-EXEC-0002', ...
                     'file', mfilename, ...
                     'line', 25, ...
                     'context', struct(...
+                        'requested_method', method_name, ...
                         'requested_mode', mode, ...
                         'valid_modes', {{'Evolution', 'Convergence', 'ParameterSweep', 'Plotting'}}));
         end
 
     catch ME
-        % Wrap mode execution errors with context
         if contains(ME.identifier, {'RUN', 'SOL', 'CFG', 'IO'})
-            % Already a structured error, just rethrow
             rethrow(ME);
         else
-            % Unexpected error - wrap
             ErrorHandler.throw('RUN-EXEC-0003', ...
                 'file', mfilename, ...
                 'line', 41, ...
                 'cause', ME, ...
-                'context', struct('method', 'FD', 'mode', mode));
+                'context', struct('method', method_name, 'mode', mode));
         end
     end
 end

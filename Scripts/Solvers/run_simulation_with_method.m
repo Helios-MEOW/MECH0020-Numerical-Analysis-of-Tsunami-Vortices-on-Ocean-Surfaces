@@ -8,8 +8,10 @@ function [fig_handle, analysis] = run_simulation_with_method(Parameters)
 %   fig_handle - Result figure handle (visible or offscreen)
 %   analysis   - Unified analysis structure
 
+    % Collapse user-facing aliases (e.g., "fd", "finite difference") into one canonical key.
     method_normalized = normalize_method_name(Parameters);
 
+    % Route to the matching solver module while keeping a consistent call contract.
     switch method_normalized
         case "finite_difference"
             fprintf('[Dispatcher] Routing to Finite Difference method\n');
@@ -25,10 +27,12 @@ function [fig_handle, analysis] = run_simulation_with_method(Parameters)
 
         case "bathymetry"
             fprintf('[Dispatcher] Routing to Variable Bathymetry method\n');
-            if exist('Variable_Bathymetry_Analysis.m', 'file') == 2
+            % Bathymetry support is optional; if the module is absent, keep the run alive via FD.
+            if ensure_bathymetry_module_on_path()
                 [fig_handle, analysis] = Variable_Bathymetry_Analysis(Parameters);
             else
-                warning('Variable_Bathymetry_Analysis.m not found. Falling back to Finite Difference.');
+                warning(['Variable_Bathymetry_Analysis.m not found on MATLAB path ', ...
+                    '(expected in Scripts/Modes). Falling back to Finite Difference.']);
                 [fig_handle, analysis] = FiniteDifferenceMethod('run', Parameters);
             end
 
@@ -37,25 +41,45 @@ function [fig_handle, analysis] = run_simulation_with_method(Parameters)
             [fig_handle, analysis] = FiniteDifferenceMethod('run', Parameters);
     end
 
+    % Backfill missing fields so downstream plotting/reporting can rely on a stable schema.
     analysis = normalize_analysis_struct(analysis, Parameters, method_normalized);
+    % Print a one-shot run summary for quick CLI inspection.
     print_metrics_summary(analysis);
 end
 
-function method_name = normalize_method_name(Parameters)
-    if isfield(Parameters, 'method') && ~isempty(Parameters.method)
-        method_raw = lower(char(string(Parameters.method)));
-    else
-        method_raw = 'finite_difference';
+function tf = ensure_bathymetry_module_on_path()
+    % Ensure the moved bathymetry module is discoverable before dispatch.
+    tf = exist('Variable_Bathymetry_Analysis', 'file') == 2;
+    if tf
+        return;
     end
 
-    switch method_raw
-        case {'fd', 'finite_difference', 'finite difference'}
+    this_dir = fileparts(mfilename('fullpath'));
+    repo_root = fileparts(fileparts(this_dir));
+    modes_dir = fullfile(repo_root, 'Scripts', 'Modes');
+    candidate = fullfile(modes_dir, 'Variable_Bathymetry_Analysis.m');
+    if exist(candidate, 'file') == 2
+        addpath(modes_dir);
+        tf = exist('Variable_Bathymetry_Analysis', 'file') == 2;
+    end
+end
+
+function method_name = normalize_method_name(Parameters)
+    % Read user input method if present; otherwise choose a safe project default.
+    if isfield(Parameters, 'method') && ~isempty(Parameters.method)
+        method_raw = lower(char(string(Parameters.method))); % Normalize to lowercase string for matching
+    else
+        method_raw = 'finite_difference'; % Revert to default if not provided
+    end
+
+    switch method_raw % Match against known aliases for each method (case-insensitive)
+        case {'fd', 'finite_difference', 'finite difference'} % Possible aliases for finite difference
             method_name = "finite_difference";
-        case {'spectral', 'fft', 'pseudospectral'}
+        case {'spectral method', 'FFT', 'spectral'} % Possible aliases for spectral method
             method_name = "spectral";
-        case {'fv', 'finite_volume', 'finite volume'}
+        case {'fv', 'finite_volume', 'finite volume'} % Possible aliases for finite volume method
             method_name = "finite_volume";
-        case {'bathymetry', 'variable_bathymetry', 'variable bathymetry'}
+        case {'bathymetry', 'variable_bathymetry', 'variable bathymetry'} % Possible Aliases for variable bathymetry
             method_name = "bathymetry";
         otherwise
             method_name = string(method_raw);
@@ -63,10 +87,12 @@ function method_name = normalize_method_name(Parameters)
 end
 
 function analysis = normalize_analysis_struct(analysis, Parameters, method_name)
+    % Ensure method metadata always exists for reports and saved outputs.
     if ~isfield(analysis, 'method') || isempty(analysis.method)
         analysis.method = char(method_name);
     end
 
+    % Pre-create snapshot containers so later field access is always valid.
     if ~isfield(analysis, 'omega_snaps')
         analysis.omega_snaps = [];
     end
@@ -74,6 +100,7 @@ function analysis = normalize_analysis_struct(analysis, Parameters, method_name)
         analysis.psi_snaps = [];
     end
 
+    % Prefer solver-provided times; otherwise recover from available inputs.
     if ~isfield(analysis, 'snapshot_times') || isempty(analysis.snapshot_times)
         if isfield(analysis, 'time_vec') && ~isempty(analysis.time_vec)
             analysis.snapshot_times = analysis.time_vec(:);
@@ -86,12 +113,14 @@ function analysis = normalize_analysis_struct(analysis, Parameters, method_name)
         analysis.snapshot_times = analysis.snapshot_times(:);
     end
 
+    % Keep time_vec and snapshot_times consistent as column vectors.
     if ~isfield(analysis, 'time_vec') || isempty(analysis.time_vec)
         analysis.time_vec = analysis.snapshot_times;
     else
         analysis.time_vec = analysis.time_vec(:);
     end
 
+    % Derive the snapshot count from whichever source is populated.
     if ~isfield(analysis, 'snapshots_stored') || isempty(analysis.snapshots_stored)
         if ~isempty(analysis.snapshot_times)
             analysis.snapshots_stored = numel(analysis.snapshot_times);
@@ -102,6 +131,7 @@ function analysis = normalize_analysis_struct(analysis, Parameters, method_name)
         end
     end
 
+    % Resolve Nx, Ny from input parameters first, then infer from snapshot array shape.
     if ~isfield(analysis, 'Nx')
         if isfield(Parameters, 'Nx')
             analysis.Nx = Parameters.Nx;
@@ -122,10 +152,12 @@ function analysis = normalize_analysis_struct(analysis, Parameters, method_name)
         end
     end
 
+    % Maintain an explicit total point count used in summaries/benchmarking.
     if ~isfield(analysis, 'grid_points') || isempty(analysis.grid_points)
         analysis.grid_points = analysis.Nx * analysis.Ny;
     end
 
+    % Compute peak vorticity magnitude if the solver did not provide one.
     if ~isfield(analysis, 'peak_abs_omega') || isempty(analysis.peak_abs_omega)
         if ~isempty(analysis.omega_snaps)
             analysis.peak_abs_omega = max(abs(analysis.omega_snaps(:)));
@@ -134,12 +166,14 @@ function analysis = normalize_analysis_struct(analysis, Parameters, method_name)
         end
     end
 
+    % Preserve compatibility with legacy consumers that expect peak_vorticity.
     if ~isfield(analysis, 'peak_vorticity') || isempty(analysis.peak_vorticity)
         analysis.peak_vorticity = analysis.peak_abs_omega;
     end
 end
 
 function print_metrics_summary(analysis)
+    % Human-readable run summary for terminal logs and quick sanity checks.
     fprintf('\n');
     fprintf('=============== SIMULATION SUMMARY ===============\n');
     fprintf('Method: %s\n', char(string(analysis.method)));

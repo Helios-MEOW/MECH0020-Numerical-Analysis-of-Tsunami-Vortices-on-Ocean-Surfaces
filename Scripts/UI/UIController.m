@@ -134,6 +134,8 @@ classdef UIController < handle
                     addpath(fullfile(scripts_dir, 'Infrastructure', 'Runners'));
                     addpath(fullfile(scripts_dir, 'Infrastructure', 'Utilities'));
                     addpath(fullfile(scripts_dir, 'Methods'));
+                    addpath(fullfile(scripts_dir, 'Modes'));
+                    addpath(fullfile(scripts_dir, 'Modes', 'Convergence'));
                 catch
                     % If path setup fails, IC preview will report a clear error
                 end
@@ -145,6 +147,9 @@ classdef UIController < handle
                 'Color', app.layout_cfg.colors.bg_dark, ...
                 'AutoResizeChildren', 'on', ...
                 'CloseRequestFcn', @(~,~) app.cleanup());
+            if isprop(app.fig, 'Theme')
+                app.fig.Theme = 'dark';
+            end
             
             % Create root grid layout (replaces manual Position sizing)
             % Layout: [menu bar (fit), main content (1x), status bar (fit)]
@@ -184,35 +189,40 @@ classdef UIController < handle
             % Show initial choice dialog: UI Mode or Traditional Mode
             dialog_fig = uifigure('Name', 'Simulation Mode Selection', ...
                 'Position', [400 400 600 300], ...
-                'Color', [0.94 0.94 0.94], ...
+                'Color', [0.12 0.12 0.12], ...
                 'Visible', 'off');
+            if isprop(dialog_fig, 'Theme')
+                dialog_fig.Theme = 'dark';
+            end
             
             choice = 'ui';  % Default
             
             % Title
             uilabel(dialog_fig, 'Position', [50 220 500 50], ...
                 'Text', 'Choose Simulation Interface', ...
-                'FontSize', 18, 'FontWeight', 'bold');
+                'FontSize', 18, 'FontWeight', 'bold', ...
+                'FontColor', [0.92 0.92 0.92]);
             
             % Description
             uilabel(dialog_fig, 'Position', [50 160 500 40], ...
                 'Text', 'How would you like to run the simulation?', ...
-                'FontSize', 12);
+                'FontSize', 12, ...
+                'FontColor', [0.82 0.82 0.82]);
             
             % UI Mode Button
             uibutton(dialog_fig, 'push', 'Position', [50 80 200 60], ...
                 'Text', sprintf('🖥️ UI Mode\n(Full Configuration Interface)'), ...
                 'FontSize', 12, ...
-                'BackgroundColor', [0.2 0.7 0.3], ...
-                'FontColor', 'white', ...
+                'BackgroundColor', [0.25 0.78 0.35], ...
+                'FontColor', [0.05 0.05 0.05], ...
                 'ButtonPushedFcn', @(~,~) set_choice('ui'));
             
             % Traditional Mode Button
             uibutton(dialog_fig, 'push', 'Position', [300 80 200 60], ...
                 'Text', sprintf('📊 Traditional\n(Separate Windows)'), ...
                 'FontSize', 12, ...
-                'BackgroundColor', [0.3 0.5 0.8], ...
-                'FontColor', 'white', ...
+                'BackgroundColor', [0.35 0.72 0.95], ...
+                'FontColor', [0.05 0.05 0.05], ...
                 'ButtonPushedFcn', @(~,~) set_choice('traditional'));
             
             dialog_fig.Visible = 'on';
@@ -237,16 +247,16 @@ classdef UIController < handle
         function create_all_tabs(app)
             % Create streamlined UI tabs (consolidated from 9 to 5)
             % All tabs styled with dark mode colors
-            app.tabs.config = uitab(app.tab_group, 'Title', '⚙️ Configuration', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
+            app.tabs.config = uitab(app.tab_group, 'Title', 'Configuration', ...
+                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
             app.create_config_tab();
             
-            app.tabs.monitoring = uitab(app.tab_group, 'Title', '📊 Live Monitor', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
+            app.tabs.monitoring = uitab(app.tab_group, 'Title', 'Live Monitor', ...
+                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
             app.create_monitoring_tab();
             
-            app.tabs.results = uitab(app.tab_group, 'Title', '📈 Results & Figures', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
+            app.tabs.results = uitab(app.tab_group, 'Title', 'Results and Figures', ...
+                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
             app.create_results_tab();
         end
         
@@ -257,418 +267,574 @@ classdef UIController < handle
         
         % Tab creation methods
         function create_config_tab(app)
-            % Rebuilt configuration tab (grouped, compact, method-aware)
+            % Build configuration tab using explicit grid coordinates from UI_Layout_Config
+            C = app.layout_cfg.colors;
+
             parent = app.tabs.config;
-            parent.Units = 'normalized';
-            parent.BackgroundColor = [0.20 0.20 0.20];  % Dark mode
+            parent.BackgroundColor = C.bg_dark;
 
-            root = uigridlayout(parent, [1 2]);
-            root.ColumnWidth = {'1.05x', '1x'};
-            root.RowHeight = {'1x'};
-            root.Padding = [10 10 10 10];
-            root.RowSpacing = 10;
-            root.ColumnSpacing = 12;
+            cfg_root = app.layout_cfg.config_tab.root;
+            root = uigridlayout(parent, cfg_root.rows_cols);
+            root.ColumnWidth = cfg_root.col_widths;
+            root.RowHeight = cfg_root.row_heights;
+            root.Padding = cfg_root.padding;
+            root.RowSpacing = cfg_root.row_spacing;
+            root.ColumnSpacing = cfg_root.col_spacing;
 
-            left = uipanel(root, 'Title', 'Configuration', 'FontWeight', 'bold');
-            right = uipanel(root, 'Title', 'Initial Conditions & Preview', 'FontWeight', 'bold');
+            left = uipanel(root, 'Title', 'Configuration', 'FontWeight', 'bold', ...
+                'BackgroundColor', C.bg_panel);
+            left.Layout.Row = app.layout_cfg.coords.config.left(1);
+            left.Layout.Column = app.layout_cfg.coords.config.left(2);
 
-            left_layout = uigridlayout(left, [7 1]);
-            left_layout.RowHeight = {'fit', 'fit', 'fit', 'fit', 'fit', 'fit', '1x'};
-            left_layout.Padding = [10 10 10 10];
-            left_layout.RowSpacing = 8;
+            right = uipanel(root, 'Title', 'Initial Conditions and Preview', 'FontWeight', 'bold', ...
+                'BackgroundColor', C.bg_panel);
+            right.Layout.Row = app.layout_cfg.coords.config.right(1);
+            right.Layout.Column = app.layout_cfg.coords.config.right(2);
 
-            % --- Method & Mode ---
-            panel_method = uipanel(left_layout, 'Title', 'Method & Mode');
-            method_grid = uigridlayout(panel_method, [3 4]);
-            method_grid.ColumnWidth = {'1x', '1x', '1x', '1x'};
-            method_grid.RowHeight = {'fit', 'fit', 'fit'};
-            method_grid.RowSpacing = 6;
-            method_grid.Padding = [6 6 6 6];
+            cfg_left = app.layout_cfg.config_tab.left;
+            left_layout = uigridlayout(left, cfg_left.rows_cols);
+            left_layout.RowHeight = cfg_left.row_heights;
+            left_layout.Padding = cfg_left.padding;
+            left_layout.RowSpacing = cfg_left.row_spacing;
 
-            uilabel(method_grid, 'Text', 'Method');
+            % Method and mode panel
+            panel_method = uipanel(left_layout, 'Title', 'Method and Mode', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_method.Layout.Row = app.layout_cfg.coords.config.panel_method(1);
+            panel_method.Layout.Column = app.layout_cfg.coords.config.panel_method(2);
+            cfg_method = app.layout_cfg.config_tab.method_grid;
+            method_grid = uigridlayout(panel_method, cfg_method.rows_cols);
+            method_grid.ColumnWidth = cfg_method.col_widths;
+            method_grid.RowHeight = cfg_method.row_heights;
+            method_grid.RowSpacing = cfg_method.row_spacing;
+            method_grid.Padding = cfg_method.padding;
+
+            lbl = uilabel(method_grid, 'Text', 'Method', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.method_dropdown = uidropdown(method_grid, ...
                 'Items', {'Finite Difference', 'Finite Volume', 'Spectral', 'Variable Bathymetry + Motion'}, ...
                 'Value', 'Finite Difference', ...
                 'ValueChangedFcn', @(~,~) app.on_method_changed());
+            app.handles.method_dropdown.Layout.Row = 1;
+            app.handles.method_dropdown.Layout.Column = 2;
 
-            uilabel(method_grid, 'Text', 'Mode');
+            lbl = uilabel(method_grid, 'Text', 'Mode', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.mode_dropdown = uidropdown(method_grid, ...
                 'Items', {'Evolution', 'Convergence', 'Sweep', 'Animation', 'Experimentation'}, ...
                 'Value', 'Evolution', ...
                 'ValueChangedFcn', @(~,~) app.on_mode_changed());
+            app.handles.mode_dropdown.Layout.Row = 1;
+            app.handles.mode_dropdown.Layout.Column = 4;
 
-            uilabel(method_grid, 'Text', 'Boundary');
-            app.handles.boundary_label = uilabel(method_grid, 'Text', 'Periodic (x,y)');
+            lbl = uilabel(method_grid, 'Text', 'Boundary', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            app.handles.boundary_label = uilabel(method_grid, 'Text', 'Periodic (x,y)', ...
+                'FontColor', C.fg_text);
+            app.handles.boundary_label.Layout.Row = 2;
+            app.handles.boundary_label.Layout.Column = [2 4];
 
             app.handles.bathy_enable = uicheckbox(method_grid, ...
-                'Text', 'Use Bathymetry', 'Value', false, ...
-                'Visible', 'off', ...
+                'Text', 'Use Bathymetry', 'Value', false, 'Visible', 'off', ...
+                'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.on_method_changed());
+            app.handles.bathy_enable.Layout.Row = 3;
+            app.handles.bathy_enable.Layout.Column = 1;
+
             app.handles.bathy_file = uieditfield(method_grid, 'text', ...
-                'Value', '', 'Placeholder', 'Bathymetry file', ...
-                'Visible', 'off');
+                'Value', '', 'Placeholder', 'Bathymetry file', 'Visible', 'off');
+            app.handles.bathy_file.Layout.Row = 3;
+            app.handles.bathy_file.Layout.Column = [2 3];
 
             app.handles.bathy_browse_btn = uibutton(method_grid, 'Text', 'Browse', ...
-                'Visible', 'off', ...
-                'ButtonPushedFcn', @(~,~) app.browse_bathymetry_file());
+                'Visible', 'off', 'ButtonPushedFcn', @(~,~) app.browse_bathymetry_file());
+            app.handles.bathy_browse_btn.Layout.Row = 3;
+            app.handles.bathy_browse_btn.Layout.Column = 4;
 
-            % --- Grid & Domain ---
-            panel_grid = uipanel(left_layout, 'Title', 'Grid & Domain');
-            grid_layout = uigridlayout(panel_grid, [3 4]);
-            grid_layout.ColumnWidth = {'1x', '1x', '1x', '1x'};
-            grid_layout.RowHeight = {'fit', 'fit', 'fit'};
-            grid_layout.Padding = [6 6 6 6];
+            % Grid and domain panel
+            panel_grid = uipanel(left_layout, 'Title', 'Grid and Domain', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_grid.Layout.Row = app.layout_cfg.coords.config.panel_grid(1);
+            panel_grid.Layout.Column = app.layout_cfg.coords.config.panel_grid(2);
+            cfg_grid = app.layout_cfg.config_tab.grid_grid;
+            grid_layout = uigridlayout(panel_grid, cfg_grid.rows_cols);
+            grid_layout.ColumnWidth = cfg_grid.col_widths;
+            grid_layout.RowHeight = cfg_grid.row_heights;
+            grid_layout.Padding = cfg_grid.padding;
 
-            uilabel(grid_layout, 'Text', 'Nx');
+            lbl = uilabel(grid_layout, 'Text', 'Nx', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.Nx = uieditfield(grid_layout, 'numeric', 'Value', 128, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
-            uilabel(grid_layout, 'Text', 'Ny');
+            app.handles.Nx.Layout.Row = 1; app.handles.Nx.Layout.Column = 2;
+            lbl = uilabel(grid_layout, 'Text', 'Ny', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.Ny = uieditfield(grid_layout, 'numeric', 'Value', 128, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
-            uilabel(grid_layout, 'Text', 'Lx');
+            app.handles.Ny.Layout.Row = 1; app.handles.Ny.Layout.Column = 4;
+
+            lbl = uilabel(grid_layout, 'Text', 'Lx', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
             app.handles.Lx = uieditfield(grid_layout, 'numeric', 'Value', 10.0, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
-            uilabel(grid_layout, 'Text', 'Ly');
+            app.handles.Lx.Layout.Row = 2; app.handles.Lx.Layout.Column = 2;
+            lbl = uilabel(grid_layout, 'Text', 'Ly', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
             app.handles.Ly = uieditfield(grid_layout, 'numeric', 'Value', 10.0, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
-            uilabel(grid_layout, 'Text', 'Δ (dx=dy)');
+            app.handles.Ly.Layout.Row = 2; app.handles.Ly.Layout.Column = 4;
+
+            lbl = uilabel(grid_layout, 'Text', 'Delta', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 1;
             app.handles.delta = uieditfield(grid_layout, 'numeric', 'Editable', 'on', ...
                 'Value', 2, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
-            uilabel(grid_layout, 'Text', 'Grid points');
-            app.handles.grid_points = uilabel(grid_layout, 'Text', '16384');
+            app.handles.delta.Layout.Row = 3; app.handles.delta.Layout.Column = 2;
+            lbl = uilabel(grid_layout, 'Text', 'Grid points', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 3;
+            app.handles.grid_points = uilabel(grid_layout, 'Text', '16384', 'FontColor', C.fg_text);
+            app.handles.grid_points.Layout.Row = 3; app.handles.grid_points.Layout.Column = 4;
 
-            % --- Time & Physics ---
-            panel_time = uipanel(left_layout, 'Title', 'Time & Physics');
-            time_layout = uigridlayout(panel_time, [2 4]);
-            time_layout.ColumnWidth = {'1x', '1x', '1x', '1x'};
-            time_layout.RowHeight = {'fit', 'fit'};
-            time_layout.Padding = [6 6 6 6];
+            % Time and physics panel
+            panel_time = uipanel(left_layout, 'Title', 'Time and Physics', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_time.Layout.Row = app.layout_cfg.coords.config.panel_time(1);
+            panel_time.Layout.Column = app.layout_cfg.coords.config.panel_time(2);
+            cfg_time = app.layout_cfg.config_tab.time_grid;
+            time_layout = uigridlayout(panel_time, cfg_time.rows_cols);
+            time_layout.ColumnWidth = cfg_time.col_widths;
+            time_layout.RowHeight = cfg_time.row_heights;
+            time_layout.Padding = cfg_time.padding;
 
-            uilabel(time_layout, 'Text', 'dt');
+            lbl = uilabel(time_layout, 'Text', 'dt', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.dt = uieditfield(time_layout, 'numeric', 'Value', 0.001, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
-            uilabel(time_layout, 'Text', 'Tfinal');
+            app.handles.dt.Layout.Row = 1; app.handles.dt.Layout.Column = 2;
+            lbl = uilabel(time_layout, 'Text', 'Tfinal', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.t_final = uieditfield(time_layout, 'numeric', 'Value', 10.0, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
-            uilabel(time_layout, 'Text', 'ν');
+            app.handles.t_final.Layout.Row = 1; app.handles.t_final.Layout.Column = 4;
+            lbl = uilabel(time_layout, 'Text', 'nu', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
             app.handles.nu = uieditfield(time_layout, 'numeric', 'Value', 1e-4, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
-            uilabel(time_layout, 'Text', 'Snapshots');
+            app.handles.nu.Layout.Row = 2; app.handles.nu.Layout.Column = 2;
+            lbl = uilabel(time_layout, 'Text', 'Snapshots', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
             app.handles.num_snapshots = uieditfield(time_layout, 'numeric', 'Value', 9);
+            app.handles.num_snapshots.Layout.Row = 2; app.handles.num_snapshots.Layout.Column = 4;
 
-            % --- Simulation Settings ---
-            panel_sim = uipanel(left_layout, 'Title', 'Simulation Settings');
-            sim_layout = uigridlayout(panel_sim, [3 4]);
-            sim_layout.ColumnWidth = {'1x', '1x', '1x', '1x'};
-            sim_layout.RowHeight = {'fit', 'fit', 'fit'};
-            sim_layout.Padding = [6 6 6 6];
+            % Simulation settings panel
+            panel_sim = uipanel(left_layout, 'Title', 'Simulation Settings', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_sim.Layout.Row = app.layout_cfg.coords.config.panel_sim(1);
+            panel_sim.Layout.Column = app.layout_cfg.coords.config.panel_sim(2);
+            cfg_sim = app.layout_cfg.config_tab.sim_grid;
+            sim_layout = uigridlayout(panel_sim, cfg_sim.rows_cols);
+            sim_layout.ColumnWidth = cfg_sim.col_widths;
+            sim_layout.RowHeight = cfg_sim.row_heights;
+            sim_layout.Padding = cfg_sim.padding;
 
-            app.handles.save_csv = uicheckbox(sim_layout, 'Text', 'Save CSV', 'Value', true);
-            app.handles.save_mat = uicheckbox(sim_layout, 'Text', 'Save MAT', 'Value', true);
-            app.handles.figures_save_png = uicheckbox(sim_layout, 'Text', 'Save PNG', 'Value', true);
-            app.handles.figures_save_fig = uicheckbox(sim_layout, 'Text', 'Save FIG', 'Value', false);
-            uilabel(sim_layout, 'Text', 'DPI');
+            app.handles.save_csv = uicheckbox(sim_layout, 'Text', 'Save CSV', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.save_csv.Layout.Row = 1; app.handles.save_csv.Layout.Column = 1;
+            app.handles.save_mat = uicheckbox(sim_layout, 'Text', 'Save MAT', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.save_mat.Layout.Row = 1; app.handles.save_mat.Layout.Column = 2;
+            app.handles.figures_save_png = uicheckbox(sim_layout, 'Text', 'Save PNG', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.figures_save_png.Layout.Row = 1; app.handles.figures_save_png.Layout.Column = 3;
+            app.handles.figures_save_fig = uicheckbox(sim_layout, 'Text', 'Save FIG', 'Value', false, 'FontColor', C.fg_text);
+            app.handles.figures_save_fig.Layout.Row = 1; app.handles.figures_save_fig.Layout.Column = 4;
+
+            lbl = uilabel(sim_layout, 'Text', 'DPI', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
             app.handles.figures_dpi = uieditfield(sim_layout, 'numeric', 'Value', 300);
-            app.handles.figures_close_after_save = uicheckbox(sim_layout, 'Text', 'Close after save', 'Value', false);
-            app.handles.figures_use_owl_saver = uicheckbox(sim_layout, 'Text', 'Use OWL saver', 'Value', true);
-            app.handles.create_animations = uicheckbox(sim_layout, 'Text', 'Create animations', 'Value', true);
+            app.handles.figures_dpi.Layout.Row = 2; app.handles.figures_dpi.Layout.Column = 2;
+            app.handles.figures_close_after_save = uicheckbox(sim_layout, 'Text', 'Close after save', 'Value', false, 'FontColor', C.fg_text);
+            app.handles.figures_close_after_save.Layout.Row = 2; app.handles.figures_close_after_save.Layout.Column = 3;
+            app.handles.figures_use_owl_saver = uicheckbox(sim_layout, 'Text', 'Use OWL saver', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.figures_use_owl_saver.Layout.Row = 2; app.handles.figures_use_owl_saver.Layout.Column = 4;
+
+            app.handles.create_animations = uicheckbox(sim_layout, 'Text', 'Create animations', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.create_animations.Layout.Row = 3; app.handles.create_animations.Layout.Column = 1;
             app.handles.animation_format = uidropdown(sim_layout, 'Items', {'mp4', 'avi', 'gif'}, 'Value', 'mp4');
+            app.handles.animation_format.Layout.Row = 3; app.handles.animation_format.Layout.Column = 2;
             app.handles.animation_fps = uieditfield(sim_layout, 'numeric', 'Value', 30);
+            app.handles.animation_fps.Layout.Row = 3; app.handles.animation_fps.Layout.Column = 3;
             app.handles.animation_num_frames = uieditfield(sim_layout, 'numeric', 'Value', 100);
+            app.handles.animation_num_frames.Layout.Row = 3; app.handles.animation_num_frames.Layout.Column = 4;
 
-            % --- Convergence Study ---
-            panel_conv = uipanel(left_layout, 'Title', 'Convergence Study');
-            conv_layout = uigridlayout(panel_conv, [4 4]);
-            conv_layout.ColumnWidth = {'1x', '1x', '1x', '1x'};
-            conv_layout.RowHeight = {'fit', 'fit', 'fit', 'fit'};
-            conv_layout.Padding = [6 6 6 6];
+            % Convergence panel
+            panel_conv = uipanel(left_layout, 'Title', 'Convergence Study', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_conv.Layout.Row = app.layout_cfg.coords.config.panel_conv(1);
+            panel_conv.Layout.Column = app.layout_cfg.coords.config.panel_conv(2);
+            cfg_conv = app.layout_cfg.config_tab.conv_grid;
+            conv_layout = uigridlayout(panel_conv, cfg_conv.rows_cols);
+            conv_layout.ColumnWidth = cfg_conv.col_widths;
+            conv_layout.RowHeight = cfg_conv.row_heights;
+            conv_layout.Padding = cfg_conv.padding;
 
-            uilabel(conv_layout, 'Text', 'N coarse');
+            lbl = uilabel(conv_layout, 'Text', 'N coarse', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.conv_N_coarse = uieditfield(conv_layout, 'numeric', 'Value', 64);
-            uilabel(conv_layout, 'Text', 'N max');
+            app.handles.conv_N_coarse.Layout.Row = 1; app.handles.conv_N_coarse.Layout.Column = 2;
+            lbl = uilabel(conv_layout, 'Text', 'N max', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.conv_N_max = uieditfield(conv_layout, 'numeric', 'Value', 512);
-            uilabel(conv_layout, 'Text', 'Tolerance');
+            app.handles.conv_N_max.Layout.Row = 1; app.handles.conv_N_max.Layout.Column = 4;
+
+            lbl = uilabel(conv_layout, 'Text', 'Tolerance', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
             app.handles.conv_tolerance = uieditfield(conv_layout, 'numeric', 'Value', 1e-2);
-            uilabel(conv_layout, 'Text', 'Criterion');
+            app.handles.conv_tolerance.Layout.Row = 2; app.handles.conv_tolerance.Layout.Column = 2;
+            lbl = uilabel(conv_layout, 'Text', 'Criterion', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
             app.handles.conv_criterion = uidropdown(conv_layout, ...
                 'Items', {'l2_relative', 'l2_absolute', 'linf_relative', 'max_vorticity', 'energy_dissipation', 'auto_physical'}, ...
                 'Value', 'l2_relative');
-            app.handles.conv_binary = uicheckbox(conv_layout, 'Text', 'Binary search', 'Value', true);
-            app.handles.conv_use_adaptive = uicheckbox(conv_layout, 'Text', 'Adaptive', 'Value', true);
-            uilabel(conv_layout, 'Text', 'Max jumps');
+            app.handles.conv_criterion.Layout.Row = 2; app.handles.conv_criterion.Layout.Column = 4;
+
+            app.handles.conv_binary = uicheckbox(conv_layout, 'Text', 'Binary search', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.conv_binary.Layout.Row = 3; app.handles.conv_binary.Layout.Column = 1;
+            app.handles.conv_use_adaptive = uicheckbox(conv_layout, 'Text', 'Adaptive', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.conv_use_adaptive.Layout.Row = 3; app.handles.conv_use_adaptive.Layout.Column = 2;
+            lbl = uilabel(conv_layout, 'Text', 'Max jumps', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 3;
             app.handles.conv_max_jumps = uieditfield(conv_layout, 'numeric', 'Value', 5);
-            app.handles.conv_agent_enabled = uicheckbox(conv_layout, 'Text', 'Agent-guided', 'Value', true);
+            app.handles.conv_max_jumps.Layout.Row = 3; app.handles.conv_max_jumps.Layout.Column = 4;
 
-            app.handles.conv_math = uihtml(panel_conv, 'HTMLSource', ...
-                "<div style='font-family:Segoe UI;font-size:12px;color:#333;'>" + ...
-                "<b style='color:#0066cc;'>Finite Difference | Evolution Mode</b><br>" + ...
+            app.handles.conv_agent_enabled = uicheckbox(conv_layout, 'Text', 'Agent-guided', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.conv_agent_enabled.Layout.Row = 4;
+            app.handles.conv_agent_enabled.Layout.Column = 1;
+
+            app.handles.conv_math = uihtml(conv_layout, 'HTMLSource', ...
+                "<div style='font-family:Segoe UI;font-size:12px;color:#ddd;'>" + ...
+                "<b style='color:#80c7ff;'>Finite Difference | Evolution Mode</b><br>" + ...
                 "<b>Convergence Criterion:</b><br>" + ...
-                "$$\epsilon_N = \frac{\|\omega_N-\omega_{2N}\|_2}{\|\omega_{2N}\|_2}$$<br>" + ...
-                "<span style='font-size:11px;color:#666;'>" + ...
-                "Method: <b>Finite Difference</b> | Mode: <b>Evolution</b> | Agent: <b>Yes</b> | Binary: <b>Yes</b>" + ...
-                "</span></div>" + ...
+                "$\\epsilon_N = \\frac{\\|\\omega_N-\\omega_{2N}\\|_2}{\\|\\omega_{2N}\\|_2}$</div>" + ...
                 "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>");
+            app.handles.conv_math.Layout.Row = 4;
+            app.handles.conv_math.Layout.Column = [2 4];
 
-            % --- Sustainability ---
-            panel_sus = uipanel(left_layout, 'Title', 'Sustainability');
-            sus_layout = uigridlayout(panel_sus, [2 2]);
-            sus_layout.ColumnWidth = {'1x', '1x'};
-            sus_layout.RowHeight = {'fit', 'fit'};
-            sus_layout.Padding = [6 6 6 6];
+            % Sustainability panel
+            panel_sus = uipanel(left_layout, 'Title', 'Sustainability', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_sus.Layout.Row = app.layout_cfg.coords.config.panel_sus(1);
+            panel_sus.Layout.Column = app.layout_cfg.coords.config.panel_sus(2);
+            cfg_sus = app.layout_cfg.config_tab.sus_grid;
+            sus_layout = uigridlayout(panel_sus, cfg_sus.rows_cols);
+            sus_layout.ColumnWidth = cfg_sus.col_widths;
+            sus_layout.RowHeight = cfg_sus.row_heights;
+            sus_layout.Padding = cfg_sus.padding;
 
-            app.handles.enable_monitoring = uicheckbox(sus_layout, 'Text', 'Enable monitoring', 'Value', true);
-            uilabel(sus_layout, 'Text', 'Sample interval (s)');
+            app.handles.enable_monitoring = uicheckbox(sus_layout, 'Text', 'Enable monitoring', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.enable_monitoring.Layout.Row = 1;
+            app.handles.enable_monitoring.Layout.Column = 1;
+            lbl = uilabel(sus_layout, 'Text', 'Sample interval (s)', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 1;
+            lbl.Layout.Column = 2;
             app.handles.sample_interval = uieditfield(sus_layout, 'numeric', 'Value', 0.5);
-            uilabel(sus_layout, 'Text', '');
+            app.handles.sample_interval.Layout.Row = 2;
+            app.handles.sample_interval.Layout.Column = 2;
 
-            % --- Validation ---
-            % Moved to readiness checklist area
+            % Right panel stack
+            cfg_right = app.layout_cfg.config_tab.right;
+            right_layout = uigridlayout(right, cfg_right.rows_cols);
+            right_layout.RowHeight = cfg_right.row_heights;
+            right_layout.Padding = cfg_right.padding;
+            right_layout.RowSpacing = cfg_right.row_spacing;
 
-            % Right panel layout
-            right_layout = uigridlayout(right, [3 1]);
-            right_layout.RowHeight = {'fit', 'fit', '1x'};
-            right_layout.Padding = [10 10 10 10];
-            right_layout.RowSpacing = 10;
+            % Readiness checklist
+            panel_check = uipanel(right_layout, 'Title', 'Readiness Checklist', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_check.Layout.Row = app.layout_cfg.coords.config.panel_check(1);
+            panel_check.Layout.Column = app.layout_cfg.coords.config.panel_check(2);
+            cfg_check = app.layout_cfg.config_tab.check_grid;
+            check_layout = uigridlayout(panel_check, cfg_check.rows_cols);
+            check_layout.ColumnWidth = cfg_check.col_widths;
+            check_layout.RowHeight = cfg_check.row_heights;
+            check_layout.Padding = cfg_check.padding;
+            check_layout.RowSpacing = cfg_check.row_spacing;
 
-            % Checklist
-            panel_check = uipanel(right_layout, 'Title', 'Readiness Checklist');
-            check_layout = uigridlayout(panel_check, [9 2]);
-            check_layout.ColumnWidth = {20, '1x'};
-            check_layout.RowHeight = {'fit', 'fit', 'fit', 'fit', 'fit', 'fit', 'fit', 'fit', 'fit'};
-            check_layout.Padding = [6 6 6 6];
-            check_layout.RowSpacing = 6;
+            app.handles.check_grid = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_grid.Layout.Row = 1; app.handles.check_grid.Layout.Column = 1;
+            lbl = uilabel(check_layout, 'Text', 'Grid (Nx, Ny)', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 2;
+            app.handles.check_domain = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_domain.Layout.Row = 2; app.handles.check_domain.Layout.Column = 1;
+            lbl = uilabel(check_layout, 'Text', 'Domain (Lx, Ly)', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 2;
+            app.handles.check_time = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_time.Layout.Row = 3; app.handles.check_time.Layout.Column = 1;
+            lbl = uilabel(check_layout, 'Text', 'Time (dt, Tfinal)', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 2;
+            app.handles.check_ic = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_ic.Layout.Row = 4; app.handles.check_ic.Layout.Column = 1;
+            lbl = uilabel(check_layout, 'Text', 'Initial condition', 'FontColor', C.fg_text); lbl.Layout.Row = 4; lbl.Layout.Column = 2;
+            app.handles.check_conv = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_conv.Layout.Row = 5; app.handles.check_conv.Layout.Column = 1;
+            lbl = uilabel(check_layout, 'Text', 'Convergence settings', 'FontColor', C.fg_text); lbl.Layout.Row = 5; lbl.Layout.Column = 2;
 
-            app.handles.check_grid = uilabel(check_layout, 'Text', '●', 'FontSize', 12, 'FontColor', [0.8 0.2 0.2]);
-            uilabel(check_layout, 'Text', 'Grid (Nx, Ny)');
-            app.handles.check_domain = uilabel(check_layout, 'Text', '●', 'FontSize', 12, 'FontColor', [0.8 0.2 0.2]);
-            uilabel(check_layout, 'Text', 'Domain (Lx, Ly)');
-            app.handles.check_time = uilabel(check_layout, 'Text', '●', 'FontSize', 12, 'FontColor', [0.8 0.2 0.2]);
-            uilabel(check_layout, 'Text', 'Time (dt, Tfinal)');
-            app.handles.check_ic = uilabel(check_layout, 'Text', '●', 'FontSize', 12, 'FontColor', [0.8 0.2 0.2]);
-            uilabel(check_layout, 'Text', 'Initial condition');
-            app.handles.check_conv = uilabel(check_layout, 'Text', '●', 'FontSize', 12, 'FontColor', [0.8 0.2 0.2]);
-            uilabel(check_layout, 'Text', 'Convergence settings');
-            
-            % Add spacer
-            uilabel(check_layout, 'Text', '');
-            uilabel(check_layout, 'Text', '');
-            
-            % Action buttons
             app.handles.btn_launch = uibutton(check_layout, 'push', ...
-                'Text', '🚀 Launch', ...
-                'FontWeight', 'bold', ...
-                'BackgroundColor', [0.2 0.8 0.3], ...
-                'FontColor', 'white', ...
+                'Text', 'Launch', 'FontWeight', 'bold', ...
+                'BackgroundColor', C.accent_green, 'FontColor', [0.05 0.05 0.05], ...
                 'ButtonPushedFcn', @(~,~) app.launch_simulation());
-            
+            app.handles.btn_launch.Layout.Row = 7; app.handles.btn_launch.Layout.Column = [1 2];
+
             app.handles.btn_export = uibutton(check_layout, 'push', ...
-                'Text', '💾 Export Config', ...
-                'BackgroundColor', [0.2 0.5 0.9], ...
-                'FontColor', 'white', ...
+                'Text', 'Export Config', ...
+                'BackgroundColor', C.accent_cyan, 'FontColor', [0.05 0.05 0.05], ...
                 'ButtonPushedFcn', @(~,~) app.export_configuration());
-            
+            app.handles.btn_export.Layout.Row = 8; app.handles.btn_export.Layout.Column = [1 2];
+
             app.handles.btn_save_log = uibutton(check_layout, 'push', ...
-                'Text', '📋 Save Log', ...
-                'BackgroundColor', [0.9 0.6 0.2], ...
-                'FontColor', 'white', ...
+                'Text', 'Save Log', ...
+                'BackgroundColor', C.accent_yellow, 'FontColor', [0.05 0.05 0.05], ...
                 'ButtonPushedFcn', @(~,~) app.save_terminal_log());
-            
-            uilabel(check_layout, 'Text', '');
+            app.handles.btn_save_log.Layout.Row = 9; app.handles.btn_save_log.Layout.Column = [1 2];
+
+            app.handles.run_status = uilabel(check_layout, 'Text', 'Idle', ...
+                'FontColor', C.fg_muted, 'HorizontalAlignment', 'center');
+            app.handles.run_status.Layout.Row = 10; app.handles.run_status.Layout.Column = [1 2];
 
             % IC configuration
-            panel_ic = uipanel(right_layout, 'Title', 'Initial Condition');
-            ic_layout = uigridlayout(panel_ic, [6 4]);
-            ic_layout.ColumnWidth = {'1x', '1x', '1x', '1x'};
-            ic_layout.RowHeight = {'fit', 'fit', 'fit', 'fit', 'fit', 'fit'};
-            ic_layout.Padding = [6 6 6 6];
+            panel_ic = uipanel(right_layout, 'Title', 'Initial Condition', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_ic.Layout.Row = app.layout_cfg.coords.config.panel_ic(1);
+            panel_ic.Layout.Column = app.layout_cfg.coords.config.panel_ic(2);
+            cfg_ic = app.layout_cfg.config_tab.ic_grid;
+            ic_layout = uigridlayout(panel_ic, cfg_ic.rows_cols);
+            ic_layout.ColumnWidth = cfg_ic.col_widths;
+            ic_layout.RowHeight = cfg_ic.row_heights;
+            ic_layout.Padding = cfg_ic.padding;
+            ic_layout.RowSpacing = cfg_ic.row_spacing;
 
-            uilabel(ic_layout, 'Text', 'IC Type');
+            lbl = uilabel(ic_layout, 'Text', 'IC Type', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.ic_dropdown = uidropdown(ic_layout, ...
-                'Items', {'Stretched Gaussian', 'Lamb-Oseen', 'Rankine', 'Lamb Dipole', ...
-                          'Taylor-Green', 'Random Turbulence', 'Elliptical Vortex'}, ...
+                'Items', {'Stretched Gaussian', 'Vortex Blob', 'Vortex Pair', 'Multi-Vortex', ...
+                          'Lamb-Oseen', 'Rankine', 'Lamb Dipole', 'Taylor-Green', ...
+                          'Random Turbulence', 'Elliptical Vortex'}, ...
                 'Value', 'Stretched Gaussian', ...
                 'ValueChangedFcn', @(~,~) app.on_ic_changed());
-            uilabel(ic_layout, 'Text', 'Scale Factor');
-            app.handles.ic_scale = uieditfield(ic_layout, 'numeric', 'Value', 1.0, ...
-                'Limits', [0.1 10.0], ...
+            app.handles.ic_dropdown.Layout.Row = 1; app.handles.ic_dropdown.Layout.Column = 2;
+
+            lbl = uilabel(ic_layout, 'Text', 'Pattern', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
+            app.handles.ic_pattern = uidropdown(ic_layout, ...
+                'Items', {'single', 'circular', 'grid', 'random'}, ...
+                'Value', 'single', ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            uilabel(ic_layout, 'Text', 'Count (N)');
+            app.handles.ic_pattern.Layout.Row = 1; app.handles.ic_pattern.Layout.Column = 4;
+
+            lbl = uilabel(ic_layout, 'Text', 'Scale Factor', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            app.handles.ic_scale = uieditfield(ic_layout, 'numeric', 'Value', 1.0, ...
+                'Limits', [0.1 10.0], 'ValueChangedFcn', @(~,~) app.update_ic_preview());
+            app.handles.ic_scale.Layout.Row = 2; app.handles.ic_scale.Layout.Column = 2;
+
+            lbl = uilabel(ic_layout, 'Text', 'Count (N)', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
             app.handles.ic_count = uieditfield(ic_layout, 'numeric', 'Value', 1, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
+            app.handles.ic_count.Layout.Row = 2; app.handles.ic_count.Layout.Column = 4;
 
             app.handles.ic_equation = uitextarea(ic_layout, ...
-                'Value', {'ω(x,y) = exp(−ax² − by²)'}, ...
-                'Editable', 'off', ...
-                'FontSize', 12, 'WordWrap', 'on');
+                'Value', {'omega(x,y) = exp(-a x^2 - b y^2)'}, ...
+                'Editable', 'off', 'FontSize', 11, 'WordWrap', 'on', ...
+                'BackgroundColor', C.bg_input, 'FontColor', C.fg_text);
+            app.handles.ic_equation.Layout.Row = 3;
+            app.handles.ic_equation.Layout.Column = [1 4];
 
-            app.handles.ic_coeff1_label = uilabel(ic_layout, 'Text', 'Coeff 1');
+            app.handles.ic_coeff1_label = uilabel(ic_layout, 'Text', 'Coeff 1', 'FontColor', C.fg_text);
+            app.handles.ic_coeff1_label.Layout.Row = 4; app.handles.ic_coeff1_label.Layout.Column = 1;
             app.handles.ic_coeff1 = uieditfield(ic_layout, 'numeric', 'Value', 2.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff2_label = uilabel(ic_layout, 'Text', 'Coeff 2');
+            app.handles.ic_coeff1.Layout.Row = 4; app.handles.ic_coeff1.Layout.Column = 2;
+            app.handles.ic_coeff2_label = uilabel(ic_layout, 'Text', 'Coeff 2', 'FontColor', C.fg_text);
+            app.handles.ic_coeff2_label.Layout.Row = 4; app.handles.ic_coeff2_label.Layout.Column = 3;
             app.handles.ic_coeff2 = uieditfield(ic_layout, 'numeric', 'Value', 0.2, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff3_label = uilabel(ic_layout, 'Text', 'Coeff 3');
+            app.handles.ic_coeff2.Layout.Row = 4; app.handles.ic_coeff2.Layout.Column = 4;
+
+            app.handles.ic_coeff3_label = uilabel(ic_layout, 'Text', 'Coeff 3', 'FontColor', C.fg_text);
+            app.handles.ic_coeff3_label.Layout.Row = 5; app.handles.ic_coeff3_label.Layout.Column = 1;
             app.handles.ic_coeff3 = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff4_label = uilabel(ic_layout, 'Text', 'Coeff 4');
+            app.handles.ic_coeff3.Layout.Row = 5; app.handles.ic_coeff3.Layout.Column = 2;
+            app.handles.ic_coeff4_label = uilabel(ic_layout, 'Text', 'Coeff 4', 'FontColor', C.fg_text);
+            app.handles.ic_coeff4_label.Layout.Row = 5; app.handles.ic_coeff4_label.Layout.Column = 3;
             app.handles.ic_coeff4 = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            uilabel(ic_layout, 'Text', 'Center x₀');
+            app.handles.ic_coeff4.Layout.Row = 5; app.handles.ic_coeff4.Layout.Column = 4;
+
+            lbl = uilabel(ic_layout, 'Text', 'Center x0', 'FontColor', C.fg_text); lbl.Layout.Row = 6; lbl.Layout.Column = 1;
             app.handles.ic_center_x = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            uilabel(ic_layout, 'Text', 'Center y₀');
+            app.handles.ic_center_x.Layout.Row = 6; app.handles.ic_center_x.Layout.Column = 2;
+            lbl = uilabel(ic_layout, 'Text', 'Center y0', 'FontColor', C.fg_text); lbl.Layout.Row = 6; lbl.Layout.Column = 3;
             app.handles.ic_center_y = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
+            app.handles.ic_center_y.Layout.Row = 6; app.handles.ic_center_y.Layout.Column = 4;
+
+            app.handles.ic_status = uilabel(ic_layout, 'Text', 'IC ready', 'FontColor', C.fg_muted);
+            app.handles.ic_status.Layout.Row = 7;
+            app.handles.ic_status.Layout.Column = [1 4];
+
+            % Mode-specific controls
+            panel_mode = uipanel(right_layout, 'Title', 'Mode-Specific Controls', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_mode.Layout.Row = app.layout_cfg.coords.config.panel_mode(1);
+            panel_mode.Layout.Column = app.layout_cfg.coords.config.panel_mode(2);
+            cfg_mode = app.layout_cfg.config_tab.mode_grid;
+            mode_layout = uigridlayout(panel_mode, cfg_mode.rows_cols);
+            mode_layout.ColumnWidth = cfg_mode.col_widths;
+            mode_layout.RowHeight = cfg_mode.row_heights;
+            mode_layout.Padding = cfg_mode.padding;
+            mode_layout.RowSpacing = cfg_mode.row_spacing;
+
+            app.handles.sweep_parameter_label = uilabel(mode_layout, 'Text', 'Sweep Param', 'FontColor', C.fg_text);
+            app.handles.sweep_parameter_label.Layout.Row = 1;
+            app.handles.sweep_parameter_label.Layout.Column = 1;
+            app.handles.sweep_parameter = uidropdown(mode_layout, ...
+                'Items', {'nu', 'dt', 'Nx', 'Ny', 'Tfinal'}, ...
+                'Value', 'nu', ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.sweep_parameter.Layout.Row = 1; app.handles.sweep_parameter.Layout.Column = 2;
+            app.handles.sweep_values_label = uilabel(mode_layout, 'Text', 'Sweep Values', 'FontColor', C.fg_text);
+            app.handles.sweep_values_label.Layout.Row = 1;
+            app.handles.sweep_values_label.Layout.Column = 3;
+            app.handles.sweep_values = uieditfield(mode_layout, 'text', ...
+                'Value', '1e-6,5e-6,1e-5', ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.sweep_values.Layout.Row = 1; app.handles.sweep_values.Layout.Column = 4;
+
+            app.handles.exp_coeff_label = uilabel(mode_layout, 'Text', 'Exp Coeff', 'FontColor', C.fg_text);
+            app.handles.exp_coeff_label.Layout.Row = 2;
+            app.handles.exp_coeff_label.Layout.Column = 1;
+            app.handles.exp_coeff_selector = uidropdown(mode_layout, ...
+                'Items', {'ic_coeff1', 'ic_coeff2', 'ic_coeff3', 'ic_coeff4'}, ...
+                'Value', 'ic_coeff1', ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.exp_coeff_selector.Layout.Row = 2; app.handles.exp_coeff_selector.Layout.Column = 2;
+            app.handles.exp_range_start_label = uilabel(mode_layout, 'Text', 'Exp Range Start', 'FontColor', C.fg_text);
+            app.handles.exp_range_start_label.Layout.Row = 2;
+            app.handles.exp_range_start_label.Layout.Column = 3;
+            app.handles.exp_range_start = uieditfield(mode_layout, 'numeric', ...
+                'Value', 0.5, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.exp_range_start.Layout.Row = 2; app.handles.exp_range_start.Layout.Column = 4;
+
+            app.handles.exp_range_end_label = uilabel(mode_layout, 'Text', 'Exp End', 'FontColor', C.fg_text);
+            app.handles.exp_range_end_label.Layout.Row = 3;
+            app.handles.exp_range_end_label.Layout.Column = 1;
+            app.handles.exp_range_end = uieditfield(mode_layout, 'numeric', ...
+                'Value', 2.0, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.exp_range_end.Layout.Row = 3; app.handles.exp_range_end.Layout.Column = 2;
+            app.handles.exp_num_points_label = uilabel(mode_layout, 'Text', 'Exp Points', 'FontColor', C.fg_text);
+            app.handles.exp_num_points_label.Layout.Row = 3;
+            app.handles.exp_num_points_label.Layout.Column = 3;
+            app.handles.exp_num_points = uieditfield(mode_layout, 'numeric', ...
+                'Value', 4, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.exp_num_points.Layout.Row = 3; app.handles.exp_num_points.Layout.Column = 4;
 
             % IC preview
-            panel_preview = uipanel(right_layout, 'Title', 'IC Preview (t=0)');
+            panel_preview = uipanel(right_layout, 'Title', 'IC Preview (t=0)', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_preview.Layout.Row = app.layout_cfg.coords.config.panel_preview(1);
+            panel_preview.Layout.Column = app.layout_cfg.coords.config.panel_preview(2);
             preview_layout = uigridlayout(panel_preview, [1 1]);
             preview_layout.Padding = [6 6 6 6];
             app.handles.ic_preview_axes = uiaxes(preview_layout);
-            app.handles.ic_preview_axes.Color = [0.15 0.15 0.15];
-            app.handles.ic_preview_axes.XColor = [0.9 0.9 0.9];
-            app.handles.ic_preview_axes.YColor = [0.9 0.9 0.9];
-            app.handles.ic_preview_axes.ZColor = [0.9 0.9 0.9];
-            app.handles.ic_preview_axes.GridColor = [0.3 0.3 0.3];
+            app.style_axes(app.handles.ic_preview_axes);
 
             % Initialize display
             app.update_delta();
             app.update_ic_fields();
+            app.update_mode_control_visibility();
             app.update_ic_preview();
             app.update_checklist();
         end
-        
-        
         function create_monitoring_tab(app)
-            % Redesigned monitoring tab: Left 3/4 (4 sections) + Right 1/4 (terminal)
+            % Monitoring tab layout and dark theme styling
+            C = app.layout_cfg.colors;
+            cfg = app.layout_cfg.monitor_tab;
+
             parent = app.tabs.monitoring;
-            parent.Units = 'normalized';
-            parent.BackgroundColor = [0.15 0.15 0.15];  % Dark mode
+            parent.BackgroundColor = C.bg_dark;
 
-            % Main layout: 2 columns (75% left, 25% right)
-            root = uigridlayout(parent, [1 2]);
-            root.ColumnWidth = {'3x', '1x'};
-            root.Padding = [10 10 10 10];
-            root.ColumnSpacing = 12;
+            root = uigridlayout(parent, cfg.root.rows_cols);
+            root.ColumnWidth = cfg.root.col_widths;
+            root.RowHeight = cfg.root.row_heights;
+            root.Padding = cfg.root.padding;
+            root.ColumnSpacing = cfg.root.col_spacing;
 
-            % ======== LEFT PANEL (3/4 - Four sections in 2x2 grid) ========
-            left_panel = uipanel(root, 'Title', '📊 Live Monitoring', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
-            left_panel.Layout.Column = 1;
-            
-            left_layout = uigridlayout(left_panel, [2 2]);
-            left_layout.RowHeight = {'1x', '1x'};
-            left_layout.ColumnWidth = {'1x', '1x'};
-            left_layout.Padding = [8 8 8 8];
-            left_layout.RowSpacing = 10;
-            left_layout.ColumnSpacing = 10;
+            left_panel = uipanel(root, 'Title', 'Live Monitoring', ...
+                'BackgroundColor', C.bg_panel_alt);
+            left_panel.Layout.Row = app.layout_cfg.coords.monitor.left_panel(1);
+            left_panel.Layout.Column = app.layout_cfg.coords.monitor.left_panel(2);
 
-            % TOP-LEFT: Iterations vs Time figure
-            panel_iter_time = uipanel(left_layout, 'Title', '⚡ Iterations vs Time', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
-            panel_iter_time.Layout.Row = 1;
-            panel_iter_time.Layout.Column = 1;
+            left_layout = uigridlayout(left_panel, cfg.left.rows_cols);
+            left_layout.RowHeight = cfg.left.row_heights;
+            left_layout.ColumnWidth = cfg.left.col_widths;
+            left_layout.Padding = cfg.left.padding;
+            left_layout.RowSpacing = cfg.left.row_spacing;
+            left_layout.ColumnSpacing = cfg.left.col_spacing;
+
+            panel_iter_time = uipanel(left_layout, 'Title', 'Iterations vs Time', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_iter_time.Layout.Row = app.layout_cfg.coords.monitor.panel_iter_time(1);
+            panel_iter_time.Layout.Column = app.layout_cfg.coords.monitor.panel_iter_time(2);
             iter_time_layout = uigridlayout(panel_iter_time, [1 1]);
             iter_time_layout.Padding = [6 6 6 6];
-            
+
             app.handles.exec_monitor_axes1 = uiaxes(iter_time_layout);
-            app.handles.exec_monitor_axes1.Color = [0.15 0.15 0.15];
-            app.handles.exec_monitor_axes1.XColor = [0.9 0.9 0.9];
-            app.handles.exec_monitor_axes1.YColor = [0.9 0.9 0.9];
-            app.handles.exec_monitor_axes1.ZColor = [0.9 0.9 0.9];
-            app.handles.exec_monitor_axes1.GridColor = [0.3 0.3 0.3];
-            title(app.handles.exec_monitor_axes1, 'Iterations vs Time (no data yet)', 'Color', [0.9 0.9 0.9]);
-            xlabel(app.handles.exec_monitor_axes1, 'Time (s)', 'Color', [0.9 0.9 0.9]);
-            ylabel(app.handles.exec_monitor_axes1, 'Iterations', 'Color', [0.9 0.9 0.9]);
+            app.style_axes(app.handles.exec_monitor_axes1);
+            title(app.handles.exec_monitor_axes1, 'Iterations vs Time (no data yet)', 'Color', C.fg_text);
+            xlabel(app.handles.exec_monitor_axes1, 'Time (s)', 'Color', C.fg_text);
+            ylabel(app.handles.exec_monitor_axes1, 'Iterations', 'Color', C.fg_text);
             grid(app.handles.exec_monitor_axes1, 'on');
 
-            % TOP-RIGHT: Iteration/Time vs Time figure
-            panel_iter_per_sec = uipanel(left_layout, 'Title', '⚡ Iterations/Second vs Time', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
-            panel_iter_per_sec.Layout.Row = 1;
-            panel_iter_per_sec.Layout.Column = 2;
+            panel_iter_per_sec = uipanel(left_layout, 'Title', 'Iterations per Second vs Time', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_iter_per_sec.Layout.Row = app.layout_cfg.coords.monitor.panel_iter_per_sec(1);
+            panel_iter_per_sec.Layout.Column = app.layout_cfg.coords.monitor.panel_iter_per_sec(2);
             iter_per_sec_layout = uigridlayout(panel_iter_per_sec, [1 1]);
             iter_per_sec_layout.Padding = [6 6 6 6];
-            
+
             app.handles.exec_monitor_axes2 = uiaxes(iter_per_sec_layout);
-            app.handles.exec_monitor_axes2.Color = [0.15 0.15 0.15];
-            app.handles.exec_monitor_axes2.XColor = [0.9 0.9 0.9];
-            app.handles.exec_monitor_axes2.YColor = [0.9 0.9 0.9];
-            app.handles.exec_monitor_axes2.ZColor = [0.9 0.9 0.9];
-            app.handles.exec_monitor_axes2.GridColor = [0.3 0.3 0.3];
-            title(app.handles.exec_monitor_axes2, 'Iterations/Second vs Time (no data yet)', 'Color', [0.9 0.9 0.9]);
-            xlabel(app.handles.exec_monitor_axes2, 'Time (s)', 'Color', [0.9 0.9 0.9]);
-            ylabel(app.handles.exec_monitor_axes2, 'Iterations/s', 'Color', [0.9 0.9 0.9]);
+            app.style_axes(app.handles.exec_monitor_axes2);
+            title(app.handles.exec_monitor_axes2, 'Iterations/Second vs Time (no data yet)', 'Color', C.fg_text);
+            xlabel(app.handles.exec_monitor_axes2, 'Time (s)', 'Color', C.fg_text);
+            ylabel(app.handles.exec_monitor_axes2, 'Iterations/s', 'Color', C.fg_text);
             grid(app.handles.exec_monitor_axes2, 'on');
 
-            % BOTTOM-LEFT: Convergence Monitor
-            panel_conv = uipanel(left_layout, 'Title', '📉 Convergence Monitor', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
-            panel_conv.Layout.Row = 2;
-            panel_conv.Layout.Column = 1;
+            panel_conv = uipanel(left_layout, 'Title', 'Convergence Monitor', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_conv.Layout.Row = app.layout_cfg.coords.monitor.panel_conv(1);
+            panel_conv.Layout.Column = app.layout_cfg.coords.monitor.panel_conv(2);
             conv_layout = uigridlayout(panel_conv, [1 1]);
             conv_layout.Padding = [6 6 6 6];
 
             app.handles.conv_monitor_axes = uiaxes(conv_layout);
-            app.handles.conv_monitor_axes.Color = [0.15 0.15 0.15];
-            app.handles.conv_monitor_axes.XColor = [0.9 0.9 0.9];
-            app.handles.conv_monitor_axes.YColor = [0.9 0.9 0.9];
-            app.handles.conv_monitor_axes.ZColor = [0.9 0.9 0.9];
-            app.handles.conv_monitor_axes.GridColor = [0.3 0.3 0.3];
-            title(app.handles.conv_monitor_axes, 'Refinement vs Iteration (no data yet)', 'Color', [0.9 0.9 0.9]);
-            xlabel(app.handles.conv_monitor_axes, 'Iteration', 'Color', [0.9 0.9 0.9]);
-            ylabel(app.handles.conv_monitor_axes, 'Refinement Level', 'Color', [0.9 0.9 0.9]);
+            app.style_axes(app.handles.conv_monitor_axes);
+            title(app.handles.conv_monitor_axes, 'Refinement vs Iteration (no data yet)', 'Color', C.fg_text);
+            xlabel(app.handles.conv_monitor_axes, 'Iteration', 'Color', C.fg_text);
+            ylabel(app.handles.conv_monitor_axes, 'Refinement Level', 'Color', C.fg_text);
             grid(app.handles.conv_monitor_axes, 'on');
             app.handles.conv_monitor_axes.YTickMode = 'manual';
 
-            % BOTTOM-RIGHT: Data Metrics (Simulation & Sustainability)
-            panel_metrics = uipanel(left_layout, 'Title', '📊 Simulation Metrics', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
-            panel_metrics.Layout.Row = 2;
-            panel_metrics.Layout.Column = 2;
-            metrics_layout = uigridlayout(panel_metrics, [12 2]);
-            metrics_layout.ColumnWidth = {'1x', '1x'};
-            metrics_layout.RowHeight = repmat({'fit'}, 1, 12);
-            metrics_layout.Padding = [6 6 6 6];
-            metrics_layout.RowSpacing = 4;
+            panel_metrics = uipanel(left_layout, 'Title', 'Simulation Metrics', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_metrics.Layout.Row = app.layout_cfg.coords.monitor.panel_metrics(1);
+            panel_metrics.Layout.Column = app.layout_cfg.coords.monitor.panel_metrics(2);
+            metrics_layout = uigridlayout(panel_metrics, cfg.metrics.rows_cols);
+            metrics_layout.ColumnWidth = cfg.metrics.col_widths;
+            metrics_layout.RowHeight = cfg.metrics.row_heights;
+            metrics_layout.Padding = cfg.metrics.padding;
+            metrics_layout.RowSpacing = cfg.metrics.row_spacing;
 
-            % Simulation Metrics
-            uilabel(metrics_layout, 'Text', '🔹 SIMULATION', 'FontColor', [0.3 0.8 1.0], 'FontWeight', 'bold');
+            uilabel(metrics_layout, 'Text', 'SIMULATION', 'FontColor', C.accent_cyan, 'FontWeight', 'bold');
             uilabel(metrics_layout, 'Text', '');
-            
-            uilabel(metrics_layout, 'Text', 'Iterations:', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.metrics_iterations = uilabel(metrics_layout, 'Text', '0', 'FontColor', [0.3 1.0 0.3]);
-            
-            uilabel(metrics_layout, 'Text', 'Time Elapsed:', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.metrics_time_elapsed = uilabel(metrics_layout, 'Text', '0.0 s', 'FontColor', [0.3 1.0 0.3]);
-            
-            uilabel(metrics_layout, 'Text', 'Grid Size:', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.metrics_grid = uilabel(metrics_layout, 'Text', '128×128', 'FontColor', [0.3 1.0 0.3]);
-            
-            uilabel(metrics_layout, 'Text', 'Physical Time:', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.metrics_phys_time = uilabel(metrics_layout, 'Text', '0.0 s', 'FontColor', [0.3 1.0 0.3]);
-            
-            uilabel(metrics_layout, 'Text', 'Vorticity (max):', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.metrics_vorticity = uilabel(metrics_layout, 'Text', '--', 'FontColor', [0.3 1.0 0.3]);
-            
-            % Sustainability Metrics
-            uilabel(metrics_layout, 'Text', '🟢 SUSTAINABILITY', 'FontColor', [0.3 1.0 0.3], 'FontWeight', 'bold');
-            uilabel(metrics_layout, 'Text', '');
-            
-            uilabel(metrics_layout, 'Text', 'CPU Usage:', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.metrics_cpu = uilabel(metrics_layout, 'Text', '-- %', 'FontColor', [0.3 1.0 0.3]);
-            
-            uilabel(metrics_layout, 'Text', 'Memory:', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.metrics_memory = uilabel(metrics_layout, 'Text', '-- MB', 'FontColor', [0.3 1.0 0.3]);
-            
-            uilabel(metrics_layout, 'Text', 'Energy Loss:', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.metrics_energy = uilabel(metrics_layout, 'Text', '-- %', 'FontColor', [0.3 1.0 0.3]);
+            uilabel(metrics_layout, 'Text', 'Iterations:', 'FontColor', C.fg_text);
+            app.handles.metrics_iterations = uilabel(metrics_layout, 'Text', '0', 'FontColor', C.accent_green);
+            uilabel(metrics_layout, 'Text', 'Time Elapsed:', 'FontColor', C.fg_text);
+            app.handles.metrics_time_elapsed = uilabel(metrics_layout, 'Text', '0.0 s', 'FontColor', C.accent_green);
+            uilabel(metrics_layout, 'Text', 'Grid Size:', 'FontColor', C.fg_text);
+            app.handles.metrics_grid = uilabel(metrics_layout, 'Text', '128x128', 'FontColor', C.accent_green);
+            uilabel(metrics_layout, 'Text', 'Physical Time:', 'FontColor', C.fg_text);
+            app.handles.metrics_phys_time = uilabel(metrics_layout, 'Text', '0.0 s', 'FontColor', C.accent_green);
+            uilabel(metrics_layout, 'Text', 'Vorticity (max):', 'FontColor', C.fg_text);
+            app.handles.metrics_vorticity = uilabel(metrics_layout, 'Text', '--', 'FontColor', C.accent_green);
 
-            % ======== RIGHT PANEL (1/4 - Terminal) ========
-            panel_terminal = uipanel(root, 'Title', '🖥️ Terminal', ...
-                'BackgroundColor', [0.20 0.20 0.20]);
-            panel_terminal.Layout.Column = 2;
+            uilabel(metrics_layout, 'Text', 'SUSTAINABILITY', 'FontColor', C.accent_green, 'FontWeight', 'bold');
+            uilabel(metrics_layout, 'Text', '');
+            uilabel(metrics_layout, 'Text', 'CPU Usage:', 'FontColor', C.fg_text);
+            app.handles.metrics_cpu = uilabel(metrics_layout, 'Text', '-- %', 'FontColor', C.accent_green);
+            uilabel(metrics_layout, 'Text', 'Memory:', 'FontColor', C.fg_text);
+            app.handles.metrics_memory = uilabel(metrics_layout, 'Text', '-- MB', 'FontColor', C.accent_green);
+            uilabel(metrics_layout, 'Text', 'Energy Loss:', 'FontColor', C.fg_text);
+            app.handles.metrics_energy = uilabel(metrics_layout, 'Text', '-- %', 'FontColor', C.accent_green);
+
+            panel_terminal = uipanel(root, 'Title', 'Terminal', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_terminal.Layout.Row = app.layout_cfg.coords.monitor.terminal_panel(1);
+            panel_terminal.Layout.Column = app.layout_cfg.coords.monitor.terminal_panel(2);
             terminal_layout = uigridlayout(panel_terminal, [1 1]);
             terminal_layout.Padding = [6 6 6 6];
 
@@ -677,167 +843,625 @@ classdef UIController < handle
                 'Editable', 'off', ...
                 'FontName', 'Courier New', ...
                 'FontSize', 10, ...
-                'BackgroundColor', [0.08 0.08 0.08], ...
-                'FontColor', [0.2 1.0 0.2]);
+                'BackgroundColor', C.bg_input, ...
+                'FontColor', C.accent_green);
         end
-        
         function create_terminal_tab(~)
             % Terminal tab removed (merged into monitoring tab)
         end
         
         function create_results_tab(app)
-            % Results & Figures with dropdown + tabbed gallery
+            % Results and figures tab
+            C = app.layout_cfg.colors;
+            cfg = app.layout_cfg.results_tab;
+
             parent = app.tabs.results;
-            parent.Units = 'normalized';
-            parent.BackgroundColor = [0.97 0.97 0.99];
+            parent.BackgroundColor = C.bg_dark;
 
-            root = uigridlayout(parent, [2 1]);
-            root.RowHeight = {'1x', 'fit'};
-            root.Padding = [10 10 10 10];
-            root.RowSpacing = 10;
+            root = uigridlayout(parent, cfg.root.rows_cols);
+            root.RowHeight = cfg.root.row_heights;
+            root.Padding = cfg.root.padding;
+            root.RowSpacing = cfg.root.row_spacing;
 
-            panel_fig = uipanel(root, 'Title', 'Figures');
-            fig_layout = uigridlayout(panel_fig, [2 1]);
-            fig_layout.RowHeight = {'fit', '1x'};
-            fig_layout.Padding = [6 6 6 6];
+            panel_fig = uipanel(root, 'Title', 'Figures', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_fig.Layout.Row = app.layout_cfg.coords.results.panel_fig(1);
+            panel_fig.Layout.Column = app.layout_cfg.coords.results.panel_fig(2);
+            fig_layout = uigridlayout(panel_fig, cfg.fig_grid.rows_cols);
+            fig_layout.RowHeight = cfg.fig_grid.row_heights;
+            fig_layout.Padding = cfg.fig_grid.padding;
 
-            control_row = uigridlayout(fig_layout, [1 5]);
-            control_row.ColumnWidth = {'fit', '1x', 'fit', 'fit', 'fit'};
-            control_row.Padding = [0 0 0 0];
+            control_row = uigridlayout(fig_layout, cfg.controls.rows_cols);
+            control_row.ColumnWidth = cfg.controls.col_widths;
+            control_row.RowHeight = cfg.controls.row_heights;
+            control_row.Padding = cfg.controls.padding;
+            control_row.ColumnSpacing = cfg.controls.col_spacing;
 
-            uilabel(control_row, 'Text', 'Figure');
+            uilabel(control_row, 'Text', 'Figure', 'FontColor', C.fg_text);
             app.handles.figure_selector = uidropdown(control_row, ...
                 'Items', {'No figures yet'}, ...
                 'Value', 'No figures yet', ...
                 'ValueChangedFcn', @(~,~) app.on_figure_selected());
-            uibutton(control_row, 'Text', '💾 Save Current', ...
+            uibutton(control_row, 'Text', 'Save Current', ...
                 'ButtonPushedFcn', @(~,~) app.save_current_figure());
-            uibutton(control_row, 'Text', '📦 Export All', ...
+            uibutton(control_row, 'Text', 'Export All', ...
                 'ButtonPushedFcn', @(~,~) app.export_all_figures());
-            uibutton(control_row, 'Text', '🔄 Refresh', ...
+            uibutton(control_row, 'Text', 'Refresh', ...
                 'ButtonPushedFcn', @(~,~) app.refresh_figures());
 
-            app.handles.figure_tabs = uitabgroup(fig_layout, 'Units', 'normalized');
+            app.handles.figure_tabs = uitabgroup(fig_layout);
             tab = uitab(app.handles.figure_tabs, 'Title', 'Preview');
             app.handles.figure_axes = uiaxes(tab);
-            title(app.handles.figure_axes, 'Figures will appear here during simulation');
+            app.style_axes(app.handles.figure_axes);
+            title(app.handles.figure_axes, 'Figures will appear here during simulation', 'Color', C.fg_text);
 
-            panel_metrics = uipanel(root, 'Title', 'Metrics & History');
+            panel_metrics = uipanel(root, 'Title', 'Metrics and History', ...
+                'BackgroundColor', C.bg_panel_alt);
+            panel_metrics.Layout.Row = app.layout_cfg.coords.results.panel_metrics(1);
+            panel_metrics.Layout.Column = app.layout_cfg.coords.results.panel_metrics(2);
             metrics_layout = uigridlayout(panel_metrics, [1 1]);
             metrics_layout.Padding = [6 6 6 6];
             app.handles.metrics_text = uitextarea(metrics_layout, ...
                 'Value', {'Run a simulation to populate metrics and history.'}, ...
-                'Editable', 'off');
+                'Editable', 'off', ...
+                'BackgroundColor', C.bg_input, ...
+                'FontColor', C.fg_text);
         end
-        
         % Action methods
         function launch_simulation(app)
-            % Collect all configuration from UI
+            % Collect UI state and execute selected run path synchronously
+            app.set_run_state('running', 'Collecting configuration...');
             try
-                % Method and Mode
-                method_val = app.handles.method_dropdown.Value;
-                switch method_val
-                    case 'Finite Difference'
-                        app.config.method = 'finite_difference';
-                    case 'Finite Volume'
-                        app.config.method = 'finite_volume';
-                    case 'Spectral'
-                        app.config.method = 'spectral';
-                    otherwise
-                        app.config.method = 'bathymetry';
-                end
+                app.collect_configuration_from_ui();
+                app.validate_launch_configuration();
 
-                mode_val = app.handles.mode_dropdown.Value;
-                switch mode_val
-                    case 'Evolution'
-                        app.config.mode = 'evolution';
-                    case 'Convergence'
-                        app.config.mode = 'convergence';
-                    case 'Sweep'
-                        app.config.mode = 'sweep';
-                    case 'Animation'
-                        app.config.mode = 'animation';
-                    otherwise
-                        app.config.mode = 'experimentation';
-                end
-                
-                % Parameters
-                app.config.Nx = round(app.handles.Nx.Value);
-                app.config.Ny = round(app.handles.Ny.Value);
-                app.config.Lx = app.handles.Lx.Value;
-                app.config.Ly = app.handles.Ly.Value;
-                app.config.delta = app.handles.delta.Value;
-                app.config.use_explicit_delta = false;
-                app.config.dt = app.handles.dt.Value;
-                app.config.Tfinal = app.handles.t_final.Value;
-                app.config.nu = app.handles.nu.Value;
-                app.config.num_snapshots = round(app.handles.num_snapshots.Value);
-                app.config.analysis_method = app.handles.method_dropdown.Value;
-
-                % Simulation settings
-                app.config.save_csv = app.handles.save_csv.Value;
-                app.config.save_mat = app.handles.save_mat.Value;
-                app.config.figures_save_png = app.handles.figures_save_png.Value;
-                app.config.figures_save_fig = app.handles.figures_save_fig.Value;
-                app.config.figures_dpi = app.handles.figures_dpi.Value;
-                app.config.figures_close_after_save = app.handles.figures_close_after_save.Value;
-                app.config.figures_use_owl_saver = app.handles.figures_use_owl_saver.Value;
-                app.config.create_animations = app.handles.create_animations.Value;
-                app.config.animation_format = app.handles.animation_format.Value;
-                app.config.animation_fps = app.handles.animation_fps.Value;
-                app.config.animation_num_frames = app.handles.animation_num_frames.Value;
-
-                % Bathymetry
-                app.config.bathymetry_enabled = app.handles.bathy_enable.Value;
-                app.config.bathymetry_file = app.handles.bathy_file.Value;
-
-                % IC - map display name to internal ic_type
-                ic_display_name = app.handles.ic_dropdown.Value;
-                app.config.ic_type = map_ic_display_to_type(ic_display_name);
-                app.config.ic_pattern = app.handles.ic_pattern.Value;
-                app.config.ic_count = round(app.handles.ic_count.Value);
-                app.config.ic_coeff1 = app.handles.ic_coeff1.Value;
-                app.config.ic_coeff2 = app.handles.ic_coeff2.Value;
-                app.config.ic_coeff3 = app.handles.ic_coeff3.Value;
-                app.config.ic_coeff4 = app.handles.ic_coeff4.Value;
-                app.config.ic_center_x = app.handles.ic_center_x.Value;
-                app.config.ic_center_y = app.handles.ic_center_y.Value;
-                app.config.ic_coeff = [app.config.ic_coeff1, app.config.ic_coeff2, ...
-                                        app.config.ic_coeff3, app.config.ic_coeff4, ...
-                                        app.config.ic_center_x, app.config.ic_center_y];
-
-                % Convergence
-                app.config.convergence_N_coarse = app.handles.conv_N_coarse.Value;
-                app.config.convergence_N_max = app.handles.conv_N_max.Value;
-                app.config.convergence_tol = app.handles.conv_tolerance.Value;
-                app.config.convergence_criterion_type = app.handles.conv_criterion.Value;
-                app.config.convergence_binary = app.handles.conv_binary.Value;
-                app.config.convergence_use_adaptive = app.handles.conv_use_adaptive.Value;
-                app.config.convergence_max_jumps = app.handles.conv_max_jumps.Value;
-                app.config.convergence_agent_enabled = app.handles.conv_agent_enabled.Value;
-
-                % Sustainability
-                app.config.enable_monitoring = app.handles.enable_monitoring.Value;
-                app.config.sample_interval = app.handles.sample_interval.Value;
-                
-                % Store config for the emulator driver
-                setappdata(app.fig, 'ui_config', app.config);
-                
-                % Log
-                app.append_to_terminal(sprintf('✓ Configuration collected for %s method in %s mode', ...
-                    app.config.method, app.config.mode), 'success');
-                app.append_to_terminal(sprintf('  Grid: %d × %d, dt=%.4f, T=%.2f', ...
-                    app.config.Nx, app.config.Ny, app.config.dt, app.config.Tfinal));
-                
-                % Switch to monitoring/logs tab
                 app.tab_group.SelectedTab = app.tabs.monitoring;
-                
+                app.append_to_terminal(sprintf('Starting %s run (%s)...', app.config.mode, app.config.method), 'info');
+
+                if strcmp(app.config.mode, 'experimentation')
+                    summary = app.execute_experimentation_sweep();
+                else
+                    summary = app.execute_single_run(app.config);
+                end
+
+                app.update_results_summary(summary);
+                app.append_to_terminal('Run completed successfully.', 'success');
+                app.set_run_state('idle', 'Completed');
+                if isfield(app.tabs, 'results') && isvalid(app.tabs.results)
+                    app.tab_group.SelectedTab = app.tabs.results;
+                end
+
             catch ME
-                app.append_to_terminal(sprintf('✗ Error collecting configuration: %s', ME.message), 'error');
-                uialert(app.fig, ME.message, 'Configuration Error', 'icon', 'error');
+                app.append_to_terminal(sprintf('Launch failed: %s', ME.message), 'error');
+                app.set_run_state('idle', 'Failed');
+                if ~isempty(app.fig) && isvalid(app.fig)
+                    uialert(app.fig, ME.message, 'Launch Error', 'Icon', 'error');
+                end
             end
         end
-        
+
+        function collect_configuration_from_ui(app)
+            % Gather normalized runtime configuration from UI handles
+            method_val = app.handles.method_dropdown.Value;
+            switch method_val
+                case 'Finite Difference'
+                    app.config.method = 'finite_difference';
+                case 'Finite Volume'
+                    app.config.method = 'finite_volume';
+                case 'Spectral'
+                    app.config.method = 'spectral';
+                otherwise
+                    app.config.method = 'bathymetry';
+            end
+
+            mode_val = app.handles.mode_dropdown.Value;
+            switch mode_val
+                case 'Evolution'
+                    app.config.mode = 'evolution';
+                    app.config.run_mode_internal = 'Evolution';
+                case 'Convergence'
+                    app.config.mode = 'convergence';
+                    app.config.run_mode_internal = 'Convergence';
+                case 'Sweep'
+                    app.config.mode = 'sweep';
+                    app.config.run_mode_internal = 'ParameterSweep';
+                case 'Animation'
+                    app.config.mode = 'animation';
+                    app.config.run_mode_internal = 'Evolution';
+                otherwise
+                    app.config.mode = 'experimentation';
+                    app.config.run_mode_internal = 'Evolution';
+            end
+
+            app.config.Nx = round(app.handles.Nx.Value);
+            app.config.Ny = round(app.handles.Ny.Value);
+            app.config.Lx = app.handles.Lx.Value;
+            app.config.Ly = app.handles.Ly.Value;
+            app.config.delta = app.handles.delta.Value;
+            app.config.use_explicit_delta = false;
+            app.config.dt = app.handles.dt.Value;
+            app.config.Tfinal = app.handles.t_final.Value;
+            app.config.t_final = app.config.Tfinal;
+            app.config.nu = app.handles.nu.Value;
+            app.config.num_snapshots = round(app.handles.num_snapshots.Value);
+            app.config.analysis_method = app.handles.method_dropdown.Value;
+
+            app.config.save_csv = app.handles.save_csv.Value;
+            app.config.save_mat = app.handles.save_mat.Value;
+            app.config.figures_save_png = app.handles.figures_save_png.Value;
+            app.config.figures_save_fig = app.handles.figures_save_fig.Value;
+            app.config.figures_dpi = app.handles.figures_dpi.Value;
+            app.config.figures_close_after_save = app.handles.figures_close_after_save.Value;
+            app.config.figures_use_owl_saver = app.handles.figures_use_owl_saver.Value;
+            app.config.create_animations = app.handles.create_animations.Value;
+            app.config.animation_format = app.handles.animation_format.Value;
+            app.config.animation_fps = app.handles.animation_fps.Value;
+            app.config.animation_num_frames = max(2, round(app.handles.animation_num_frames.Value));
+            if strcmp(app.config.mode, 'animation')
+                app.config.create_animations = true;
+            end
+
+            app.config.bathymetry_enabled = app.handles.bathy_enable.Value;
+            app.config.bathymetry_file = app.handles.bathy_file.Value;
+
+            ic_display_name = app.handles.ic_dropdown.Value;
+            app.config.ic_type = map_ic_display_to_type(ic_display_name);
+            app.config.ic_pattern = app.handles.ic_pattern.Value;
+            app.config.ic_count = max(1, round(app.handles.ic_count.Value));
+            [c1, c2, c3, c4, x0, y0] = app.get_ic_coeff_control_values();
+            app.config.ic_coeff1 = c1;
+            app.config.ic_coeff2 = c2;
+            app.config.ic_coeff3 = c3;
+            app.config.ic_coeff4 = c4;
+            app.config.ic_center_x = x0;
+            app.config.ic_center_y = y0;
+            app.config.ic_scale = app.handles.ic_scale.Value;
+            app.config.ic_coeff = app.build_ic_coeff_vector(app.config.ic_type);
+
+            app.config.convergence_N_coarse = app.handles.conv_N_coarse.Value;
+            app.config.convergence_N_max = app.handles.conv_N_max.Value;
+            app.config.convergence_tol = app.handles.conv_tolerance.Value;
+            app.config.convergence_criterion_type = app.handles.conv_criterion.Value;
+            app.config.convergence_binary = app.handles.conv_binary.Value;
+            app.config.convergence_use_adaptive = app.handles.conv_use_adaptive.Value;
+            app.config.convergence_max_jumps = app.handles.conv_max_jumps.Value;
+            app.config.convergence_agent_enabled = app.handles.conv_agent_enabled.Value;
+
+            app.config.sweep_parameter = app.handles.sweep_parameter.Value;
+            app.config.sweep_values = app.parse_numeric_csv(app.handles.sweep_values.Value);
+            app.config.sweep_values = unique(app.config.sweep_values, 'stable');
+
+            app.config.experimentation = struct( ...
+                'coeff_selector', app.handles.exp_coeff_selector.Value, ...
+                'range_start', app.handles.exp_range_start.Value, ...
+                'range_end', app.handles.exp_range_end.Value, ...
+                'num_points', round(app.handles.exp_num_points.Value));
+
+            app.config.enable_monitoring = app.handles.enable_monitoring.Value;
+            app.config.sample_interval = app.handles.sample_interval.Value;
+
+            setappdata(app.fig, 'ui_config', app.config);
+        end
+
+        function validate_launch_configuration(app)
+            if ~strcmp(app.config.method, 'finite_difference')
+                error('Only Finite Difference is currently supported in UI launch execution. Select "Finite Difference" in Method.');
+            end
+
+            if app.config.Nx < 8 || app.config.Ny < 8
+                error('Grid resolution must be at least 8x8.');
+            end
+
+            if app.config.dt <= 0 || app.config.Tfinal <= 0
+                error('dt and Tfinal must both be positive.');
+            end
+
+            if strcmp(app.config.mode, 'sweep') && numel(app.config.sweep_values) < 2
+                error('Sweep mode requires at least two sweep values.');
+            end
+
+            if strcmp(app.config.mode, 'experimentation') && app.config.experimentation.num_points < 2
+                error('Experimentation mode requires at least two sweep points.');
+            end
+
+            if strcmp(app.config.mode, 'animation')
+                if app.config.animation_fps <= 0
+                    error('Animation FPS must be positive.');
+                end
+                if app.config.animation_num_frames < 2
+                    error('Animation requires at least two frames.');
+                end
+            end
+
+            if app.config.ic_count < 1
+                error('Initial-condition vortex count must be >= 1.');
+            end
+        end
+
+        function summary = execute_single_run(app, cfg_override)
+            % Build runtime structs and dispatch one run
+            if nargin < 2 || isempty(cfg_override)
+                cfg_override = app.config;
+            end
+
+            [run_config, parameters, settings] = app.build_runtime_inputs(cfg_override);
+            run_started = tic;
+            [results, paths] = ModeDispatcher(run_config, parameters, settings);
+            wall = toc(run_started);
+
+            summary = struct();
+            summary.mode = cfg_override.mode;
+            summary.run_config = run_config;
+            summary.parameters = parameters;
+            summary.settings = settings;
+            summary.results = results;
+            summary.paths = paths;
+            summary.wall_time = wall;
+
+            if isfield(results, 'max_omega')
+                max_omega_val = results.max_omega;
+                if ~isscalar(max_omega_val)
+                    max_omega_val = max(abs(max_omega_val), [], 'all', 'omitnan');
+                end
+                app.handles.metrics_vorticity.Text = sprintf('%.3e', max_omega_val);
+            end
+            app.handles.metrics_iterations.Text = num2str(max(1, round(cfg_override.Tfinal / max(cfg_override.dt, eps))));
+            app.handles.metrics_time_elapsed.Text = sprintf('%.2f s', wall);
+            app.handles.metrics_grid.Text = sprintf('%dx%d', cfg_override.Nx, cfg_override.Ny);
+            app.handles.metrics_phys_time.Text = sprintf('%.3f s', cfg_override.Tfinal);
+
+            if isfield(app.handles, 'figure_selector') && isfield(paths, 'figures_evolution')
+                app.append_to_terminal(sprintf('Figures: %s', char(string(paths.figures_evolution))), 'info');
+            end
+        end
+
+        function summary = execute_experimentation_sweep(app)
+            % Experimentation mode: coefficient sweep over repeated Evolution runs
+            base_cfg = app.config;
+            idx = find(strcmp({'ic_coeff1', 'ic_coeff2', 'ic_coeff3', 'ic_coeff4'}, base_cfg.experimentation.coeff_selector), 1);
+            if isempty(idx)
+                idx = 1;
+            end
+
+            values = linspace(base_cfg.experimentation.range_start, ...
+                              base_cfg.experimentation.range_end, ...
+                              max(2, base_cfg.experimentation.num_points));
+            max_omega_values = zeros(size(values));
+            run_ids = strings(size(values));
+
+            app.append_to_terminal(sprintf('Experimentation sweep on %s with %d points', ...
+                base_cfg.experimentation.coeff_selector, numel(values)), 'info');
+
+            for k = 1:numel(values)
+                cfg_k = base_cfg;
+                coeffs = [cfg_k.ic_coeff1, cfg_k.ic_coeff2, cfg_k.ic_coeff3, cfg_k.ic_coeff4];
+                coeffs(idx) = values(k);
+                cfg_k.ic_coeff1 = coeffs(1);
+                cfg_k.ic_coeff2 = coeffs(2);
+                cfg_k.ic_coeff3 = coeffs(3);
+                cfg_k.ic_coeff4 = coeffs(4);
+                cfg_k.ic_coeff = app.build_ic_coeff_vector(cfg_k.ic_type, coeffs);
+
+                app.append_to_terminal(sprintf('Experiment %d/%d: %s=%.4g', ...
+                    k, numel(values), base_cfg.experimentation.coeff_selector, values(k)), 'info');
+
+                run_summary = app.execute_single_run(cfg_k);
+                if isfield(run_summary.results, 'max_omega')
+                    max_omega_values(k) = run_summary.results.max_omega;
+                else
+                    max_omega_values(k) = NaN;
+                end
+                if isfield(run_summary.results, 'run_id')
+                    run_ids(k) = string(run_summary.results.run_id);
+                end
+            end
+
+            summary = struct();
+            summary.mode = 'experimentation';
+            summary.coeff_name = base_cfg.experimentation.coeff_selector;
+            summary.values = values;
+            summary.max_omega = max_omega_values;
+            summary.run_ids = run_ids;
+            summary.paths = struct();
+            summary.results = struct('max_omega', max(max_omega_values, [], 'omitnan'));
+            summary.wall_time = NaN;
+
+            lines = {'Experimentation sweep complete:'};
+            for k = 1:numel(values)
+                lines{end+1} = sprintf('  %s=%.4g -> max|omega|=%.4e', ...
+                    base_cfg.experimentation.coeff_selector, values(k), max_omega_values(k)); %#ok<AGROW>
+            end
+            if isfield(app.handles, 'metrics_text') && isvalid(app.handles.metrics_text)
+                app.handles.metrics_text.Value = lines;
+            end
+        end
+
+        function [run_config, parameters, settings] = build_runtime_inputs(app, cfg)
+            % Convert UI config to ModeDispatcher-compatible inputs
+            parameters = create_default_parameters();
+            settings = Settings();
+
+            parameters.Nx = cfg.Nx;
+            parameters.Ny = cfg.Ny;
+            parameters.Lx = cfg.Lx;
+            parameters.Ly = cfg.Ly;
+            parameters.dt = cfg.dt;
+            parameters.Tfinal = cfg.Tfinal;
+            parameters.t_final = cfg.Tfinal;
+            parameters.nu = cfg.nu;
+            parameters.ic_type = cfg.ic_type;
+            parameters.ic_coeff = cfg.ic_coeff;
+            parameters.num_plot_snapshots = max(1, cfg.num_snapshots);
+            parameters.num_snapshots = parameters.num_plot_snapshots;
+            parameters.snap_times = linspace(0, parameters.Tfinal, parameters.num_snapshots);
+            parameters.plot_snap_times = parameters.snap_times;
+            parameters.mode = cfg.run_mode_internal;
+            parameters.create_animations = logical(cfg.create_animations);
+            parameters.animation_format = cfg.animation_format;
+            parameters.animation_fps = cfg.animation_fps;
+            parameters.animation_num_frames = max(2, round(cfg.animation_num_frames));
+            parameters.num_animation_frames = parameters.animation_num_frames;
+            parameters.animation_times = linspace(0, parameters.Tfinal, parameters.num_animation_frames);
+
+            settings.monitor_enabled = logical(cfg.enable_monitoring);
+            settings.save_data = logical(cfg.save_mat || cfg.save_csv);
+            settings.save_figures = logical(cfg.figures_save_png || cfg.figures_save_fig);
+            settings.save_reports = true;
+            settings.media.format = cfg.animation_format;
+            settings.media.fps = cfg.animation_fps;
+            settings.media.frame_count = max(2, round(cfg.animation_num_frames));
+            settings.media.enabled = logical(cfg.create_animations || strcmp(cfg.mode, 'animation'));
+            settings.animation_format = cfg.animation_format;
+            settings.animation_frame_rate = cfg.animation_fps;
+            settings.animation_frame_count = settings.media.frame_count;
+            settings.animation_enabled = logical(cfg.create_animations || strcmp(cfg.mode, 'animation'));
+            settings.animation_fps = settings.animation_frame_rate;
+            settings.figure_dpi = cfg.figures_dpi;
+            settings.figure_format = 'png';
+            if cfg.figures_save_fig && ~cfg.figures_save_png
+                settings.figure_format = 'fig';
+            end
+            settings.output_root = 'Results';
+
+            if strcmp(cfg.mode, 'convergence')
+                parameters.mesh_sizes = app.build_mesh_sizes(cfg.convergence_N_coarse, cfg.convergence_N_max);
+                parameters.convergence_variable = 'max_omega';
+            end
+
+            if strcmp(cfg.mode, 'sweep')
+                parameters.sweep_parameter = cfg.sweep_parameter;
+                parameters.sweep_values = reshape(cfg.sweep_values, 1, []);
+            end
+
+            if strcmp(cfg.mode, 'animation')
+                parameters.create_animations = true;
+                parameters.animation_format = cfg.animation_format;
+                parameters.animation_fps = cfg.animation_fps;
+                parameters.num_animation_frames = max(2, round(cfg.animation_num_frames));
+            end
+
+            run_config = Build_Run_Config(app.get_dispatch_method(cfg.method), cfg.run_mode_internal, cfg.ic_type);
+        end
+
+        function mesh_sizes = build_mesh_sizes(~, n_coarse, n_max)
+            n0 = max(8, round(n_coarse));
+            nmax = max(n0, round(n_max));
+            mesh_sizes = n0;
+            n = n0;
+            while n < nmax
+                n = min(nmax, 2 * n);
+                mesh_sizes(end+1) = n; %#ok<AGROW>
+            end
+            mesh_sizes = unique(mesh_sizes, 'stable');
+        end
+
+        function values = parse_numeric_csv(~, txt)
+            if iscell(txt)
+                txt = strjoin(string(txt), ' ');
+            end
+            if isstring(txt)
+                txt = char(txt);
+            end
+            if isempty(txt)
+                values = [];
+                return;
+            end
+            parts = regexp(txt, '[,;\s]+', 'split');
+            parts = parts(~cellfun(@isempty, parts));
+            values = zeros(1, numel(parts));
+            for i = 1:numel(parts)
+                values(i) = str2double(parts{i});
+            end
+            values = values(isfinite(values));
+        end
+
+        function method_token = get_dispatch_method(~, method_name)
+            switch lower(string(method_name))
+                case "finite_difference"
+                    method_token = 'FD';
+                case "finite_volume"
+                    method_token = 'FV';
+                case "spectral"
+                    method_token = 'Spectral';
+                otherwise
+                    method_token = 'FD';
+            end
+        end
+
+        function set_run_state(app, state, status_text)
+            if nargin < 3
+                status_text = 'Idle';
+            end
+            if isfield(app.handles, 'btn_launch') && isvalid(app.handles.btn_launch)
+                if strcmpi(state, 'running')
+                    app.handles.btn_launch.Enable = 'off';
+                    app.handles.btn_launch.Text = 'Running...';
+                else
+                    app.handles.btn_launch.Enable = 'on';
+                    app.handles.btn_launch.Text = 'Launch';
+                end
+            end
+            if isfield(app.handles, 'run_status') && isvalid(app.handles.run_status)
+                app.handles.run_status.Text = status_text;
+            end
+            drawnow limitrate;
+        end
+
+        function update_results_summary(app, summary)
+            if ~isfield(app.handles, 'metrics_text') || ~isvalid(app.handles.metrics_text)
+                return;
+            end
+
+            lines = {};
+            lines{end+1} = sprintf('Mode: %s', char(string(summary.mode))); %#ok<AGROW>
+            if isfield(summary, 'results') && isstruct(summary.results)
+                if isfield(summary.results, 'run_id')
+                    lines{end+1} = sprintf('Run ID: %s', char(string(summary.results.run_id))); %#ok<AGROW>
+                end
+                if isfield(summary.results, 'max_omega')
+                    max_omega_val = summary.results.max_omega;
+                    if ~isscalar(max_omega_val)
+                        max_omega_val = max(abs(max_omega_val), [], 'all', 'omitnan');
+                    end
+                    lines{end+1} = sprintf('max|omega|: %.4e', max_omega_val); %#ok<AGROW>
+                end
+                if isfield(summary.results, 'wall_time')
+                    lines{end+1} = sprintf('Wall time: %.2f s', summary.results.wall_time); %#ok<AGROW>
+                end
+            end
+            if isfield(summary, 'wall_time') && isfinite(summary.wall_time)
+                lines{end+1} = sprintf('Elapsed (UI): %.2f s', summary.wall_time); %#ok<AGROW>
+            end
+            if isfield(summary, 'paths') && isstruct(summary.paths)
+                if isfield(summary.paths, 'base')
+                    lines{end+1} = sprintf('Output: %s', char(string(summary.paths.base))); %#ok<AGROW>
+                end
+            end
+            app.handles.metrics_text.Value = lines;
+        end
+
+        function ic_coeff = build_ic_coeff_vector(app, ic_type, coeff_override)
+            if nargin < 3
+                [c1, c2, c3, c4, ~, ~] = app.get_ic_coeff_control_values();
+                coeffs = [c1, c2, c3, c4];
+            else
+                coeffs = coeff_override;
+            end
+            c1 = coeffs(1);
+            c2 = coeffs(2);
+            c3 = coeffs(3);
+            c4 = coeffs(4);
+            x0 = app.handles.ic_center_x.Value;
+            y0 = app.handles.ic_center_y.Value;
+            n_vort = max(1, round(app.handles.ic_count.Value));
+            pattern = app.handles.ic_pattern.Value;
+            scale = app.handles.ic_scale.Value;
+
+            switch ic_type
+                case 'stretched_gaussian'
+                    ic_coeff = [max(c1, 1e-8), max(c2, 1e-8), 0, 0, x0, y0];
+                    ic_coeff(1:2) = ic_coeff(1:2) * max(scale, 1e-8);
+                case 'lamb_oseen'
+                    ic_coeff = [c1, max(c2, 1e-6), max(c3, 1e-8), 0, x0, y0];
+                    ic_coeff(1) = ic_coeff(1) * scale;
+                case 'rankine'
+                    ic_coeff = [c1 * scale, max(c2, 1e-6), 0, 0, x0, y0];
+                case 'lamb_dipole'
+                    ic_coeff = [c1 * scale, max(c2, 1e-6), 0, 0, x0, y0];
+                case 'taylor_green'
+                    ic_coeff = [max(c1, 1e-8), c2 * scale, 0, 0, x0, y0];
+                case 'random_turbulence'
+                    ic_coeff = [max(c1, 0.1), c2 * scale, round(c3), 0, x0, y0];
+                case 'elliptical_vortex'
+                    ic_coeff = [c1 * scale, max(c2, 1e-6), max(c3, 1e-6), c4, x0, y0];
+                case 'vortex_blob_gaussian'
+                    ic_coeff = [c1 * scale, max(c2, 1e-6), x0, y0, x0, y0];
+                case 'vortex_pair'
+                    sep = max(c2, 1e-6);
+                    rad = max(c3, 1e-6);
+                    gamma1 = c1 * scale;
+                    gamma2 = -abs(c1 * scale);
+                    x1 = x0 - sep / 2;
+                    x2 = x0 + sep / 2;
+                    ic_coeff = [gamma1, rad, x1, y0, gamma2, x2];
+                case 'multi_vortex'
+                    [centers_x, centers_y] = app.build_vortex_centers(max(3, n_vort), pattern, app.handles.Lx.Value, app.handles.Ly.Value, x0, y0);
+                    if numel(centers_x) < 3
+                        centers_x = [centers_x(:); zeros(3-numel(centers_x),1)];
+                        centers_y = [centers_y(:); zeros(3-numel(centers_y),1)];
+                    end
+                    g = c1 * scale;
+                    r = max(c2, 1e-6);
+                    ic_coeff = [g, r, centers_x(1), centers_y(1), ...
+                                g, r, centers_x(2), centers_y(2), ...
+                                g, centers_x(3), centers_y(3), r];
+                otherwise
+                    ic_coeff = [c1, c2, c3, c4, x0, y0];
+            end
+        end
+
+        function [c1, c2, c3, c4, x0, y0] = get_ic_coeff_control_values(app)
+            c1 = app.handles.ic_coeff1.Value;
+            c2 = app.handles.ic_coeff2.Value;
+            c3 = app.handles.ic_coeff3.Value;
+            c4 = app.handles.ic_coeff4.Value;
+            x0 = app.handles.ic_center_x.Value;
+            y0 = app.handles.ic_center_y.Value;
+        end
+
+        function [x_list, y_list] = build_vortex_centers(~, n_vort, pattern, Lx, Ly, x0, y0)
+            try
+                [x_list, y_list] = disperse_vortices(n_vort, pattern, Lx, Ly);
+            catch
+                theta = linspace(0, 2*pi, n_vort + 1);
+                theta(end) = [];
+                x_list = (0.3 * Lx) * cos(theta);
+                y_list = (0.3 * Ly) * sin(theta);
+            end
+            x_list = x_list(:) + x0;
+            y_list = y_list(:) + y0;
+        end
+
+        function update_mode_control_visibility(app)
+            mode_val = app.handles.mode_dropdown.Value;
+            sweep_on = strcmp(mode_val, 'Sweep');
+            exp_on = strcmp(mode_val, 'Experimentation');
+
+            sweep_state = app.on_off(sweep_on);
+            exp_state = app.on_off(exp_on);
+            sweep_vis = app.on_off(sweep_on);
+            exp_vis = app.on_off(exp_on);
+
+            app.handles.sweep_parameter.Enable = sweep_state;
+            app.handles.sweep_values.Enable = sweep_state;
+            app.handles.sweep_parameter.Visible = sweep_vis;
+            app.handles.sweep_values.Visible = sweep_vis;
+            app.handles.sweep_parameter_label.Visible = sweep_vis;
+            app.handles.sweep_values_label.Visible = sweep_vis;
+
+            app.handles.exp_coeff_selector.Enable = exp_state;
+            app.handles.exp_range_start.Enable = exp_state;
+            app.handles.exp_range_end.Enable = exp_state;
+            app.handles.exp_num_points.Enable = exp_state;
+            app.handles.exp_coeff_selector.Visible = exp_vis;
+            app.handles.exp_range_start.Visible = exp_vis;
+            app.handles.exp_range_end.Visible = exp_vis;
+            app.handles.exp_num_points.Visible = exp_vis;
+            app.handles.exp_coeff_label.Visible = exp_vis;
+            app.handles.exp_range_start_label.Visible = exp_vis;
+            app.handles.exp_range_end_label.Visible = exp_vis;
+            app.handles.exp_num_points_label.Visible = exp_vis;
+        end
+
+        function style_axes(app, ax)
+            C = app.layout_cfg.colors;
+            ax.Color = C.bg_dark;
+            ax.XColor = C.fg_text;
+            ax.YColor = C.fg_text;
+            ax.ZColor = C.fg_text;
+            ax.GridColor = C.accent_gray;
+        end
+
         function validate_parameters(app)
             errors = {};
             
@@ -955,6 +1579,7 @@ classdef UIController < handle
             
             % Update convergence display when mode changes
             app.update_convergence_display();
+            app.update_mode_control_visibility();
             app.update_checklist();
         end
 
@@ -965,8 +1590,14 @@ classdef UIController < handle
             time_ok = app.handles.dt.Value > 0 && app.handles.t_final.Value > 0;
             ic_ok = ~isempty(app.handles.ic_dropdown.Value);
             conv_ok = true;
-            if strcmp(app.handles.mode_dropdown.Value, 'Convergence')
+            mode_val = app.handles.mode_dropdown.Value;
+            if strcmp(mode_val, 'Convergence')
                 conv_ok = app.handles.conv_N_max.Value > app.handles.conv_N_coarse.Value;
+            elseif strcmp(mode_val, 'Sweep')
+                conv_ok = numel(app.parse_numeric_csv(app.handles.sweep_values.Value)) >= 2;
+            elseif strcmp(mode_val, 'Experimentation')
+                conv_ok = app.handles.exp_num_points.Value >= 2 && ...
+                          app.handles.exp_range_end.Value ~= app.handles.exp_range_start.Value;
             end
 
             app.handles.check_grid.FontColor = app.bool_to_color(grid_ok);
@@ -983,11 +1614,11 @@ classdef UIController < handle
             
             % Build HTML with method information
             html_content = sprintf([ ...
-                "<div style='font-family:Segoe UI;font-size:12px;color:#333;'>" ...
-                "<b style='color:#0066cc;'>%s | %s Mode</b><br>" ...
+                "<div style='font-family:Segoe UI;font-size:12px;color:#dcdcdc;'>" ...
+                "<b style='color:#80c7ff;'>%s | %s Mode</b><br>" ...
                 "<b>Convergence Criterion:</b><br>" ...
                 "$$\\epsilon_N = \\frac{\\|\\omega_N-\\omega_{2N}\\|_2}{\\|\\omega_{2N}\\|_2}$$<br>" ...
-                "<span style='font-size:11px;color:#666;'>" ...
+                "<span style='font-size:11px;color:#a0a0a0;'>" ...
                 "Method: <b>%s</b> | Mode: <b>%s</b> | Agent: <b>%s</b> | Binary: <b>%s</b>" ...
                 "</span></div>" ...
                 "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>"], ...
@@ -1003,9 +1634,9 @@ classdef UIController < handle
 
         function color = bool_to_color(~, ok)
             if ok
-                color = [0.1 0.7 0.2];
+                color = [0.25 0.78 0.35];
             else
-                color = [0.8 0.2 0.2];
+                color = [0.90 0.35 0.35];
             end
         end
 
@@ -1086,22 +1717,35 @@ classdef UIController < handle
             switch mode_val
                 case 'Evolution'
                     config_export.mode = 'evolution';
+                    config_export.run_mode_internal = 'Evolution';
                 case 'Convergence'
                     config_export.mode = 'convergence';
+                    config_export.run_mode_internal = 'Convergence';
                 case 'Sweep'
                     config_export.mode = 'sweep';
+                    config_export.run_mode_internal = 'ParameterSweep';
                 case 'Animation'
                     config_export.mode = 'animation';
+                    config_export.run_mode_internal = 'Evolution';
                 otherwise
                     config_export.mode = 'experimentation';
+                    config_export.run_mode_internal = 'Evolution';
             end
 
             config_export.Nx = round(app.handles.Nx.Value);
             config_export.Ny = round(app.handles.Ny.Value);
+            config_export.Lx = app.handles.Lx.Value;
+            config_export.Ly = app.handles.Ly.Value;
+            config_export.delta = app.handles.delta.Value;
             config_export.dt = app.handles.dt.Value;
             config_export.t_final = app.handles.t_final.Value;
+            config_export.Tfinal = app.handles.t_final.Value;
             config_export.nu = app.handles.nu.Value;
+            config_export.num_snapshots = round(app.handles.num_snapshots.Value);
             config_export.ic_type = map_ic_display_to_type(app.handles.ic_dropdown.Value);
+            config_export.ic_pattern = app.handles.ic_pattern.Value;
+            config_export.ic_count = max(1, round(app.handles.ic_count.Value));
+            config_export.ic_scale = app.handles.ic_scale.Value;
             config_export.ic_coeff1 = app.handles.ic_coeff1.Value;
             config_export.ic_coeff2 = app.handles.ic_coeff2.Value;
             config_export.ic_coeff3 = app.handles.ic_coeff3.Value;
@@ -1110,9 +1754,39 @@ classdef UIController < handle
             config_export.ic_center_y = app.handles.ic_center_y.Value;
             config_export.bathymetry_enabled = app.handles.bathy_enable.Value;
             config_export.bathymetry_file = app.handles.bathy_file.Value;
-            config_export.ic_coeff = [config_export.ic_coeff1, config_export.ic_coeff2, ...
-                                       config_export.ic_coeff3, config_export.ic_coeff4, ...
-                                       config_export.ic_center_x, config_export.ic_center_y];
+            config_export.ic_coeff = app.build_ic_coeff_vector(config_export.ic_type);
+
+            config_export.convergence_N_coarse = app.handles.conv_N_coarse.Value;
+            config_export.convergence_N_max = app.handles.conv_N_max.Value;
+            config_export.convergence_tol = app.handles.conv_tolerance.Value;
+            config_export.convergence_criterion_type = app.handles.conv_criterion.Value;
+            config_export.convergence_binary = app.handles.conv_binary.Value;
+            config_export.convergence_use_adaptive = app.handles.conv_use_adaptive.Value;
+            config_export.convergence_max_jumps = app.handles.conv_max_jumps.Value;
+            config_export.convergence_agent_enabled = app.handles.conv_agent_enabled.Value;
+
+            config_export.sweep_parameter = app.handles.sweep_parameter.Value;
+            config_export.sweep_values = app.parse_numeric_csv(app.handles.sweep_values.Value);
+            config_export.experimentation = struct( ...
+                'coeff_selector', app.handles.exp_coeff_selector.Value, ...
+                'range_start', app.handles.exp_range_start.Value, ...
+                'range_end', app.handles.exp_range_end.Value, ...
+                'num_points', round(app.handles.exp_num_points.Value));
+
+            config_export.save_csv = app.handles.save_csv.Value;
+            config_export.save_mat = app.handles.save_mat.Value;
+            config_export.figures_save_png = app.handles.figures_save_png.Value;
+            config_export.figures_save_fig = app.handles.figures_save_fig.Value;
+            config_export.figures_dpi = app.handles.figures_dpi.Value;
+            config_export.figures_close_after_save = app.handles.figures_close_after_save.Value;
+            config_export.figures_use_owl_saver = app.handles.figures_use_owl_saver.Value;
+            config_export.create_animations = app.handles.create_animations.Value;
+            config_export.animation_format = app.handles.animation_format.Value;
+            config_export.animation_fps = app.handles.animation_fps.Value;
+            config_export.animation_num_frames = max(2, round(app.handles.animation_num_frames.Value));
+
+            config_export.enable_monitoring = app.handles.enable_monitoring.Value;
+            config_export.sample_interval = app.handles.sample_interval.Value;
             
             if endsWith(file, '.json')
                 json_str = jsonencode(config_export);
@@ -1428,14 +2102,15 @@ classdef UIController < handle
         
         % Additional stub methods for button callbacks
         function update_ic_preview(app)
-            % Update initial condition preview visualization (2D contour at t=0)
+            % Update initial condition preview using the same coefficient
+            % packing and IC factory used in launched runs.
             try
-                if ~isfield(app.handles, 'ic_preview_axes') || ~ishghandle(app.handles.ic_preview_axes)
+                if ~isfield(app.handles, 'ic_preview_axes') || ~isvalid(app.handles.ic_preview_axes)
                     return;
                 end
 
-                axes(app.handles.ic_preview_axes);
-                cla(app.handles.ic_preview_axes);
+                ax = app.handles.ic_preview_axes;
+                cla(ax);
 
                 Nx = max(16, round(app.handles.Nx.Value));
                 Ny = max(16, round(app.handles.Ny.Value));
@@ -1443,110 +2118,52 @@ classdef UIController < handle
 
                 Lx = max(app.handles.Lx.Value, 1e-6);
                 Ly = max(app.handles.Ly.Value, 1e-6);
-                [X, Y] = meshgrid(linspace(-Lx/2, Lx/2, n), linspace(-Ly/2, Ly/2, n));
-
-                c1 = app.handles.ic_coeff1.Value;
-                c2 = app.handles.ic_coeff2.Value;
-                c3 = app.handles.ic_coeff3.Value;
-                c4 = app.handles.ic_coeff4.Value;
-                x0 = app.handles.ic_center_x.Value;
-                y0 = app.handles.ic_center_y.Value;
-                n_vort = max(1, round(app.handles.ic_count.Value));
+                [X, Y] = meshgrid(linspace(-Lx / 2, Lx / 2, n), linspace(-Ly / 2, Ly / 2, n));
 
                 ic_display = app.handles.ic_dropdown.Value;
                 ic_type = map_ic_display_to_type(ic_display);
+                ic_coeff = app.build_ic_coeff_vector(ic_type);
 
-                % Vortex centers
-                centers = [x0, y0];
-                if n_vort > 1
-                    % Grid dispersion pattern
-                    theta = linspace(0, 2*pi, n_vort+1); theta(end) = [];
-                    centers = [0.3*Lx*cos(theta(:)), 0.3*Ly*sin(theta(:))];
+                Z = initialise_omega(X, Y, ic_type, ic_coeff);
+                if any(~isfinite(Z), 'all')
+                    error('Initial condition generated non-finite values for preview.');
                 end
 
-                Z = zeros(size(X));
-                switch ic_type
-                    case 'stretched_gaussian'
-                        Z = exp(-c1*(X-x0).^2 - c2*(Y-y0).^2);
-                    case 'lamb_oseen'
-                        Gamma = c1; t0 = max(c2, 1e-6); nu = max(c3, 1e-8);
-                        for i = 1:size(centers,1)
-                            R2 = (X-centers(i,1)).^2 + (Y-centers(i,2)).^2;
-                            Z = Z + (Gamma/(4*pi*nu*t0)) * exp(-R2/(4*nu*t0));
-                        end
-                    case 'rankine'
-                        omega0 = c1; rc = max(c2, 1e-6);
-                        for i = 1:size(centers,1)
-                            R = sqrt((X-centers(i,1)).^2 + (Y-centers(i,2)).^2);
-                            Z = Z + omega0 * (R <= rc);
-                        end
-                    case 'lamb_dipole'
-                        U = c1; a = max(c2, 1e-6);
-                        k = 3.8317 / a;  % first root of J1
-                        r = sqrt((X-x0).^2 + (Y-y0).^2);
-                        theta = atan2(Y-y0, X-x0);
-                        J1ka = besselj(1, k*a);
-                        if abs(J1ka) < 1e-8
-                            J1ka = 1e-8;
-                        end
-                        Z = 2*k*U*besselj(1, k*r).*sin(theta)./J1ka;
-                        Z(r > a) = 0;
-                    case 'taylor_green'
-                        k = c1; G = c2;
-                        Z = 2*k*G.*sin(k*X).*sin(k*Y);
-                    case 'random_turbulence'
-                        alpha = c1; E0 = c2; seed = round(c3);
-                        rng(seed);
-                        Z = zeros(size(X));
-                        for k = 1:6
-                            phi = 2*pi*rand; psi = 2*pi*rand;
-                            Z = Z + (1/k^(alpha/2))*sin(k*X+phi).*cos(k*Y+psi);
-                        end
-                        Z = E0 * Z;
-                    case 'elliptical_vortex'
-                        w0 = c1; sx = max(c2, 1e-6); sy = max(c3, 1e-6); th = c4;
-                        Xr = (X-x0)*cos(th) + (Y-y0)*sin(th);
-                        Yr = -(X-x0)*sin(th) + (Y-y0)*cos(th);
-                        Z = w0*exp(-(Xr.^2/(2*sx^2) + Yr.^2/(2*sy^2)));
-                    case 'vortex_blob_gaussian'
-                        Gamma = c1; R = max(c2, 1e-6);
-                        Z = Gamma/(2*pi*R^2) * exp(-((X-x0).^2 + (Y-y0).^2)/(2*R^2));
-                    case 'vortex_pair'
-                        Gamma = c1; sep = max(c2, 1e-6); R = max(c3, 1e-6);
-                        Z = Gamma*exp(-((X-(x0-sep/2)).^2 + (Y-y0).^2)/(2*R^2)) - ...
-                            Gamma*exp(-((X-(x0+sep/2)).^2 + (Y-y0).^2)/(2*R^2));
-                    case 'multi_vortex'
-                        Gamma = c1; R = max(c2, 1e-6);
-                        for i = 1:size(centers,1)
-                            Z = Z + Gamma/(2*pi*R^2) * exp(-((X-centers(i,1)).^2 + (Y-centers(i,2)).^2)/(2*R^2));
-                        end
-                    otherwise
-                        Z = exp(-((X-x0).^2 + (Y-y0).^2));
-                end
-
-                % Suppress contour warnings for constant data
                 warning('off', 'MATLAB:contour:ConstantData');
-                contour(app.handles.ic_preview_axes, X, Y, Z, 12, 'LineWidth', 1.0);
-                hold(app.handles.ic_preview_axes, 'on');
-                contourf(app.handles.ic_preview_axes, X, Y, Z, 20);
+                contourf(ax, X, Y, Z, 20, 'LineStyle', 'none');
+                hold(ax, 'on');
+                contour(ax, X, Y, Z, 12, 'LineWidth', 0.9, 'LineColor', [0.82 0.82 0.82]);
+                rectangle(ax, 'Position', [-Lx/2 -Ly/2 Lx Ly], ...
+                    'EdgeColor', app.layout_cfg.colors.accent_gray, ...
+                    'LineStyle', '--', ...
+                    'LineWidth', 1.0);
+                hold(ax, 'off');
                 warning('on', 'MATLAB:contour:ConstantData');
-                rectangle(app.handles.ic_preview_axes, 'Position', [-Lx/2 -Ly/2 Lx Ly], ...
-                    'EdgeColor', [0.2 0.2 0.2], 'LineStyle', '--');
-                hold(app.handles.ic_preview_axes, 'off');
 
-                title(app.handles.ic_preview_axes, sprintf('Initial Vorticity ω(x,y,0): %s', ic_display), ...
-                    'FontSize', 11, 'FontWeight', 'bold');
-                xlabel(app.handles.ic_preview_axes, 'x', 'FontSize', 10);
-                ylabel(app.handles.ic_preview_axes, 'y', 'FontSize', 10);
-                colormap(app.handles.ic_preview_axes, 'turbo');
-                colorbar(app.handles.ic_preview_axes);
-                axis(app.handles.ic_preview_axes, 'equal');
-                grid(app.handles.ic_preview_axes, 'on');
+                colormap(ax, 'turbo');
+                cb = colorbar(ax);
+                cb.Color = app.layout_cfg.colors.fg_text;
+                title(ax, sprintf('Initial Vorticity w(x,y,0): %s', ic_display), ...
+                    'FontSize', 11, ...
+                    'FontWeight', 'bold', ...
+                    'Color', app.layout_cfg.colors.fg_text);
+                xlabel(ax, 'x', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text);
+                ylabel(ax, 'y', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text);
+                axis(ax, 'equal');
+                xlim(ax, [-Lx/2 Lx/2]);
+                ylim(ax, [-Ly/2 Ly/2]);
+                grid(ax, 'on');
 
+                wmax = max(abs(Z), [], 'all');
+                app.handles.ic_status.Text = sprintf('IC ready (max|w| = %.3e)', wmax);
+                app.handles.ic_status.FontColor = app.layout_cfg.colors.fg_muted;
                 app.update_checklist();
-                app.append_to_terminal(sprintf('✓ IC preview updated (t=0, ω_max=%.3f)', max(Z, [], 'all')), 'success');
             catch ME
-                app.append_to_terminal(sprintf('✗ Error updating IC preview: %s', ME.message), 'error');
+                if isfield(app.handles, 'ic_status') && isvalid(app.handles.ic_status)
+                    app.handles.ic_status.Text = 'IC preview error';
+                    app.handles.ic_status.FontColor = app.layout_cfg.colors.accent_red;
+                end
+                app.append_to_terminal(sprintf('IC preview error: %s', ME.message), 'error');
             end
         end
 
@@ -1557,11 +2174,10 @@ classdef UIController < handle
         end
 
         function update_ic_fields(app)
-            % Update coefficient labels, visibility, and equation text for selected IC
+            % Update coefficient labels/visibility to match selected IC.
             ic_display = app.handles.ic_dropdown.Value;
             ic_type = map_ic_display_to_type(ic_display);
-            
-            % Default visibility
+
             app.handles.ic_coeff1.Visible = 'on';
             app.handles.ic_coeff2.Visible = 'on';
             app.handles.ic_coeff3.Visible = 'on';
@@ -1570,84 +2186,107 @@ classdef UIController < handle
             app.handles.ic_coeff2_label.Visible = 'on';
             app.handles.ic_coeff3_label.Visible = 'on';
             app.handles.ic_coeff4_label.Visible = 'on';
-            
+
+            app.handles.ic_pattern.Enable = 'off';
+            app.handles.ic_count.Enable = 'off';
+
             switch ic_type
                 case 'stretched_gaussian'
-                    app.handles.ic_coeff1_label.Text = 'x stretch (a):';
-                    app.handles.ic_coeff2_label.Text = 'y stretch (b):';
-                    app.handles.ic_equation.Value = {'ω(x,y) = exp(−ax² − by²)'};
+                    app.handles.ic_coeff1_label.Text = 'Stretch x (a):';
+                    app.handles.ic_coeff2_label.Text = 'Stretch y (b):';
+                    app.handles.ic_equation.Value = {'w(x,y)=exp(-a*(x-x0)^2 - b*(y-y0)^2)'};
                     app.handles.ic_coeff3.Visible = 'off';
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
-                case 'lamb_oseen'
-                    app.handles.ic_coeff1_label.Text = 'Γ (circulation):';
-                    app.handles.ic_coeff2_label.Text = 't₀ (time):';
-                    app.handles.ic_coeff3_label.Text = 'ν (viscosity):';
-                    app.handles.ic_equation.Value = {'ω(r,t₀) = Γ/(4πνt₀) exp(−r²/4νt₀)'};
-                    app.handles.ic_coeff4.Visible = 'off';
-                    app.handles.ic_coeff4_label.Visible = 'off';
-                case 'rankine'
-                    app.handles.ic_coeff1_label.Text = 'ω₀ (core):';
-                    app.handles.ic_coeff2_label.Text = 'r_c (radius):';
-                    app.handles.ic_equation.Value = {'ω = ω₀ for r ≤ r_c, 0 otherwise'};
-                    app.handles.ic_coeff3.Visible = 'off';
-                    app.handles.ic_coeff4.Visible = 'off';
-                    app.handles.ic_coeff3_label.Visible = 'off';
-                    app.handles.ic_coeff4_label.Visible = 'off';
-                case 'lamb_dipole'
-                    app.handles.ic_coeff1_label.Text = 'U (speed):';
-                    app.handles.ic_coeff2_label.Text = 'a (radius):';
-                    app.handles.ic_equation.Value = {'ω = 2kU·J₁(kr)·sin(θ)/J₁(ka)'};
-                    app.handles.ic_coeff3.Visible = 'off';
-                    app.handles.ic_coeff4.Visible = 'off';
-                    app.handles.ic_coeff3_label.Visible = 'off';
-                    app.handles.ic_coeff4_label.Visible = 'off';
-                case 'taylor_green'
-                    app.handles.ic_coeff1_label.Text = 'k (wavenumber):';
-                    app.handles.ic_coeff2_label.Text = 'Γ (strength):';
-                    app.handles.ic_equation.Value = {'ω = 2kΓ·sin(kx)·sin(ky)'};
-                    app.handles.ic_coeff3.Visible = 'off';
-                    app.handles.ic_coeff4.Visible = 'off';
-                    app.handles.ic_coeff3_label.Visible = 'off';
-                    app.handles.ic_coeff4_label.Visible = 'off';
-                case 'random_turbulence'
-                    app.handles.ic_coeff1_label.Text = 'α (spectrum):';
-                    app.handles.ic_coeff2_label.Text = 'E₀ (energy):';
-                    app.handles.ic_coeff3_label.Text = 'seed:';
-                    app.handles.ic_equation.Value = {'|ω̂ₖ| ∝ k^(−α/2) with random phases'};
-                    app.handles.ic_coeff4.Visible = 'off';
-                    app.handles.ic_coeff4_label.Visible = 'off';
-                case 'elliptical_vortex'
-                    app.handles.ic_coeff1_label.Text = 'ω₀ (peak):';
-                    app.handles.ic_coeff2_label.Text = 'σx:';
-                    app.handles.ic_coeff3_label.Text = 'σy:';
-                    app.handles.ic_coeff4_label.Text = 'θ (rad):';
-                    app.handles.ic_equation.Value = {'ω = ω₀·exp(−x_r²/(2σx²) − y_r²/(2σy²))'};
+
                 case 'vortex_blob_gaussian'
-                    app.handles.ic_coeff1_label.Text = 'Γ (circulation):';
-                    app.handles.ic_coeff2_label.Text = 'R (radius):';
-                    app.handles.ic_coeff3_label.Text = 'x₀:';
-                    app.handles.ic_coeff4_label.Text = 'y₀:';
-                    app.handles.ic_equation.Value = {'ω = Γ/(2πR²)·exp(−r²/(2R²))'};
-                case 'vortex_pair'
-                    app.handles.ic_coeff1_label.Text = 'Γ (circulation):';
-                    app.handles.ic_coeff2_label.Text = 'separation:';
-                    app.handles.ic_coeff3_label.Text = 'R (radius):';
-                    app.handles.ic_equation.Value = {'Counter-rotating vortex pair'};
-                    app.handles.ic_coeff4.Visible = 'off';
-                    app.handles.ic_coeff4_label.Visible = 'off';
-                case 'multi_vortex'
-                    app.handles.ic_coeff1_label.Text = 'Γ (circulation):';
-                    app.handles.ic_coeff2_label.Text = 'R (radius):';
+                    app.handles.ic_coeff1_label.Text = 'Circulation (Gamma):';
+                    app.handles.ic_coeff2_label.Text = 'Radius (R):';
+                    app.handles.ic_equation.Value = {'w = Gamma/(2*pi*R^2) * exp(-r^2/(2*R^2))'};
                     app.handles.ic_coeff3.Visible = 'off';
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
-                    app.handles.ic_equation.Value = {'ω = Σᵢ₌₁ᴺ ωᵢ(r−rᵢ)  [Multi-vortex]'};
+
+                case 'vortex_pair'
+                    app.handles.ic_coeff1_label.Text = 'Gamma1 amplitude:';
+                    app.handles.ic_coeff2_label.Text = 'Separation:';
+                    app.handles.ic_coeff3_label.Text = 'Core radius:';
+                    app.handles.ic_equation.Value = {'Counter-rotating Gaussian pair'};
+                    app.handles.ic_coeff4.Visible = 'off';
+                    app.handles.ic_coeff4_label.Visible = 'off';
+
+                case 'multi_vortex'
+                    app.handles.ic_coeff1_label.Text = 'Gamma (per vortex):';
+                    app.handles.ic_coeff2_label.Text = 'Core radius:';
+                    app.handles.ic_equation.Value = {'Sum of Gaussian vortices over dispersed centers'};
+                    app.handles.ic_coeff3.Visible = 'off';
+                    app.handles.ic_coeff4.Visible = 'off';
+                    app.handles.ic_coeff3_label.Visible = 'off';
+                    app.handles.ic_coeff4_label.Visible = 'off';
+                    app.handles.ic_pattern.Enable = 'on';
+                    app.handles.ic_count.Enable = 'on';
+
+                case 'lamb_oseen'
+                    app.handles.ic_coeff1_label.Text = 'Circulation (Gamma):';
+                    app.handles.ic_coeff2_label.Text = 'Virtual time (t0):';
+                    app.handles.ic_coeff3_label.Text = 'Viscosity (nu):';
+                    app.handles.ic_equation.Value = {'w = Gamma/(4*pi*nu*t0) * exp(-r^2/(4*nu*t0))'};
+                    app.handles.ic_coeff4.Visible = 'off';
+                    app.handles.ic_coeff4_label.Visible = 'off';
+
+                case 'rankine'
+                    app.handles.ic_coeff1_label.Text = 'Core vorticity:';
+                    app.handles.ic_coeff2_label.Text = 'Core radius:';
+                    app.handles.ic_equation.Value = {'w = w0 for r <= rc, else 0'};
+                    app.handles.ic_coeff3.Visible = 'off';
+                    app.handles.ic_coeff4.Visible = 'off';
+                    app.handles.ic_coeff3_label.Visible = 'off';
+                    app.handles.ic_coeff4_label.Visible = 'off';
+
+                case 'lamb_dipole'
+                    app.handles.ic_coeff1_label.Text = 'Translation speed (U):';
+                    app.handles.ic_coeff2_label.Text = 'Dipole radius (a):';
+                    app.handles.ic_equation.Value = {'Lamb dipole profile'};
+                    app.handles.ic_coeff3.Visible = 'off';
+                    app.handles.ic_coeff4.Visible = 'off';
+                    app.handles.ic_coeff3_label.Visible = 'off';
+                    app.handles.ic_coeff4_label.Visible = 'off';
+
+                case 'taylor_green'
+                    app.handles.ic_coeff1_label.Text = 'Wavenumber (k):';
+                    app.handles.ic_coeff2_label.Text = 'Strength (G):';
+                    app.handles.ic_equation.Value = {'w = 2*k*G*sin(kx)*sin(ky)'};
+                    app.handles.ic_coeff3.Visible = 'off';
+                    app.handles.ic_coeff4.Visible = 'off';
+                    app.handles.ic_coeff3_label.Visible = 'off';
+                    app.handles.ic_coeff4_label.Visible = 'off';
+
+                case 'random_turbulence'
+                    app.handles.ic_coeff1_label.Text = 'Spectrum exponent (alpha):';
+                    app.handles.ic_coeff2_label.Text = 'Energy level (E0):';
+                    app.handles.ic_coeff3_label.Text = 'Seed:';
+                    app.handles.ic_equation.Value = {'Randomized trigonometric spectrum'};
+                    app.handles.ic_coeff4.Visible = 'off';
+                    app.handles.ic_coeff4_label.Visible = 'off';
+
+                case 'elliptical_vortex'
+                    app.handles.ic_coeff1_label.Text = 'Peak vorticity:';
+                    app.handles.ic_coeff2_label.Text = 'Sigma x:';
+                    app.handles.ic_coeff3_label.Text = 'Sigma y:';
+                    app.handles.ic_coeff4_label.Text = 'Rotation theta (rad):';
+                    app.handles.ic_equation.Value = {'w = w0*exp(-(xr^2/(2*sx^2) + yr^2/(2*sy^2)))'};
+
+                otherwise
+                    app.handles.ic_coeff1_label.Text = 'Coeff 1:';
+                    app.handles.ic_coeff2_label.Text = 'Coeff 2:';
+                    app.handles.ic_coeff3_label.Text = 'Coeff 3:';
+                    app.handles.ic_coeff4_label.Text = 'Coeff 4:';
+                    app.handles.ic_equation.Value = {'IC expression not specified'};
             end
         end
-        
+
         function run_convergence_test(app)
             % Run a quick convergence test
             app.append_to_terminal('🔧 Convergence test would run here (integrate with Tsunami_Vorticity_Emulator)');
@@ -1746,6 +2385,17 @@ classdef UIController < handle
                     "bathymetry_enabled", false ...
                 );
             end
+
+            % UI runtime-only fields used by launch/export paths.
+            config.ic_pattern = 'single';
+            config.sweep_parameter = 'nu';
+            config.sweep_values = [1e-6, 5e-6, 1e-5];
+            config.experimentation = struct( ...
+                'coeff_selector', 'ic_coeff1', ...
+                'range_start', 0.5, ...
+                'range_end', 2.0, ...
+                'num_points', 4);
+            config.run_mode_internal = 'Evolution';
         end
         
         % ===================================================================
@@ -2254,3 +2904,13 @@ function ic_type = map_ic_display_to_type(display_name)
             ic_type = lower(display_name);
     end
 end
+
+
+
+
+
+
+
+
+
+

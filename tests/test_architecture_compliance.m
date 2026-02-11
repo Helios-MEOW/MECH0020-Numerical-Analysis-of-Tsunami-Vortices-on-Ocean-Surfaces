@@ -3,7 +3,7 @@ function test_architecture_compliance()
     %
     % Purpose:
     %   Ensures repository complies with strict architectural rules:
-    %   1. Exactly N mode scripts (one per mode) in Scripts/Modes/
+    %   1. Exactly N mode scripts (one per mode) in Scripts/Modes/ tree
     %   2. NO mode-per-method files (no FD_Evolution, Spectral_Convergence, etc.)
     %   3. Each method has one self-contained script entrypoint
     %   4. Tsunami_Vorticity_Emulator exists as single driver entry point
@@ -32,17 +32,22 @@ function test_architecture_compliance()
     test_count = test_count + 1;
     fprintf('[TEST %d] Checking mode scripts existence...\n', test_count);
 
-    required_modes = {'mode_evolution.m', 'mode_convergence.m', ...
-                      'mode_parameter_sweep.m', 'mode_plotting.m'};
+    required_mode_paths = {
+        fullfile('Scripts', 'Modes', 'mode_evolution.m'), ...
+        fullfile('Scripts', 'Modes', 'Convergence', 'mode_convergence.m'), ...
+        fullfile('Scripts', 'Modes', 'mode_parameter_sweep.m'), ...
+        fullfile('Scripts', 'Modes', 'mode_plotting.m')
+    };
 
     modes_ok = true;
-    for k = 1:length(required_modes)
-        mode_file = fullfile('Scripts', 'Modes', required_modes{k});
+    for k = 1:length(required_mode_paths)
+        mode_file = required_mode_paths{k};
         if ~exist(mode_file, 'file')
             fprintf('  ✗ FAIL: %s not found\n', mode_file);
             modes_ok = false;
         else
-            fprintf('  ✓ PASS: %s exists\n', required_modes{k});
+            [~, mode_name, mode_ext] = fileparts(mode_file);
+            fprintf('  ✓ PASS: %s%s exists\n', mode_name, mode_ext);
         end
     end
 

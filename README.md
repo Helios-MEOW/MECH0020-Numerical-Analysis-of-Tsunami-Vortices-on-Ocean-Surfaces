@@ -120,10 +120,13 @@ Results/
 
 ### ModeDispatcher path
 - Fully supported now: FD mode routing (`Evolution`, `Convergence`, `ParameterSweep`, `Plotting`)
-- Spectral/FV dispatcher callbacks are currently placeholder/blocked in dispatcher mode
+- Spectral is enabled for `Evolution` and `Convergence` (experimental spectral callback path)
+- Spectral `ParameterSweep` remains blocked in dispatcher mode for this checkpoint
+- Finite Volume is enabled for `Evolution` (experimental layered 3D callback path)
+- Finite Volume `Convergence` and `ParameterSweep` remain blocked in dispatcher mode for this checkpoint
 
 ### Method-level runner path
-- `run_simulation_with_method` can execute currently available method-level run paths (`finite_difference`, `spectral`, `finite_volume`) independent of dispatcher restrictions
+- `run_simulation_with_method` can execute currently available method-level run paths (`finite_difference`, `spectral`, `finite_volume`) directly from each self-contained method module
 
 ## Run and Report Pipeline
 ```mermaid

@@ -4,9 +4,11 @@
 
 clear; close all; clc;
 set(0, 'DefaultFigureVisible', 'off');
+suite_start_time = datetime('now', 'TimeZone', 'local');
 fprintf('================================================================================\n');
 fprintf('COMPREHENSIVE TEST SUITE - PHASE 6 VALIDATION\n');
 fprintf('Testing: FD | Spectral | Finite Volume | Bathymetry Methods\n');
+fprintf('Start time (local): %s\n', char(suite_start_time));
 fprintf('================================================================================\n\n');
 
 suite_dir = fileparts(mfilename('fullpath'));
@@ -14,7 +16,14 @@ repo_root = fileparts(suite_dir);
 addpath(genpath(fullfile(repo_root, 'Scripts')));
 addpath(fullfile(repo_root, 'utilities'));
 
-storage = ensure_results_storage_ready(repo_root, 'Verbose', true); %#ok<NASGU>
+storage = ensure_results_storage_ready(repo_root, 'Verbose', true);
+if ~isfield(storage, 'figures_root') || ~exist(storage.figures_root, 'dir')
+    error('COMPREHENSIVE_TEST_SUITE:MissingFiguresRoot', ...
+        'Figures preflight failed. Expected figures root at: %s', storage.figures_root);
+end
+fprintf('[Preflight] Figures root ready: %s\n', storage.figures_root);
+fprintf('[Preflight] Figure directories (created/existing): %d / %d\n\n', ...
+    numel(storage.created_figure_dirs), numel(storage.existing_figure_dirs));
 
 if exist('create_default_parameters', 'file') ~= 2
     error('COMPREHENSIVE_TEST_SUITE:MissingFunction', ...

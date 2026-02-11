@@ -1,74 +1,50 @@
-# Finite Volume Method
+﻿# Finite Volume Method (Layered 3D)
 
-**Status:** ⚠️ STUB ONLY - Not Yet Implemented
+**Status:** Experimental (single-file callback module enabled for Evolution)
 
 ## Purpose
 
-(Planned) Solves 2D incompressible Navier-Stokes equations in vorticity-streamfunction formulation using finite volume spatial discretization.
+Provides a finite-volume method path using a structured Cartesian `Nx x Ny x Nz`
+layered mesh with:
 
-## Planned Features
+- periodic boundaries in x/y,
+- fixed z boundaries (default no-flux),
+- depth-averaged 2D projections for compatibility with existing mode/report flows.
 
-- **Conservative Form:** Flux-based formulation
-- **Numerical Flux Functions:** Upwinding for advection
-- **Well-Suited For:** Shocks, discontinuities, complex geometries
-- **Source Terms:** Careful treatment for vorticity equation
+## Current Module Contract
 
-## Current State
+`Scripts/Methods/FiniteVolume/FiniteVolumeMethod.m` is the canonical implementation and exposes:
 
-All entrypoints are STUBS that throw `SOL-FV-0001` errors:
+- `FiniteVolumeMethod('callbacks')`
+- `FiniteVolumeMethod('init', cfg, ctx)`
+- `FiniteVolumeMethod('step', State, cfg, ctx)`
+- `FiniteVolumeMethod('diagnostics', State, cfg, ctx)`
+- `FiniteVolumeMethod('run', Parameters)`
 
-### `fv_init(cfg, ctx)`
-**Status:** Stub - throws error immediately
+The module remains fully self-contained in a single file (no split init/step files).
 
-### `fv_step(State, cfg, ctx)`
-**Status:** Stub - throws error immediately
+## 3D Evolution Model (Checkpoint)
 
-### `fv_diagnostics(State, cfg, ctx)`
-**Status:** Stub - throws error immediately
+- Layered 3D scalar vorticity evolution on structured Cartesian mesh.
+- 2D layer-wise Poisson solve for streamfunction recovery.
+- Upwinded xy advection + xy diffusion + vertical coupling diffusion.
+- Primary state carries 3D fields (`omega3d`, `psi3d`) and projected 2D fields (`omega`, `psi`).
 
-## Implementation Plan
+## Dispatcher Support
 
-To implement this method:
+- `Evolution`: enabled (experimental)
+- `Convergence`: blocked for this checkpoint (`SOL-FV-0001`)
+- `ParameterSweep`: blocked for this checkpoint (`SOL-FV-0001`)
 
-1. Design flux reconstruction scheme (upwinding, MUSCL, WENO, etc.)
-2. Implement numerical flux functions for advection
-3. Handle source terms (viscous diffusion)
-4. Implement FV Poisson solver (or adapt FD sparse solver)
-5. Follow the init/step/diagnostics interface contract
+## Config Fields
 
-## Required State Fields
+Important runtime controls:
 
-(Planned)
-
-- `omega_cells` - Cell-averaged vorticity
-- `psi_cells` - Cell-averaged streamfunction
-- `fluxes` - Face fluxes (for conservation check)
-- `t` - Current time
-- `step` - Current step number
-
-## Capabilities (Planned)
-
-- ✅ Variable bathymetry (experimental)
-- ✅ Complex geometries
-- ✅ Shock-capturing (if needed)
-- ⚠️ Periodic boundaries: possible but less natural
-
-## Compatibility
-
-- ⚠️ Variable bathymetry: experimental (requires careful flux reconstruction)
-- ❌ Most modes: NOT yet implemented
-
-## Error Codes
-
-When called, FV methods throw:
-- **SOL-FV-0001:** "Finite Volume method is not yet implemented. Use FiniteDifference instead."
-
-See `ErrorRegistry.m` for details.
+- `Parameters.Nz`
+- `Parameters.Lz`
+- `Parameters.method_config.fv3d.vertical_diffusivity_scale`
+- `Parameters.method_config.fv3d.z_boundary`
 
 ## References
 
-LeVeque RJ. Finite Volume Methods for Hyperbolic Problems. Cambridge University Press; 2002.
-
-## Legacy Files
-
-`Finite_Volume_Analysis.m` in parent directory contains placeholder/experimental code. It is NOT integrated with the new architecture.
+- LeVeque RJ. *Finite Volume Methods for Hyperbolic Problems*. Cambridge University Press; 2002.

@@ -58,7 +58,7 @@ This is the ONLY place where method branching occurs. The orchestration loop is 
 - **Outputs:** Snapshots at specified times, time history of diagnostics, figures
 - **Required Parameters:** `Tfinal`, `dt`, `snap_times`
 
-### Convergence Mode (`mode_convergence.m`)
+### Convergence Mode (`Convergence/mode_convergence.m`)
 - **Purpose:** Grid refinement convergence study
 - **Outputs:** QoI vs mesh size, convergence order, convergence plots
 - **Required Parameters:** `mesh_sizes` (array of grid resolutions)

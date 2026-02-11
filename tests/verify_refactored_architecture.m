@@ -1,142 +1,95 @@
-% verify_refactored_architecture.m - Smoke test for new architecture
+﻿% verify_refactored_architecture.m - Smoke test for current method-agnostic architecture
 %
-% Purpose:
-%   Verifies that the refactored method-agnostic architecture works
-%   Runs minimal smoke tests with mode_evolution + FD method
-%
-% Tests:
-%   1. Mode Evolution with FD method (minimal grid, short time)
-%   2. Compatibility matrix blocking (Spectral + Evolution should fail)
-%
-% Usage:
-%   From repo root: matlab -batch "verify_refactored_architecture"
+% Verifies:
+%   1) Architecture compliance checks
+%   2) Compatibility matrix state for FD/Spectral/FV
+%   3) mode_evolution smoke for FD and Spectral
+%   4) mode_convergence blocked path for FV checkpoint
 
 fprintf('\n');
-fprintf('═══════════════════════════════════════════════════════════════\n');
+fprintf('===============================================================\n');
 fprintf('  REFACTORED ARCHITECTURE VERIFICATION\n');
-fprintf('═══════════════════════════════════════════════════════════════\n\n');
+fprintf('===============================================================\n\n');
 
-% Add paths
 addpath(genpath('Scripts'));
 addpath('tests');
 
 %% TEST 1: Architecture Compliance
 fprintf('[TEST 1] Running architecture compliance test...\n');
 test_architecture_compliance();
-fprintf('[TEST 1] PASSED: Architecture compliance verified\n\n');
+fprintf('[TEST 1] PASSED\n\n');
 
 %% TEST 2: Compatibility Matrix
 fprintf('[TEST 2] Testing compatibility matrix...\n');
 
-% Should be supported
-[status, ~] = compatibility_matrix('FD', 'Evolution');
-assert(strcmp(status, 'supported'), 'FD + Evolution should be supported');
-fprintf('  ✓ FD + Evolution: supported\n');
+[status_fd, ~] = compatibility_matrix('FD', 'Evolution');
+assert(strcmp(status_fd, 'supported'), 'FD + Evolution should be supported');
+fprintf('  PASS FD + Evolution: %s\n', status_fd);
 
-% Should be blocked
-[status, reason] = compatibility_matrix('Spectral', 'Evolution');
-assert(strcmp(status, 'blocked'), 'Spectral + Evolution should be blocked');
-fprintf('  ✓ Spectral + Evolution: blocked (reason: %s)\n', reason);
+[status_sp, reason_sp] = compatibility_matrix('Spectral', 'Evolution');
+assert(strcmp(status_sp, 'experimental'), 'Spectral + Evolution should be experimental');
+fprintf('  PASS Spectral + Evolution: %s (%s)\n', status_sp, reason_sp);
 
-fprintf('[TEST 2] PASSED: Compatibility matrix works correctly\n\n');
+[status_fv, reason_fv] = compatibility_matrix('FV', 'Evolution');
+assert(strcmp(status_fv, 'experimental'), 'FV + Evolution should be experimental');
+fprintf('  PASS FV + Evolution: %s (%s)\n', status_fv, reason_fv);
 
-%% TEST 3: Mode Evolution Smoke Test (FD, minimal)
-fprintf('[TEST 3] Running mode_evolution smoke test (FD, 16x16, 10 steps)...\n');
+[status_fv_conv, reason_fv_conv] = compatibility_matrix('FV', 'Convergence');
+assert(strcmp(status_fv_conv, 'blocked'), 'FV + Convergence should remain blocked in this checkpoint');
+fprintf('  PASS FV + Convergence: %s (%s)\n', status_fv_conv, reason_fv_conv);
 
-try
-    % Minimal configuration
-    Run_Config = struct();
-    Run_Config.method = 'FD';
-    Run_Config.mode = 'Evolution';
-    Run_Config.ic_type = 'Gaussian';
-    Run_Config.run_id = 'smoke_test_evolution';
+fprintf('[TEST 2] PASSED\n\n');
 
-    Parameters = struct();
-    Parameters.Nx = 16;
-    Parameters.Ny = 16;
-    Parameters.Lx = 2 * pi;
-    Parameters.Ly = 2 * pi;
-    Parameters.dt = 0.01;
-    Parameters.Tfinal = 0.1;  % Only 10 steps
-    Parameters.nu = 0.001;
-    Parameters.snap_times = [0, 0.05, 0.1];
+%% TEST 3: mode_evolution smoke (FD + Spectral)
+fprintf('[TEST 3] Running mode_evolution smoke tests...\n');
 
-    Settings = struct();
-    Settings.save_figures = false;
-    Settings.save_data = false;
-    Settings.save_reports = false;
-    Settings.append_to_master = false;
-    Settings.monitor_enabled = false;
+base_params = struct();
+base_params.Nx = 16;
+base_params.Ny = 16;
+base_params.Lx = 2 * pi;
+base_params.Ly = 2 * pi;
+base_params.dt = 0.005;
+base_params.Tfinal = 0.02;
+base_params.nu = 0.001;
+base_params.snap_times = [0, 0.01, 0.02];
 
-    % Run Evolution mode
-    [Results, paths] = mode_evolution(Run_Config, Parameters, Settings);
+Settings = struct();
+Settings.save_figures = false;
+Settings.save_data = false;
+Settings.save_reports = false;
+Settings.append_to_master = false;
+Settings.monitor_enabled = false;
 
-    % Verify results
-    assert(isfield(Results, 'run_id'), 'Results should have run_id');
-    assert(isfield(Results, 'wall_time'), 'Results should have wall_time');
-    assert(isfield(Results, 'max_omega'), 'Results should have max_omega');
+rc_fd = struct('method', 'FD', 'mode', 'Evolution', 'ic_type', 'Gaussian', 'run_id', 'smoke_fd');
+[res_fd, ~] = mode_evolution(rc_fd, base_params, Settings);
+assert(isfield(res_fd, 'max_omega') && isfinite(res_fd.max_omega), 'FD evolution smoke failed');
+fprintf('  PASS FD evolution smoke\n');
 
-    fprintf('  ✓ Evolution mode completed successfully\n');
-    fprintf('    Run ID: %s\n', Results.run_id);
-    fprintf('    Wall time: %.3f s\n', Results.wall_time);
-    fprintf('    Max omega: %.3e\n', Results.max_omega);
-    fprintf('[TEST 3] PASSED: mode_evolution works correctly\n\n');
+rc_sp = struct('method', 'Spectral', 'mode', 'Evolution', 'ic_type', 'Gaussian', 'run_id', 'smoke_spectral');
+[res_sp, ~] = mode_evolution(rc_sp, base_params, Settings);
+assert(isfield(res_sp, 'max_omega') && isfinite(res_sp.max_omega), 'Spectral evolution smoke failed');
+fprintf('  PASS Spectral evolution smoke\n');
 
-catch ME
-    fprintf('  ✗ FAILED: %s\n', ME.message);
-    fprintf('    Identifier: %s\n', ME.identifier);
-    if ~isempty(ME.stack)
-        fprintf('    Location: %s (line %d)\n', ME.stack(1).name, ME.stack(1).line);
-    end
-    fprintf('[TEST 3] FAILED\n\n');
-    rethrow(ME);
-end
+fprintf('[TEST 3] PASSED\n\n');
 
-%% TEST 4: Blocked Method Smoke Test
-fprintf('[TEST 4] Testing blocked method (Spectral + Evolution should fail)...\n');
+%% TEST 4: mode_convergence blocked path for FV
+fprintf('[TEST 4] Validating FV convergence blocked path...\n');
 
 try
-    Run_Config_blocked = struct();
-    Run_Config_blocked.method = 'Spectral';
-    Run_Config_blocked.mode = 'Evolution';
-    Run_Config_blocked.ic_type = 'Gaussian';
-    Run_Config_blocked.run_id = 'smoke_test_spectral_blocked';
-
-    % This should throw SOL-SP-0001
-    [Results_blocked, ~] = mode_evolution(Run_Config_blocked, Parameters, Settings);
-
-    % If we reach here, test failed (should have thrown error)
-    fprintf('  ✗ FAILED: Spectral method should have thrown error\n');
-    fprintf('[TEST 4] FAILED\n\n');
-    error('Spectral method did not block as expected');
-
+    rc_fv = struct('method', 'FV', 'mode', 'Convergence', 'ic_type', 'Gaussian', 'study_id', 'smoke_fv_conv');
+    base_params.mesh_sizes = [8, 16];
+    [~, ~] = ModeDispatcher(rc_fv, base_params, Settings); %#ok<ASGLU>
+    error('Expected FV convergence to be blocked but it executed.');
 catch ME
-    % Check if correct error was thrown
-    if contains(ME.identifier, 'SOL') || contains(ME.message, 'not yet implemented')
-        fprintf('  ✓ Spectral method correctly blocked with error: %s\n', ME.identifier);
-        fprintf('[TEST 4] PASSED: Blocked methods fail early\n\n');
+    if contains(ME.identifier, 'SOL') || contains(ME.message, 'not enabled') || contains(ME.message, 'SOL-FV-0001')
+        fprintf('  PASS FV convergence correctly blocked\n');
     else
-        % Unexpected error
-        fprintf('  ✗ FAILED: Unexpected error: %s\n', ME.message);
-        fprintf('[TEST 4] FAILED\n\n');
         rethrow(ME);
     end
 end
 
-%% SUMMARY
-fprintf('═══════════════════════════════════════════════════════════════\n');
+fprintf('[TEST 4] PASSED\n\n');
+
+fprintf('===============================================================\n');
 fprintf('  VERIFICATION COMPLETE\n');
-fprintf('═══════════════════════════════════════════════════════════════\n\n');
-
-fprintf('✅ ALL VERIFICATION TESTS PASSED\n');
-fprintf('Refactored architecture is functional:\n');
-fprintf('  - Method-agnostic modes work correctly\n');
-fprintf('  - FD method entrypoints work correctly\n');
-fprintf('  - Compatibility matrix blocks invalid combinations\n');
-fprintf('  - Blocked methods fail early with clear errors\n\n');
-
-fprintf('Next steps:\n');
-fprintf('  1. Run Tsunami_Simulator interactively\n');
-fprintf('  2. Test Convergence mode with FD\n');
-fprintf('  3. Test ParameterSweep mode with FD\n');
-fprintf('  4. Update main README.md with architecture section\n\n');
+fprintf('===============================================================\n\n');

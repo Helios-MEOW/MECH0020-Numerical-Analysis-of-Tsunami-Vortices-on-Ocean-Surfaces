@@ -1,4 +1,4 @@
-function [Results, paths] = mode_evolution(Run_Config, Parameters, Settings)
+﻿function [Results, paths] = mode_evolution(Run_Config, Parameters, Settings)
     % mode_evolution - METHOD-AGNOSTIC Evolution Mode
     %
     % Purpose:
@@ -123,7 +123,7 @@ function [Results, paths] = mode_evolution(Run_Config, Parameters, Settings)
 
         % Progress reporting
         if mod(n, progress_stride) == 0 || n == 1 || n == Nt
-            fprintf('[Evolution] %6.2f%% | t = %.3f / %.3f | Method = %s | max|ω| = %.3e\n', ...
+            fprintf('[Evolution] %6.2f%% | t = %.3f / %.3f | Method = %s | max|Ï‰| = %.3e\n', ...
                 100 * n / Nt, State.t, Tfinal, Run_Config.method, Metrics.max_vorticity);
         end
     end
@@ -219,7 +219,7 @@ function [init_fn, step_fn, diag_fn] = resolve_method(method_name)
             init_fn = @(cfg, ctx) SpectralMethod('init', cfg, ctx);
             step_fn = @(State, cfg, ctx) SpectralMethod('step', State, cfg, ctx);
             diag_fn = @(State, cfg, ctx) SpectralMethod('diagnostics', State, cfg, ctx);
-        case {'fv', 'finitevolume'}
+        case {'fv', 'finitevolume', 'finite volume'}
             init_fn = @(cfg, ctx) FiniteVolumeMethod('init', cfg, ctx);
             step_fn = @(State, cfg, ctx) FiniteVolumeMethod('step', State, cfg, ctx);
             diag_fn = @(State, cfg, ctx) FiniteVolumeMethod('diagnostics', State, cfg, ctx);
@@ -253,6 +253,13 @@ function cfg = prepare_cfg(Run_Config, Parameters)
 
     % Physics
     cfg.nu = Parameters.nu;
+
+    % Optional 3D/layered controls used by FV evolution.
+    if isfield(Parameters, 'Nz'), cfg.Nz = Parameters.Nz; end
+    if isfield(Parameters, 'Lz'), cfg.Lz = Parameters.Lz; end
+    if isfield(Parameters, 'method_config') && isfield(Parameters.method_config, 'fv3d')
+        cfg.fv3d = Parameters.method_config.fv3d;
+    end
 
     % IC
     cfg.ic_type = Run_Config.ic_type;
@@ -299,3 +306,4 @@ function output_root = resolve_output_root(Settings)
         output_root = char(string(Settings.output_root));
     end
 end
+

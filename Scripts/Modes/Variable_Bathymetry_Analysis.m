@@ -159,13 +159,12 @@
     end
     
     show_figs = usejava('desktop') && ~strcmpi(get(0, 'DefaultFigureVisible'), 'off');
-
-    if ~show_figs
-        fig_handle = figure('Visible', 'off');
-        return;
+    fig_visibility = 'off';
+    if show_figs
+        fig_visibility = 'on';
     end
 
-    fig_handle = figure('Name', 'Bathymetry Analysis', 'NumberTitle', 'off');
+    fig_handle = figure('Name', 'Bathymetry Analysis', 'NumberTitle', 'off', 'Visible', fig_visibility);
     
     subplot(2, 2, 1);
     contourf(X, Y, analysis.omega_snaps(:,:,end), 20);

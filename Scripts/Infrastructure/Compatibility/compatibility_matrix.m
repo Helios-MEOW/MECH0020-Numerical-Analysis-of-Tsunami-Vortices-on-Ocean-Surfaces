@@ -52,14 +52,14 @@ function [status, reason] = compatibility_matrix(method, mode)
     if strcmp(method, 'spectral') || strcmp(method, 'fft')
         switch mode
             case 'evolution'
-                status = 'blocked';
-                reason = 'Spectral method not yet implemented (stub only). Use FD instead.';
+                status = 'experimental';
+                reason = 'Spectral evolution is enabled under the single-file callback module.';
             case 'convergence'
-                status = 'blocked';
-                reason = 'Spectral method not yet implemented. Use FD instead.';
+                status = 'experimental';
+                reason = 'Spectral convergence uses frequency-domain refinement (explicit k-vectors).';
             case 'parametersweep'
                 status = 'blocked';
-                reason = 'Spectral method not yet implemented. Use FD instead.';
+                reason = 'Spectral parameter sweep not enabled in this checkpoint.';
             case 'plotting'
                 status = 'supported';
                 reason = '';  % Plotting is method-agnostic
@@ -77,14 +77,14 @@ function [status, reason] = compatibility_matrix(method, mode)
     if strcmp(method, 'fv') || strcmp(method, 'finitevolume')
         switch mode
             case 'evolution'
-                status = 'blocked';
-                reason = 'Finite Volume method not yet implemented (stub only). Use FD instead.';
+                status = 'experimental';
+                reason = 'Finite Volume evolution runs as layered 3D FV on structured Cartesian mesh.';
             case 'convergence'
                 status = 'blocked';
-                reason = 'Finite Volume method not yet implemented. Use FD instead.';
+                reason = 'Finite Volume convergence is deferred to the next checkpoint.';
             case 'parametersweep'
                 status = 'blocked';
-                reason = 'Finite Volume method not yet implemented. Use FD instead.';
+                reason = 'Finite Volume parameter sweep is deferred to the next checkpoint.';
             case 'plotting'
                 status = 'supported';
                 reason = '';  % Plotting is method-agnostic

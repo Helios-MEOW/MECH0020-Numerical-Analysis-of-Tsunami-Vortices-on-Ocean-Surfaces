@@ -29,8 +29,10 @@ function params = Parameters()
     params.Ly = 10;
     params.Nx = 128;
     params.Ny = 128;
+    params.Nz = 12;                          % 3D layers for FV evolution
     params.delta = 2;
     params.use_explicit_delta = true;
+    params.Lz = 1.0;                         % Vertical domain thickness for layered FV
 
     params.nu = 1e-6;
     params.dt = 0.01;
@@ -100,6 +102,12 @@ function params = Parameters()
     params.convergence_variable = 'max_omega';   % max_omega | energy | enstrophy
     params.conv_tolerance = 1e-6;
     params.conv_max_iter = 8;
+    % Spectral-specific convergence (frequency-domain refinement by explicit k-vectors)
+    params.spectral_convergence = struct();
+    params.spectral_convergence.levels = [ ...
+        struct('label', 'k32',  'kx', make_kvec(32,  params.Lx), 'ky', make_kvec(32,  params.Ly)), ...
+        struct('label', 'k64',  'kx', make_kvec(64,  params.Lx), 'ky', make_kvec(64,  params.Ly)), ...
+        struct('label', 'k128', 'kx', make_kvec(128, params.Lx), 'ky', make_kvec(128, params.Ly))];
 
     % ---------------------------------------------------------------------
     % Parameter sweep mode options
@@ -133,6 +141,11 @@ function params = Parameters()
         'flux', 'Roe', ...
         'time_integrator', 'RK3');
 
+    params.method_config.fv3d = struct( ...
+        'vertical_diffusivity_scale', 1.0, ...
+        'z_boundary', 'no_flux', ...
+        'projection', 'depth_average');
+
     params.method_config.bathymetry = struct( ...
         'enabled', false, ...
         'bathymetry_file', '', ...
@@ -159,4 +172,11 @@ function params = Parameters()
         'auto_compare', false, ...
         'machine_tag', 'auto', ...
         'collector_paths', struct('cpuz', '', 'hwinfo', '', 'icue', ''));
+end
+
+function k = make_kvec(N, L)
+    if mod(N, 2) ~= 0
+        error('Parameters:InvalidSpectralGrid', 'Spectral convergence levels require even N, got %d', N);
+    end
+    k = (2 * pi / L) * [0:(N/2 - 1), (-N/2):-1];
 end

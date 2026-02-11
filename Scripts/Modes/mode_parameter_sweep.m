@@ -1,4 +1,4 @@
-function [Results, paths] = mode_parameter_sweep(Run_Config, Parameters, Settings)
+﻿function [Results, paths] = mode_parameter_sweep(Run_Config, Parameters, Settings)
     % mode_parameter_sweep - METHOD-AGNOSTIC Parameter Sweep Mode
     %
     % Purpose:
@@ -148,7 +148,7 @@ function [init_fn, step_fn, diag_fn] = resolve_method(method_name)
             init_fn = @(cfg, ctx) SpectralMethod('init', cfg, ctx);
             step_fn = @(State, cfg, ctx) SpectralMethod('step', State, cfg, ctx);
             diag_fn = @(State, cfg, ctx) SpectralMethod('diagnostics', State, cfg, ctx);
-        case {'fv', 'finitevolume'}
+        case {'fv', 'finitevolume', 'finite volume'}
             init_fn = @(cfg, ctx) FiniteVolumeMethod('init', cfg, ctx);
             step_fn = @(State, cfg, ctx) FiniteVolumeMethod('step', State, cfg, ctx);
             diag_fn = @(State, cfg, ctx) FiniteVolumeMethod('diagnostics', State, cfg, ctx);
@@ -246,3 +246,4 @@ function output_root = resolve_output_root(Settings)
         output_root = char(string(Settings.output_root));
     end
 end
+

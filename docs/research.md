@@ -1,4 +1,4 @@
-# MECH0020 Tsunami Vortex Research Notes
+﻿# MECH0020 Tsunami Vortex Research Notes
 
 **Purpose:** Document unviable/experimental setting combinations, future work constraints, and compatibility matrices for the MECH0020 tsunami vortex numerical simulation repository.
 
@@ -20,15 +20,15 @@
 
 | Method | Evolution | Convergence | ParameterSweep | Plotting | Notes |
 |--------|-----------|-------------|----------------|----------|-------|
-| **FD (Finite Difference)** | ✅ Supported | ✅ Supported | ✅ Supported | ✅ Supported | Fully implemented with Arakawa schemes |
-| **Spectral (FFT)** | ⚠️ Experimental | ❌ Not Implemented | ❌ Not Implemented | ❌ Not Implemented | Stub exists in Spectral_Analysis.m |
-| **FV (Finite Volume)** | ⚠️ Experimental | ❌ Not Implemented | ❌ Not Implemented | ❌ Not Implemented | Stub exists in Finite_Volume_Analysis.m |
-| **Variable Bathymetry** | ⚠️ Special Mode | ❌ Not Implemented | ❌ Not Implemented | ❌ Not Implemented | Treated as separate solver, not mode flag |
+| **FD (Finite Difference)** | Supported | Supported | Supported | Supported | Fully implemented with Arakawa schemes |
+| **Spectral (FFT)** | Experimental | Experimental | Blocked | Supported | Single-file callback module enabled for Evolution/Convergence |
+| **FV (Finite Volume)** | Experimental | Blocked | Blocked | Supported | Single-file layered 3D Evolution checkpoint |
+| **Variable Bathymetry** | Experimental special path | Blocked | Blocked | Blocked | Treated as separate solver, not mode flag |
 
 **Legend:**
-- ✅ Fully supported and tested
-- ⚠️ Experimental/unstable; may not work correctly
-- ❌ Not yet implemented
+- Supported: fully routed and tested in dispatcher mode.
+- Experimental: routed in dispatcher mode, still under active hardening.
+- Blocked: intentionally unavailable in the current checkpoint.
 
 ---
 
@@ -36,33 +36,33 @@
 
 ### 1. Spectral Methods (FFT)
 
-**Status:** Stub implementation only
+**Status:** Experimental layered 3D Evolution implementation available
 
 **Constraints:**
-- Spectral_Analysis.m exists but is not connected to ModeDispatcher
+- Single-file module `SpectralMethod.m` is connected to ModeDispatcher for Evolution/Convergence
 - Requires periodic boundary conditions (incompatible with Dirichlet/Neumann BCs)
 - FFT-based Poisson solver needed for streamfunction
-- No mode implementations (Evolution, Convergence, etc.)
+- ParameterSweep remains blocked in dispatcher mode for this checkpoint
 
-**Error Code:** `SOL-SP-0001` if selected via ModeDispatcher
+**Error Code:** `SOL-SP-0001` for blocked spectral workflows (for example ParameterSweep)
 
-**Recommendation:** Use FD method until Spectral fully implemented
+**Recommendation:** Use spectral for Evolution/Convergence studies; use FD for broad production sweeps.
 
 ---
 
 ### 2. Finite Volume Methods (FV)
 
-**Status:** Stub implementation only
+**Status:** Experimental callback implementation available
 
 **Constraints:**
-- Finite_Volume_Analysis.m exists but not connected to ModeDispatcher
+- Single-file module `FiniteVolumeMethod.m` is connected to ModeDispatcher for Evolution
 - Requires flux reconstruction and upwinding logic
 - Conservative form of vorticity equation needed
-- No mode implementations
+- Convergence and ParameterSweep remain blocked in dispatcher mode for this checkpoint
 
-**Error Code:** `SOL-FV-0001` if selected via ModeDispatcher
+**Error Code:** `SOL-FV-0001` for blocked FV workflows (Convergence/ParameterSweep)
 
-**Recommendation:** Use FD method until FV fully implemented
+**Recommendation:** Use FV for Evolution-only experimental runs in this checkpoint.
 
 ---
 
@@ -76,9 +76,9 @@
 - Currently requires manual invocation, not accessible via ModeDispatcher
 
 **Compatibility:**
-- ⚠️ May conflict with periodic boundary conditions
-- ⚠️ Requires careful handling of depth variations in numerical schemes
-- ⚠️ Not tested with Convergence or ParameterSweep modes
+- âš ï¸ May conflict with periodic boundary conditions
+- âš ï¸ Requires careful handling of depth variations in numerical schemes
+- âš ï¸ Not tested with Convergence or ParameterSweep modes
 
 **Recommendation:** Treat as experimental feature; framework redesign needed
 
@@ -226,11 +226,11 @@
 - Performance/scalability tests (large grids, long time integration)
 
 **Current Coverage:**
-- FD Evolution: ✅
-- FD Convergence: ✅
-- FD ParameterSweep: ✅
-- Static analysis: ✅
-- UI contract checks: ✅
+- FD Evolution: âœ…
+- FD Convergence: âœ…
+- FD ParameterSweep: âœ…
+- Static analysis: âœ…
+- UI contract checks: âœ…
 
 **Priority:** Medium (quality assurance)
 
@@ -242,7 +242,7 @@
 
 **Constraint:** Memory and computational limits
 
-- Grids larger than ~1024×1024 may exceed MATLAB memory on typical workstations
+- Grids larger than ~1024Ã—1024 may exceed MATLAB memory on typical workstations
 - Sparse grids not implemented
 - Adaptive mesh refinement not implemented (except convergence agent)
 
@@ -294,3 +294,4 @@ See [research_log.md](research_log.md) for detailed literature references and re
 
 **Maintained by:** MECH0020 Development Team
 **Contact:** See main README for contact information
+
