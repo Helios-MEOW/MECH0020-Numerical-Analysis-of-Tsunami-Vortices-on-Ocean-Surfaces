@@ -128,18 +128,23 @@ function cfg = UI_Layout_Config()
     cfg.monitor_tab.root.padding = [10 10 10 10];
     cfg.monitor_tab.root.col_spacing = 12;
 
-    cfg.monitor_tab.left.rows_cols = [2, 2];
-    cfg.monitor_tab.left.row_heights = {'1x', '1x'};
-    cfg.monitor_tab.left.col_widths = {'1x', '1x'};
+    cfg.monitor_tab.plot_grid_rows = 3;
+    cfg.monitor_tab.plot_grid_cols = 3;
+    cfg.monitor_tab.plot_tile_count = 9;
+    cfg.monitor_tab.numeric_tile_index = 9;
+    cfg.monitor_tab.plot_area_ratio = 0.75;
+
+    cfg.monitor_tab.left.rows_cols = [cfg.monitor_tab.plot_grid_rows, cfg.monitor_tab.plot_grid_cols];
+    cfg.monitor_tab.left.row_heights = {'1x', '1x', '1x'};
+    cfg.monitor_tab.left.col_widths = {'1x', '1x', '1x'};
     cfg.monitor_tab.left.padding = [8 8 8 8];
     cfg.monitor_tab.left.row_spacing = 10;
     cfg.monitor_tab.left.col_spacing = 10;
 
-    cfg.monitor_tab.metrics.rows_cols = [12, 2];
-    cfg.monitor_tab.metrics.col_widths = {'1x', '1x'};
-    cfg.monitor_tab.metrics.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
-    cfg.monitor_tab.metrics.padding = [6 6 6 6];
-    cfg.monitor_tab.metrics.row_spacing = 4;
+    cfg.monitor_tab.sidebar.rows_cols = [3, 1];
+    cfg.monitor_tab.sidebar.row_heights = {36, '1x', 'fit'};
+    cfg.monitor_tab.sidebar.padding = [8 8 8 8];
+    cfg.monitor_tab.sidebar.row_spacing = 8;
 
     % ===== RESULTS TAB =====
     cfg.results_tab.root.rows_cols = [2, 1];

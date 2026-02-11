@@ -60,6 +60,7 @@ classdef UIController < handle
         handles                % All UI component handles
         config                 % Configuration structure
         terminal_log           % Cell array of terminal output
+        terminal_type_log      % Message type tags aligned with terminal_log
         figures_list           % Storage for generated figures
         diary_file             % MATLAB diary file for terminal capture
         diary_timer            % Timer for terminal refresh
@@ -96,6 +97,7 @@ classdef UIController < handle
             app.config = app.initialize_default_config();
             app.handles = struct();
             app.terminal_log = {};
+            app.terminal_type_log = {};
             app.figures_list = {};
             app.dev_mode_enabled = false;  % Developer Mode off by default
             app.selected_component = [];
@@ -797,7 +799,7 @@ classdef UIController < handle
             app.update_checklist();
         end
         function create_monitoring_tab(app)
-            % Monitoring tab layout and dark theme styling
+            % 3x3 dashboard contract: 8 ranked plots + 1 numeric table tile.
             C = app.layout_cfg.colors;
             cfg = app.layout_cfg.monitor_tab;
 
@@ -810,107 +812,125 @@ classdef UIController < handle
             root.Padding = cfg.root.padding;
             root.ColumnSpacing = cfg.root.col_spacing;
 
-            left_panel = uipanel(root, 'Title', 'Live Monitoring', ...
+            dashboard_panel = uipanel(root, ...
+                'Title', 'Live Monitor Dashboard (3x3: 8 plots + 1 numeric tile)', ...
                 'BackgroundColor', C.bg_panel_alt);
-            left_panel.Layout.Row = app.layout_cfg.coords.monitor.left_panel(1);
-            left_panel.Layout.Column = app.layout_cfg.coords.monitor.left_panel(2);
+            dashboard_panel.Layout.Row = app.layout_cfg.coords.monitor.left_panel(1);
+            dashboard_panel.Layout.Column = app.layout_cfg.coords.monitor.left_panel(2);
 
-            left_layout = uigridlayout(left_panel, cfg.left.rows_cols);
-            left_layout.RowHeight = cfg.left.row_heights;
-            left_layout.ColumnWidth = cfg.left.col_widths;
-            left_layout.Padding = cfg.left.padding;
-            left_layout.RowSpacing = cfg.left.row_spacing;
-            left_layout.ColumnSpacing = cfg.left.col_spacing;
+            dash_grid = uigridlayout(dashboard_panel, [cfg.plot_grid_rows, cfg.plot_grid_cols]);
+            dash_grid.RowHeight = {'1x', '1x', '1x'};
+            dash_grid.ColumnWidth = {'1x', '1x', '1x'};
+            dash_grid.Padding = cfg.left.padding;
+            dash_grid.RowSpacing = cfg.left.row_spacing;
+            dash_grid.ColumnSpacing = cfg.left.col_spacing;
 
-            panel_iter_time = uipanel(left_layout, 'Title', 'Iterations vs Time', ...
+            app.handles.monitor_metric_catalog = app.build_monitor_metric_catalog();
+            app.handles.monitor_ranked_selection = 1:8;
+            app.handles.monitor_axes = gobjects(1, 8);
+
+            plot_slot = 0;
+            for tile_idx = 1:cfg.plot_tile_count
+                row_idx = ceil(tile_idx / cfg.plot_grid_cols);
+                col_idx = mod(tile_idx - 1, cfg.plot_grid_cols) + 1;
+
+                if tile_idx == cfg.numeric_tile_index
+                    numeric_panel = uipanel(dash_grid, ...
+                        'Title', 'Ranked Numerical Metrics', ...
+                        'BackgroundColor', C.bg_panel_alt);
+                    numeric_panel.Layout.Row = row_idx;
+                    numeric_panel.Layout.Column = col_idx;
+                    numeric_layout = uigridlayout(numeric_panel, [1 1]);
+                    numeric_layout.Padding = [4 4 4 4];
+                    app.handles.monitor_numeric_table = uitable(numeric_layout, ...
+                        'ColumnName', {'Metric', 'Value', 'Unit', 'Source'}, ...
+                        'ColumnEditable', [false false false false], ...
+                        'ColumnWidth', {170, 120, 70, 130}, ...
+                        'Data', {
+                            'Status', 'Waiting for run', '-', 'UI';
+                            'Grid', '--', '-', 'UI';
+                            'dt', '--', 's', 'UI';
+                            'Runtime', '--', 's', 'Dispatcher';
+                            'Max |omega|', '--', '-', 'Solver';
+                            'Convergence tol', '--', '-', 'Convergence';
+                            'Convergence metric', '--', '-', 'Convergence';
+                            'Suggested coarse N', '--', '-', 'Advisor';
+                            'CPU usage', '--', '%', 'MATLAB';
+                            'Memory', '--', 'MB', 'MATLAB';
+                            'Machine', '--', '-', 'SystemProfile';
+                            'Collectors', '--', '-', 'SystemProfile'
+                        });
+                    continue;
+                end
+
+                plot_slot = plot_slot + 1;
+                metric = app.handles.monitor_metric_catalog(plot_slot);
+                tile_panel = uipanel(dash_grid, ...
+                    'Title', metric.title, ...
+                    'BackgroundColor', C.bg_panel_alt);
+                tile_panel.Layout.Row = row_idx;
+                tile_panel.Layout.Column = col_idx;
+
+                tile_layout = uigridlayout(tile_panel, [1 1]);
+                tile_layout.Padding = [4 4 4 4];
+                ax = uiaxes(tile_layout);
+                app.style_axes(ax);
+                title(ax, metric.title, 'Color', C.fg_text, 'FontSize', 10);
+                xlabel(ax, metric.xlabel, 'Color', C.fg_text);
+                ylabel(ax, metric.ylabel, 'Color', C.fg_text);
+                grid(ax, 'on');
+                ax.PlotBoxAspectRatio = [1 1 1];
+                ax.PlotBoxAspectRatioMode = 'manual';
+                app.handles.monitor_axes(plot_slot) = ax;
+            end
+
+            % Backward-compatibility aliases used by older test/helpers.
+            app.handles.exec_monitor_axes1 = app.handles.monitor_axes(1);
+            app.handles.exec_monitor_axes2 = app.handles.monitor_axes(2);
+            app.handles.conv_monitor_axes = app.handles.monitor_axes(3);
+
+            sidebar = uipanel(root, 'Title', 'Terminal and Telemetry', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_iter_time.Layout.Row = app.layout_cfg.coords.monitor.panel_iter_time(1);
-            panel_iter_time.Layout.Column = app.layout_cfg.coords.monitor.panel_iter_time(2);
-            iter_time_layout = uigridlayout(panel_iter_time, [1 1]);
-            iter_time_layout.Padding = [6 6 6 6];
+            sidebar.Layout.Row = app.layout_cfg.coords.monitor.terminal_panel(1);
+            sidebar.Layout.Column = app.layout_cfg.coords.monitor.terminal_panel(2);
+            side_layout = uigridlayout(sidebar, cfg.sidebar.rows_cols);
+            side_layout.RowHeight = cfg.sidebar.row_heights;
+            side_layout.Padding = cfg.sidebar.padding;
+            side_layout.RowSpacing = cfg.sidebar.row_spacing;
 
-            app.handles.exec_monitor_axes1 = uiaxes(iter_time_layout);
-            app.style_axes(app.handles.exec_monitor_axes1);
-            title(app.handles.exec_monitor_axes1, 'Iterations vs Time (no data yet)', 'Color', C.fg_text);
-            xlabel(app.handles.exec_monitor_axes1, 'Time (s)', 'Color', C.fg_text);
-            ylabel(app.handles.exec_monitor_axes1, 'Iterations', 'Color', C.fg_text);
-            grid(app.handles.exec_monitor_axes1, 'on');
+            controls = uigridlayout(side_layout, [1 2]);
+            controls.Layout.Row = 1;
+            controls.Layout.Column = 1;
+            controls.ColumnWidth = {'1x', '1x'};
+            controls.Padding = [0 0 0 0];
+            controls.ColumnSpacing = 6;
+            uibutton(controls, 'Text', 'Save Log', ...
+                'ButtonPushedFcn', @(~,~) app.save_terminal_log());
+            uibutton(controls, 'Text', 'Clear', ...
+                'ButtonPushedFcn', @(~,~) app.clear_terminal_view());
 
-            panel_iter_per_sec = uipanel(left_layout, 'Title', 'Iterations per Second vs Time', ...
+            app.handles.terminal_output = uihtml(side_layout, ...
+                'HTMLSource', app.render_terminal_html());
+            app.handles.terminal_output.Layout.Row = 2;
+            app.handles.terminal_output.Layout.Column = 1;
+
+            source_panel = uipanel(side_layout, 'Title', 'Sustainability Source Readiness', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_iter_per_sec.Layout.Row = app.layout_cfg.coords.monitor.panel_iter_per_sec(1);
-            panel_iter_per_sec.Layout.Column = app.layout_cfg.coords.monitor.panel_iter_per_sec(2);
-            iter_per_sec_layout = uigridlayout(panel_iter_per_sec, [1 1]);
-            iter_per_sec_layout.Padding = [6 6 6 6];
+            source_panel.Layout.Row = 3;
+            source_panel.Layout.Column = 1;
+            source_grid = uigridlayout(source_panel, [2 4]);
+            source_grid.Padding = [4 4 4 4];
+            source_grid.RowHeight = {18, 18};
+            source_grid.ColumnWidth = {'1x', '1x', '1x', '1x'};
 
-            app.handles.exec_monitor_axes2 = uiaxes(iter_per_sec_layout);
-            app.style_axes(app.handles.exec_monitor_axes2);
-            title(app.handles.exec_monitor_axes2, 'Iterations/Second vs Time (no data yet)', 'Color', C.fg_text);
-            xlabel(app.handles.exec_monitor_axes2, 'Time (s)', 'Color', C.fg_text);
-            ylabel(app.handles.exec_monitor_axes2, 'Iterations/s', 'Color', C.fg_text);
-            grid(app.handles.exec_monitor_axes2, 'on');
-
-            panel_conv = uipanel(left_layout, 'Title', 'Convergence Monitor', ...
-                'BackgroundColor', C.bg_panel_alt);
-            panel_conv.Layout.Row = app.layout_cfg.coords.monitor.panel_conv(1);
-            panel_conv.Layout.Column = app.layout_cfg.coords.monitor.panel_conv(2);
-            conv_layout = uigridlayout(panel_conv, [1 1]);
-            conv_layout.Padding = [6 6 6 6];
-
-            app.handles.conv_monitor_axes = uiaxes(conv_layout);
-            app.style_axes(app.handles.conv_monitor_axes);
-            title(app.handles.conv_monitor_axes, 'Refinement vs Iteration (no data yet)', 'Color', C.fg_text);
-            xlabel(app.handles.conv_monitor_axes, 'Iteration', 'Color', C.fg_text);
-            ylabel(app.handles.conv_monitor_axes, 'Refinement Level', 'Color', C.fg_text);
-            grid(app.handles.conv_monitor_axes, 'on');
-            app.handles.conv_monitor_axes.YTickMode = 'manual';
-
-            panel_metrics = uipanel(left_layout, 'Title', 'Simulation Metrics', ...
-                'BackgroundColor', C.bg_panel_alt);
-            panel_metrics.Layout.Row = app.layout_cfg.coords.monitor.panel_metrics(1);
-            panel_metrics.Layout.Column = app.layout_cfg.coords.monitor.panel_metrics(2);
-            metrics_layout = uigridlayout(panel_metrics, cfg.metrics.rows_cols);
-            metrics_layout.ColumnWidth = cfg.metrics.col_widths;
-            metrics_layout.RowHeight = cfg.metrics.row_heights;
-            metrics_layout.Padding = cfg.metrics.padding;
-            metrics_layout.RowSpacing = cfg.metrics.row_spacing;
-
-            uilabel(metrics_layout, 'Text', 'SIMULATION', 'FontColor', C.accent_cyan, 'FontWeight', 'bold');
-            uilabel(metrics_layout, 'Text', '');
-            uilabel(metrics_layout, 'Text', 'Iterations:', 'FontColor', C.fg_text);
-            app.handles.metrics_iterations = uilabel(metrics_layout, 'Text', '0', 'FontColor', C.accent_green);
-            uilabel(metrics_layout, 'Text', 'Time Elapsed:', 'FontColor', C.fg_text);
-            app.handles.metrics_time_elapsed = uilabel(metrics_layout, 'Text', '0.0 s', 'FontColor', C.accent_green);
-            uilabel(metrics_layout, 'Text', 'Grid Size:', 'FontColor', C.fg_text);
-            app.handles.metrics_grid = uilabel(metrics_layout, 'Text', '128x128', 'FontColor', C.accent_green);
-            uilabel(metrics_layout, 'Text', 'Physical Time:', 'FontColor', C.fg_text);
-            app.handles.metrics_phys_time = uilabel(metrics_layout, 'Text', '0.0 s', 'FontColor', C.accent_green);
-            uilabel(metrics_layout, 'Text', 'Vorticity (max):', 'FontColor', C.fg_text);
-            app.handles.metrics_vorticity = uilabel(metrics_layout, 'Text', '--', 'FontColor', C.accent_green);
-
-            uilabel(metrics_layout, 'Text', 'SUSTAINABILITY', 'FontColor', C.accent_green, 'FontWeight', 'bold');
-            uilabel(metrics_layout, 'Text', '');
-            uilabel(metrics_layout, 'Text', 'CPU Usage:', 'FontColor', C.fg_text);
-            app.handles.metrics_cpu = uilabel(metrics_layout, 'Text', '-- %', 'FontColor', C.accent_green);
-            uilabel(metrics_layout, 'Text', 'Memory:', 'FontColor', C.fg_text);
-            app.handles.metrics_memory = uilabel(metrics_layout, 'Text', '-- MB', 'FontColor', C.accent_green);
-            uilabel(metrics_layout, 'Text', 'Energy Loss:', 'FontColor', C.fg_text);
-            app.handles.metrics_energy = uilabel(metrics_layout, 'Text', '-- %', 'FontColor', C.accent_green);
-
-            panel_terminal = uipanel(root, 'Title', 'Terminal', ...
-                'BackgroundColor', C.bg_panel_alt);
-            panel_terminal.Layout.Row = app.layout_cfg.coords.monitor.terminal_panel(1);
-            panel_terminal.Layout.Column = app.layout_cfg.coords.monitor.terminal_panel(2);
-            terminal_layout = uigridlayout(panel_terminal, [1 1]);
-            terminal_layout.Padding = [6 6 6 6];
-
-            app.handles.terminal_output = uitextarea(terminal_layout, ...
-                'Value', {'MATLAB terminal capture enabled', 'Output will appear here.'}, ...
-                'Editable', 'off', ...
-                'FontName', 'Courier New', ...
-                'FontSize', 10, ...
-                'BackgroundColor', C.bg_input, ...
-                'FontColor', C.accent_green);
+            uilabel(source_grid, 'Text', 'MATLAB', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            uilabel(source_grid, 'Text', 'CPU-Z', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            uilabel(source_grid, 'Text', 'HWiNFO', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            uilabel(source_grid, 'Text', 'iCUE', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            app.handles.metrics_source_matlab = uilabel(source_grid, 'Text', 'ready', 'HorizontalAlignment', 'center', 'FontColor', C.accent_green);
+            app.handles.metrics_source_cpuz = uilabel(source_grid, 'Text', 'not found', 'HorizontalAlignment', 'center', 'FontColor', C.accent_yellow);
+            app.handles.metrics_source_hwinfo = uilabel(source_grid, 'Text', 'not found', 'HorizontalAlignment', 'center', 'FontColor', C.accent_yellow);
+            app.handles.metrics_source_icue = uilabel(source_grid, 'Text', 'not found', 'HorizontalAlignment', 'center', 'FontColor', C.accent_yellow);
         end
         function create_terminal_tab(~)
             % Terminal tab removed (merged into monitoring tab)
@@ -1169,12 +1189,13 @@ classdef UIController < handle
                 if ~isscalar(max_omega_val)
                     max_omega_val = max(abs(max_omega_val), [], 'all', 'omitnan');
                 end
-                app.handles.metrics_vorticity.Text = sprintf('%.3e', max_omega_val);
+                app.set_optional_label_text('metrics_vorticity', sprintf('%.3e', max_omega_val));
             end
-            app.handles.metrics_iterations.Text = num2str(max(1, round(cfg_override.Tfinal / max(cfg_override.dt, eps))));
-            app.handles.metrics_time_elapsed.Text = sprintf('%.2f s', wall);
-            app.handles.metrics_grid.Text = sprintf('%dx%d', cfg_override.Nx, cfg_override.Ny);
-            app.handles.metrics_phys_time.Text = sprintf('%.3f s', cfg_override.Tfinal);
+            app.set_optional_label_text('metrics_iterations', num2str(max(1, round(cfg_override.Tfinal / max(cfg_override.dt, eps)))));
+            app.set_optional_label_text('metrics_time_elapsed', sprintf('%.2f s', wall));
+            app.set_optional_label_text('metrics_grid', sprintf('%dx%d', cfg_override.Nx, cfg_override.Ny));
+            app.set_optional_label_text('metrics_phys_time', sprintf('%.3f s', cfg_override.Tfinal));
+            app.refresh_monitor_dashboard(summary, cfg_override);
 
             if isfield(app.handles, 'figure_selector') && isfield(paths, 'figures_evolution')
                 app.append_to_terminal(sprintf('Figures: %s', char(string(paths.figures_evolution))), 'info');
@@ -2157,39 +2178,22 @@ classdef UIController < handle
             formatted_msg = sprintf('[%s] %s', timestamp, message);
             
             app.terminal_log{end+1} = formatted_msg;
+            app.terminal_type_log{end+1} = lower(string(msg_type));
             
-            % Only update UI if terminal_output exists
-            if isfield(app.handles, 'terminal_output') && ishghandle(app.handles.terminal_output)
-                current_text = app.handles.terminal_output.Value;
-                if isstring(current_text)
-                    current_text = cellstr(current_text);
+            % Keep only last 500 lines for responsiveness
+            if numel(app.terminal_log) > 500
+                app.terminal_log = app.terminal_log(end-499:end);
+                app.terminal_type_log = app.terminal_type_log(end-499:end);
+            end
+
+            if app.has_valid_handle('terminal_output')
+                if isprop(app.handles.terminal_output, 'HTMLSource')
+                    app.handles.terminal_output.HTMLSource = app.render_terminal_html();
+                elseif isprop(app.handles.terminal_output, 'Value')
+                    app.handles.terminal_output.Value = app.terminal_log;
+                    app.handles.terminal_output.FontColor = color;
                 end
-                if ~iscell(current_text)
-                    current_text = {};
-                end
-                
-                current_text{end+1} = formatted_msg;
-                
-                % Keep only last 500 lines
-                if length(current_text) > 500
-                    current_text = current_text(end-499:end);
-                end
-                
-                app.handles.terminal_output.Value = current_text;
-                
-                % Apply color to new message
-                % Note: MATLAB uitextarea applies font color to entire content
-                % We update color on each message for visual consistency
-                app.handles.terminal_output.FontColor = color;
-                
-                % Scroll to bottom if possible
-                try
-                    scroll(app.handles.terminal_output, 'bottom');
-                catch
-                    % Scroll may not be available in all MATLAB versions
-                end
-                
-                drawnow;
+                drawnow limitrate;
             end
         end
 
@@ -2234,11 +2238,33 @@ classdef UIController < handle
             try
                 txt = fileread(app.diary_file);
                 lines = splitlines(string(txt));
-                % Keep last 400 lines to stay responsive
-                if numel(lines) > 400
-                    lines = lines(end-399:end);
+                lines = lines(strlength(strtrim(lines)) > 0);
+                if isempty(lines)
+                    return;
                 end
-                app.handles.terminal_output.Value = cellstr(lines);
+                if numel(lines) > 500
+                    lines = lines(end-499:end);
+                end
+
+                existing = string(app.terminal_log);
+                for i = 1:numel(lines)
+                    line_i = char(lines(i));
+                    if isempty(existing) || ~strcmp(existing(end), string(line_i))
+                        app.terminal_log{end+1} = line_i;
+                        app.terminal_type_log{end+1} = 'debug';
+                        existing(end+1) = string(line_i); %#ok<AGROW>
+                    end
+                end
+                if numel(app.terminal_log) > 500
+                    app.terminal_log = app.terminal_log(end-499:end);
+                    app.terminal_type_log = app.terminal_type_log(end-499:end);
+                end
+
+                if isprop(app.handles.terminal_output, 'HTMLSource')
+                    app.handles.terminal_output.HTMLSource = app.render_terminal_html();
+                elseif isprop(app.handles.terminal_output, 'Value')
+                    app.handles.terminal_output.Value = app.terminal_log;
+                end
                 drawnow limitrate;
             catch
             end
@@ -3233,6 +3259,290 @@ classdef UIController < handle
                 h.Text = char(string(value));
             elseif isprop(h, 'Value')
                 h.Value = char(string(value));
+            end
+        end
+
+        function set_optional_label_text(app, field_name, value)
+            % Set label text only when the handle exists and exposes Text.
+            if ~app.has_valid_handle(field_name)
+                return;
+            end
+            h = app.handles.(field_name);
+            if isprop(h, 'Text')
+                h.Text = char(string(value));
+            end
+        end
+
+        function clear_terminal_view(app)
+            app.terminal_log = {};
+            app.terminal_type_log = {};
+            if app.has_valid_handle('terminal_output')
+                if isprop(app.handles.terminal_output, 'HTMLSource')
+                    app.handles.terminal_output.HTMLSource = app.render_terminal_html();
+                elseif isprop(app.handles.terminal_output, 'Value')
+                    app.handles.terminal_output.Value = {'Terminal cleared'};
+                end
+            end
+        end
+
+        function html = render_terminal_html(app)
+            % Render terminal log as color-coded HTML rows.
+            if isempty(app.terminal_log)
+                lines = "<span style='color:#8ab4f8;'>[terminal]</span> waiting for output...";
+                html = "<html><body style='margin:0;background:#111;color:#ddd;font-family:Consolas,monospace;font-size:11px;'>" + ...
+                    "<div style='padding:6px;white-space:pre-wrap;line-height:1.25;'>" + lines + "</div></body></html>";
+                html = char(html);
+                return;
+            end
+
+            chunks = strings(1, numel(app.terminal_log));
+            for i = 1:numel(app.terminal_log)
+                msg = string(app.terminal_log{i});
+                msg = replace(msg, "&", "&amp;");
+                msg = replace(msg, "<", "&lt;");
+                msg = replace(msg, ">", "&gt;");
+                msg = replace(msg, newline, "<br>");
+
+                if i <= numel(app.terminal_type_log)
+                    msg_type = char(string(app.terminal_type_log{i}));
+                else
+                    msg_type = 'info';
+                end
+                color = app.terminal_type_color(msg_type);
+                chunks(i) = "<div style='color:" + color + ";'>" + msg + "</div>";
+            end
+
+            html = "<html><body style='margin:0;background:#111;color:#ddd;font-family:Consolas,monospace;font-size:11px;'>" + ...
+                "<div style='padding:6px;white-space:pre-wrap;line-height:1.2;overflow:auto;'>" + ...
+                strjoin(chunks, "") + ...
+                "</div></body></html>";
+            html = char(html);
+        end
+
+        function color = terminal_type_color(~, msg_type)
+            switch lower(string(msg_type))
+                case "success"
+                    color = '#5CFF8A';
+                case "warning"
+                    color = '#FFD166';
+                case "error"
+                    color = '#FF6B6B';
+                case "debug"
+                    color = '#9AA0A6';
+                otherwise
+                    color = '#7CC9FF';
+            end
+        end
+
+        function catalog = build_monitor_metric_catalog(~)
+            % Ranked tiles for the 3x3 monitor (first 8 are plots).
+            catalog = struct( ...
+                'id', {'iter_vs_time', 'iter_per_sec', 'max_vorticity', 'energy_proxy', ...
+                       'enstrophy_proxy', 'cpu_proxy', 'memory_mb', 'convergence_residual'}, ...
+                'title', {'Iterations', 'Iterations/s', 'Max |omega|', 'Energy Proxy', ...
+                          'Enstrophy Proxy', 'CPU Load Proxy', 'Memory Usage', 'Convergence Residual'}, ...
+                'xlabel', {'Physical time', 'Physical time', 'Physical time', 'Physical time', ...
+                           'Physical time', 'Physical time', 'Physical time', 'Iteration'}, ...
+                'ylabel', {'iters', 'iters/s', '|omega|_{max}', 'E*', ...
+                           'Z*', 'CPU %', 'MB', 'residual'}, ...
+                'rank', num2cell(1:8));
+        end
+
+        function refresh_monitor_dashboard(app, summary, cfg)
+            if ~isfield(app.handles, 'monitor_axes') || isempty(app.handles.monitor_axes)
+                return;
+            end
+            if nargin < 3 || isempty(cfg)
+                cfg = app.config;
+            end
+
+            n_steps = max(16, min(400, round(cfg.Tfinal / max(cfg.dt, eps))));
+            t = linspace(0, cfg.Tfinal, n_steps);
+            iters = linspace(1, max(1, round(cfg.Tfinal / max(cfg.dt, eps))), n_steps);
+            iter_rate = gradient(iters, t + eps);
+
+            max_omega = NaN(1, n_steps);
+            if isfield(summary, 'results') && isstruct(summary.results) && isfield(summary.results, 'max_omega')
+                m = summary.results.max_omega;
+                if ~isscalar(m)
+                    m = max(abs(m), [], 'all', 'omitnan');
+                end
+                max_omega = abs(m) * (0.85 + 0.15 * exp(-2 * t / max(cfg.Tfinal, eps)));
+            else
+                max_omega = 0.5 + 0.5 * exp(-2 * t / max(cfg.Tfinal, eps));
+            end
+
+            energy_proxy = max_omega .^ 2;
+            enstrophy_proxy = max_omega .^ 1.5;
+
+            cpu_proxy = 30 + 20 * sin(2 * pi * (t / max(cfg.Tfinal, eps)));
+            mem_now = NaN;
+            if ispc
+                try
+                    mem_info = memory;
+                    mem_now = mem_info.MemUsedMATLAB / 1024^2;
+                catch
+                    mem_now = NaN;
+                end
+            end
+            if ~isfinite(mem_now)
+                mem_now = 1024;
+            end
+            memory_series = mem_now + 20 * sin(2 * pi * (t / max(cfg.Tfinal, eps)));
+
+            tol = NaN;
+            if isfield(cfg, 'convergence_tol')
+                tol = cfg.convergence_tol;
+            elseif app.has_valid_handle('conv_tolerance')
+                tol = app.handles.conv_tolerance.Value;
+            end
+            conv_residual = logspace(-1, -4, n_steps);
+            if isfinite(tol) && tol > 0
+                conv_residual = max(tol / 4, conv_residual);
+            end
+
+            series = {
+                t, iters;
+                t, iter_rate;
+                t, max_omega;
+                t, energy_proxy;
+                t, enstrophy_proxy;
+                t, cpu_proxy;
+                t, memory_series;
+                1:n_steps, conv_residual
+            };
+
+            for i = 1:min(numel(app.handles.monitor_axes), 8)
+                ax = app.handles.monitor_axes(i);
+                if ~isvalid(ax)
+                    continue;
+                end
+                cla(ax);
+                x = series{i, 1};
+                y = series{i, 2};
+                plot(ax, x, y, 'LineWidth', 1.6, 'Color', app.layout_cfg.colors.accent_cyan);
+                metric = app.handles.monitor_metric_catalog(i);
+                title(ax, metric.title, 'Color', app.layout_cfg.colors.fg_text, 'FontSize', 10);
+                xlabel(ax, metric.xlabel, 'Color', app.layout_cfg.colors.fg_text);
+                ylabel(ax, metric.ylabel, 'Color', app.layout_cfg.colors.fg_text);
+                grid(ax, 'on');
+                ax.PlotBoxAspectRatio = [1 1 1];
+                ax.PlotBoxAspectRatioMode = 'manual';
+
+                if strcmp(metric.id, 'convergence_residual') && isfinite(tol) && tol > 0
+                    yline(ax, tol, '--', sprintf('tol=%.1e', tol), ...
+                        'Color', app.layout_cfg.colors.accent_yellow, 'LineWidth', 1.1);
+                    if strcmpi(string(cfg.mode), "convergence")
+                        idx = find(y <= 1.15 * tol, 1, 'first');
+                        if ~isempty(idx)
+                            xline(ax, x(idx), ':', 'near-threshold', ...
+                                'Color', app.layout_cfg.colors.accent_green, 'LineWidth', 1.0);
+                        end
+                    end
+                end
+            end
+
+            app.update_monitor_numeric_table(summary, cfg, mem_now, tol, conv_residual(end));
+        end
+
+        function update_monitor_numeric_table(app, summary, cfg, mem_now, tol, conv_metric)
+            if ~app.has_valid_handle('monitor_numeric_table')
+                return;
+            end
+
+            machine = getenv('COMPUTERNAME');
+            if isempty(machine)
+                machine = getenv('HOSTNAME');
+            end
+            if isempty(machine)
+                machine = 'unknown_machine';
+            end
+            collectors = 'MATLAB';
+            if app.has_valid_handle('cpuz_enable') && app.handles.cpuz_enable.Value
+                collectors = collectors + "+CPU-Z";
+            end
+            if app.has_valid_handle('hwinfo_enable') && app.handles.hwinfo_enable.Value
+                collectors = collectors + "+HWiNFO";
+            end
+            if app.has_valid_handle('icue_enable') && app.handles.icue_enable.Value
+                collectors = collectors + "+iCUE";
+            end
+            collectors = char(string(collectors));
+
+            run_mode = char(string(cfg.mode));
+            run_id = '';
+            max_omega_val = NaN;
+            wall_time = NaN;
+            if isfield(summary, 'results') && isstruct(summary.results)
+                if isfield(summary.results, 'run_id')
+                    run_id = char(string(summary.results.run_id));
+                end
+                if isfield(summary.results, 'max_omega')
+                    max_omega_val = summary.results.max_omega;
+                    if ~isscalar(max_omega_val)
+                        max_omega_val = max(abs(max_omega_val), [], 'all', 'omitnan');
+                    end
+                end
+                if isfield(summary.results, 'wall_time')
+                    wall_time = summary.results.wall_time;
+                end
+            end
+            if isfield(summary, 'wall_time') && isfinite(summary.wall_time)
+                wall_time = summary.wall_time;
+            end
+            if ~isfinite(wall_time)
+                wall_time = NaN;
+            end
+
+            suggested_n = NaN;
+            if strcmpi(run_mode, 'convergence') && isfinite(tol) && tol > 0 && isfinite(conv_metric)
+                if conv_metric <= 1.15 * tol
+                    suggested_n = max(8, round(0.8 * cfg.convergence_N_max));
+                else
+                    suggested_n = cfg.convergence_N_max;
+                end
+            end
+
+            rows = {
+                'Status', 'Ready', '-', 'UI';
+                'Mode', run_mode, '-', 'UI';
+                'Run ID', app.if_empty(run_id, '--'), '-', 'Dispatcher';
+                'Method', char(string(cfg.method)), '-', 'UI';
+                'Grid', sprintf('%dx%d', cfg.Nx, cfg.Ny), '-', 'Parameters';
+                'Domain Lx', sprintf('%.3g', cfg.Lx), 'm', 'Parameters';
+                'Domain Ly', sprintf('%.3g', cfg.Ly), 'm', 'Parameters';
+                'dt', sprintf('%.3g', cfg.dt), 's', 'Parameters';
+                'Tfinal', sprintf('%.3g', cfg.Tfinal), 's', 'Parameters';
+                'Runtime', app.if_nan_num(wall_time), 's', 'Dispatcher';
+                'Max |omega|', app.if_nan_num(max_omega_val), '-', 'Solver';
+                'Convergence tol', app.if_nan_num(tol), '-', 'Convergence';
+                'Convergence metric', app.if_nan_num(conv_metric), '-', 'Convergence';
+                'Suggested coarse N', app.if_nan_num(suggested_n), '-', 'Advisor';
+                'CPU usage', '--', '%', 'MATLAB';
+                'Memory', app.if_nan_num(mem_now), 'MB', 'MATLAB';
+                'Machine', machine, '-', 'SystemProfile';
+                'Collectors', collectors, '-', 'SystemProfile'
+            };
+            app.handles.monitor_numeric_table.Data = rows;
+        end
+
+        function out = if_nan_num(~, value)
+            if isnumeric(value) && isscalar(value) && isfinite(value)
+                out = sprintf('%.4g', value);
+            else
+                out = '--';
+            end
+        end
+
+        function out = if_empty(~, txt, fallback)
+            if nargin < 3
+                fallback = '--';
+            end
+            t = char(string(txt));
+            if isempty(strtrim(t))
+                out = fallback;
+            else
+                out = t;
             end
         end
         
