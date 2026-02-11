@@ -169,3 +169,6 @@ Planned hardening checks include:
 ## Implementation Plan Artifacts
 - `docs/implementation/2026-02-11_repo_hardening_execution_plan.md`
 - `docs/implementation/2026-02-11_repo_hardening_baseline.md`
+
+## Legacy Docs
+- Migration index: `docs/archive/README.md`
