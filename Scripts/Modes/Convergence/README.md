@@ -25,18 +25,18 @@ run_adaptive_convergence
 ```
 
 ### From UI
-Select "Convergence" mode in the Configuration tab. The UI will route through ModeDispatcher which uses `mode_convergence.m` for standard convergence, or you can run the adaptive agent separately.
+Select "Convergence" mode in the Configuration tab. The UI will route through ModeDispatcher which uses `Scripts/Modes/Convergence/mode_convergence.m` for standard convergence, or you can run the adaptive agent separately.
 
 ## Relationship to Other Modes
 
-- **mode_convergence.m** (in parent Modes directory): Standard grid-sweep convergence
+- **mode_convergence.m** (this directory): Standard grid-sweep convergence
 - **AdaptiveConvergenceAgent.m** (this directory): Learning-based adaptive convergence
 
 The adaptive agent is more sophisticated and learns from preflight tests, while `mode_convergence.m` does fixed grid doubling.
 
 ## Output
 
-Results are saved to `Data/Output/Convergence_Study/` including:
+Results are saved under `Results/FD/Convergence/<study_id>/` including:
 - Convergence trace CSV
 - Preflight figures
 - Final configuration recommendations

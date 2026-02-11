@@ -74,18 +74,34 @@ end
 %% ===== LOCAL FUNCTIONS =====
 
 function data_path = find_run_data(run_id)
-    % Search for run data (method-agnostic)
-    search_dirs = {'Data/Output/FD/Evolution', 'Data/Output/Spectral/Evolution', 'Data/Output/FV/Evolution'};
-
-    for k = 1:length(search_dirs)
-        candidate = fullfile(search_dirs{k}, run_id, 'Data', 'results.mat');
-        if exist(candidate, 'file')
-            data_path = candidate;
-            return;
-        end
+    % Search for run data in canonical Results root.
+    % This replaces legacy Data/Output lookup and keeps plotting aligned
+    % with PathBuilder-produced output trees.
+    if exist('PathBuilder', 'class') == 8 || exist('PathBuilder', 'file') == 2
+        repo_root = PathBuilder.get_repo_root();
+    else
+        this_file = mfilename('fullpath');
+        repo_root = fullfile(fileparts(this_file), '..', '..');
     end
+    results_root = fullfile(repo_root, 'Results');
+
+    methods = {'FD', 'Spectral', 'FV', 'Bathymetry', 'Plotting'};
+    modes = {'Evolution', 'Convergence', 'ParameterSweep', 'Plotting'};
 
     data_path = '';
+    newest_datenum = -inf;
+    for i = 1:numel(methods)
+        for j = 1:numel(modes)
+            candidate = fullfile(results_root, methods{i}, modes{j}, run_id, 'Data', 'results.mat');
+            if exist(candidate, 'file')
+                file_info = dir(candidate);
+                if ~isempty(file_info) && file_info.datenum > newest_datenum
+                    newest_datenum = file_info.datenum;
+                    data_path = candidate;
+                end
+            end
+        end
+    end
 end
 
 function generate_contour_plots(analysis, paths)

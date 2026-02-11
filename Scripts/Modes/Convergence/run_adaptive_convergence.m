@@ -21,7 +21,7 @@
 %   run_adaptive_convergence
 %
 % Outputs:
-%   - Convergence trace (saved to Results/convergence_trace.csv)
+%   - Convergence trace (saved to Results/FD/Convergence/<study_id>/Data/)
 %   - Selected sequence of (Nx, Ny, dt) and metrics
 %   - Final recommended converged configuration
 %
@@ -100,8 +100,18 @@ settings = struct();
 settings.convergence = struct();
 settings.convergence.tolerance = 1e-3;  % Target convergence tolerance
 settings.convergence.save_iteration_figures = true;  % Save figures for each iteration
-settings.convergence.study_dir = fullfile(repo_root, 'Data', 'Output', 'Convergence_Study');
-settings.convergence.preflight_figs_dir = fullfile(settings.convergence.study_dir, 'preflight');
+study_stamp = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
+study_id = sprintf('AdaptiveConvergence_%s', study_stamp);
+if exist('PathBuilder', 'class') == 8 || exist('PathBuilder', 'file') == 2
+    study_paths = PathBuilder.get_run_paths('FD', 'Convergence', study_id);
+    PathBuilder.ensure_directories(study_paths);
+    settings.convergence.study_dir = study_paths.data;
+    settings.convergence.preflight_figs_dir = fullfile(study_paths.figures_convergence, 'Preflight');
+else
+    % Fallback if PathBuilder is unavailable in isolated execution contexts.
+    settings.convergence.study_dir = fullfile(repo_root, 'Results', 'FD', 'Convergence', study_id, 'Data');
+    settings.convergence.preflight_figs_dir = fullfile(repo_root, 'Results', 'FD', 'Convergence', study_id, 'Figures', 'Convergence', 'Preflight');
+end
 
 % Create output directories
 if ~exist(settings.convergence.study_dir, 'dir')
