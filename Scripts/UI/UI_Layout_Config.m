@@ -109,9 +109,9 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.check_grid.padding = [6 6 6 6];
     cfg.config_tab.check_grid.row_spacing = 6;
 
-    cfg.config_tab.ic_grid.rows_cols = [7, 4];
+    cfg.config_tab.ic_grid.rows_cols = [8, 4];
     cfg.config_tab.ic_grid.col_widths = {'1x', '1x', '1x', '1x'};
-    cfg.config_tab.ic_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.textarea, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
+    cfg.config_tab.ic_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, 92, 72, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.ic_grid.padding = [6 6 6 6];
     cfg.config_tab.ic_grid.row_spacing = 6;
 

@@ -641,6 +641,7 @@ classdef UIController < handle
             ic_layout.RowHeight = cfg_ic.row_heights;
             ic_layout.Padding = cfg_ic.padding;
             ic_layout.RowSpacing = cfg_ic.row_spacing;
+            app.handles.ic_layout = ic_layout;
 
             lbl = uilabel(ic_layout, 'Text', 'IC Type', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.ic_dropdown = uidropdown(ic_layout, ...
@@ -668,46 +669,54 @@ classdef UIController < handle
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_count.Layout.Row = 2; app.handles.ic_count.Layout.Column = 4;
 
-            app.handles.ic_equation = uitextarea(ic_layout, ...
-                'Value', {'omega(x,y) = exp(-a x^2 - b y^2)'}, ...
-                'Editable', 'off', 'FontSize', 11, 'WordWrap', 'on', ...
-                'BackgroundColor', C.bg_input, 'FontColor', C.fg_text);
+            app.handles.ic_equation = uihtml(ic_layout, ...
+                'HTMLSource', "<div style='font-family:Segoe UI;font-size:12px;color:#ddd;'>" + ...
+                "<b style='color:#80c7ff;'>Initial Condition Equation</b><br>" + ...
+                "$\\omega(x,y)=\\exp(-a(x-x_0)^2-b(y-y_0)^2)$</div>" + ...
+                "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>");
             app.handles.ic_equation.Layout.Row = 3;
             app.handles.ic_equation.Layout.Column = [1 4];
 
+            app.handles.ic_where = uitextarea(ic_layout, ...
+                'Value', {'where:', 'a,b > 0 control spread in x/y', 'x0,y0 set center position'}, ...
+                'Editable', 'off', 'FontSize', 10, 'WordWrap', 'on', ...
+                'BackgroundColor', C.bg_input, 'FontColor', C.fg_text);
+            app.handles.ic_where.Layout.Row = 4;
+            app.handles.ic_where.Layout.Column = [1 4];
+
             app.handles.ic_coeff1_label = uilabel(ic_layout, 'Text', 'Coeff 1', 'FontColor', C.fg_text);
-            app.handles.ic_coeff1_label.Layout.Row = 4; app.handles.ic_coeff1_label.Layout.Column = 1;
+            app.handles.ic_coeff1_label.Layout.Row = 5; app.handles.ic_coeff1_label.Layout.Column = 1;
             app.handles.ic_coeff1 = uieditfield(ic_layout, 'numeric', 'Value', 2.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff1.Layout.Row = 4; app.handles.ic_coeff1.Layout.Column = 2;
+            app.handles.ic_coeff1.Layout.Row = 5; app.handles.ic_coeff1.Layout.Column = 2;
             app.handles.ic_coeff2_label = uilabel(ic_layout, 'Text', 'Coeff 2', 'FontColor', C.fg_text);
-            app.handles.ic_coeff2_label.Layout.Row = 4; app.handles.ic_coeff2_label.Layout.Column = 3;
+            app.handles.ic_coeff2_label.Layout.Row = 5; app.handles.ic_coeff2_label.Layout.Column = 3;
             app.handles.ic_coeff2 = uieditfield(ic_layout, 'numeric', 'Value', 0.2, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff2.Layout.Row = 4; app.handles.ic_coeff2.Layout.Column = 4;
+            app.handles.ic_coeff2.Layout.Row = 5; app.handles.ic_coeff2.Layout.Column = 4;
 
             app.handles.ic_coeff3_label = uilabel(ic_layout, 'Text', 'Coeff 3', 'FontColor', C.fg_text);
-            app.handles.ic_coeff3_label.Layout.Row = 5; app.handles.ic_coeff3_label.Layout.Column = 1;
+            app.handles.ic_coeff3_label.Layout.Row = 6; app.handles.ic_coeff3_label.Layout.Column = 1;
             app.handles.ic_coeff3 = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff3.Layout.Row = 5; app.handles.ic_coeff3.Layout.Column = 2;
+            app.handles.ic_coeff3.Layout.Row = 6; app.handles.ic_coeff3.Layout.Column = 2;
             app.handles.ic_coeff4_label = uilabel(ic_layout, 'Text', 'Coeff 4', 'FontColor', C.fg_text);
-            app.handles.ic_coeff4_label.Layout.Row = 5; app.handles.ic_coeff4_label.Layout.Column = 3;
+            app.handles.ic_coeff4_label.Layout.Row = 6; app.handles.ic_coeff4_label.Layout.Column = 3;
             app.handles.ic_coeff4 = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff4.Layout.Row = 5; app.handles.ic_coeff4.Layout.Column = 4;
+            app.handles.ic_coeff4.Layout.Row = 6; app.handles.ic_coeff4.Layout.Column = 4;
 
-            lbl = uilabel(ic_layout, 'Text', 'Center x0', 'FontColor', C.fg_text); lbl.Layout.Row = 6; lbl.Layout.Column = 1;
+            lbl = uilabel(ic_layout, 'Text', 'Center x0', 'FontColor', C.fg_text); lbl.Layout.Row = 7; lbl.Layout.Column = 1;
             app.handles.ic_center_x = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_center_x.Layout.Row = 6; app.handles.ic_center_x.Layout.Column = 2;
-            lbl = uilabel(ic_layout, 'Text', 'Center y0', 'FontColor', C.fg_text); lbl.Layout.Row = 6; lbl.Layout.Column = 3;
+            app.handles.ic_center_x.Layout.Row = 7; app.handles.ic_center_x.Layout.Column = 2;
+            lbl = uilabel(ic_layout, 'Text', 'Center y0', 'FontColor', C.fg_text); lbl.Layout.Row = 7; lbl.Layout.Column = 3;
             app.handles.ic_center_y = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_center_y.Layout.Row = 6; app.handles.ic_center_y.Layout.Column = 4;
+            app.handles.ic_center_y.Layout.Row = 7; app.handles.ic_center_y.Layout.Column = 4;
 
             app.handles.ic_status = uilabel(ic_layout, 'Text', 'IC ready', 'FontColor', C.fg_muted);
-            app.handles.ic_status.Layout.Row = 7;
+            app.handles.ic_status.Layout.Row = 8;
             app.handles.ic_status.Layout.Column = [1 4];
 
             % Mode-specific controls
@@ -2413,6 +2422,13 @@ classdef UIController < handle
             % Update coefficient labels/visibility to match selected IC.
             ic_display = app.handles.ic_dropdown.Value;
             ic_type = map_ic_display_to_type(ic_display);
+            eq_tex = '\omega(x,y)=\exp(-a(x-x_0)^2-b(y-y_0)^2)';
+            where_lines = {
+                'where:';
+                'a,b > 0 set spread in x and y (larger => tighter core)';
+                'x0,y0 set vortex center location';
+            };
+            visible_coeff_count = 4;
 
             app.handles.ic_coeff1.Visible = 'on';
             app.handles.ic_coeff2.Visible = 'on';
@@ -2430,97 +2446,199 @@ classdef UIController < handle
                 case 'stretched_gaussian'
                     app.handles.ic_coeff1_label.Text = 'Stretch x (a):';
                     app.handles.ic_coeff2_label.Text = 'Stretch y (b):';
-                    app.handles.ic_equation.Value = {'w(x,y)=exp(-a*(x-x0)^2 - b*(y-y0)^2)'};
+                    eq_tex = '\omega(x,y)=\exp\left(-a(x-x_0)^2-b(y-y_0)^2\right)';
+                    where_lines = {
+                        'where:';
+                        'a,b in [0.1,10] control x/y anisotropy (high values sharpen)';
+                        'x0,y0 shift the vortex center';
+                    };
                     app.handles.ic_coeff3.Visible = 'off';
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
+                    visible_coeff_count = 2;
 
                 case 'vortex_blob_gaussian'
                     app.handles.ic_coeff1_label.Text = 'Circulation (Gamma):';
                     app.handles.ic_coeff2_label.Text = 'Radius (R):';
-                    app.handles.ic_equation.Value = {'w = Gamma/(2*pi*R^2) * exp(-r^2/(2*R^2))'};
+                    eq_tex = '\omega(r)=\frac{\Gamma}{2\pi R^2}\exp\left(-\frac{r^2}{2R^2}\right)';
+                    where_lines = {
+                        'where:';
+                        '\Gamma sets signed circulation strength';
+                        'R > 0 sets core radius (larger R diffuses peak)';
+                    };
                     app.handles.ic_coeff3.Visible = 'off';
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
+                    visible_coeff_count = 2;
 
                 case 'vortex_pair'
                     app.handles.ic_coeff1_label.Text = 'Gamma1 amplitude:';
                     app.handles.ic_coeff2_label.Text = 'Separation:';
                     app.handles.ic_coeff3_label.Text = 'Core radius:';
-                    app.handles.ic_equation.Value = {'Counter-rotating Gaussian pair'};
+                    eq_tex = '\omega=\omega_1+\omega_2,\;\Gamma_2=-|\Gamma_1|';
+                    where_lines = {
+                        'where:';
+                        '\Gamma_1 controls pair strength; \Gamma_2 is opposite-signed';
+                        'separation controls interaction and orbiting distance';
+                        'core radius controls compactness of each vortex';
+                    };
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
+                    visible_coeff_count = 3;
 
                 case 'multi_vortex'
                     app.handles.ic_coeff1_label.Text = 'Gamma (per vortex):';
                     app.handles.ic_coeff2_label.Text = 'Core radius:';
-                    app.handles.ic_equation.Value = {'Sum of Gaussian vortices over dispersed centers'};
+                    eq_tex = '\omega(x,y)=\sum_{i=1}^{N}\frac{\Gamma}{2\pi R^2}\exp\left(-\frac{r_i^2}{2R^2}\right)';
+                    where_lines = {
+                        'where:';
+                        'N = vortex count (>=1), pattern selects center placement';
+                        '\Gamma and R tune strength and core size of each element';
+                    };
                     app.handles.ic_coeff3.Visible = 'off';
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
                     app.set_optional_handle_enable('ic_pattern', 'on');
                     app.set_optional_handle_enable('ic_count', 'on');
+                    visible_coeff_count = 2;
 
                 case 'lamb_oseen'
                     app.handles.ic_coeff1_label.Text = 'Circulation (Gamma):';
                     app.handles.ic_coeff2_label.Text = 'Virtual time (t0):';
                     app.handles.ic_coeff3_label.Text = 'Viscosity (nu):';
-                    app.handles.ic_equation.Value = {'w = Gamma/(4*pi*nu*t0) * exp(-r^2/(4*nu*t0))'};
+                    eq_tex = '\omega(r)=\frac{\Gamma}{4\pi\nu t_0}\exp\left(-\frac{r^2}{4\nu t_0}\right)';
+                    where_lines = {
+                        'where:';
+                        '\Gamma is circulation, \nu > 0 is viscosity';
+                        't_0 > 0 broadens the core as it increases';
+                    };
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
+                    visible_coeff_count = 3;
 
                 case 'rankine'
                     app.handles.ic_coeff1_label.Text = 'Core vorticity:';
                     app.handles.ic_coeff2_label.Text = 'Core radius:';
-                    app.handles.ic_equation.Value = {'w = w0 for r <= rc, else 0'};
+                    eq_tex = '\omega(r)=\begin{cases}\omega_0,&r\le r_c\\0,&r>r_c\end{cases}';
+                    where_lines = {
+                        'where:';
+                        '\omega_0 sets plateau vorticity inside core';
+                        'r_c sets abrupt cutoff radius';
+                    };
                     app.handles.ic_coeff3.Visible = 'off';
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
+                    visible_coeff_count = 2;
 
                 case 'lamb_dipole'
                     app.handles.ic_coeff1_label.Text = 'Translation speed (U):';
                     app.handles.ic_coeff2_label.Text = 'Dipole radius (a):';
-                    app.handles.ic_equation.Value = {'Lamb dipole profile'};
+                    eq_tex = '\omega=\omega_{\mathrm{dipole}}(r,\theta;U,a)';
+                    where_lines = {
+                        'where:';
+                        'U sets propagation speed of dipole pair';
+                        'a controls dipole radius and compactness';
+                    };
                     app.handles.ic_coeff3.Visible = 'off';
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
+                    visible_coeff_count = 2;
 
                 case 'taylor_green'
                     app.handles.ic_coeff1_label.Text = 'Wavenumber (k):';
                     app.handles.ic_coeff2_label.Text = 'Strength (G):';
-                    app.handles.ic_equation.Value = {'w = 2*k*G*sin(kx)*sin(ky)'};
+                    eq_tex = '\omega(x,y)=2kG\sin(kx)\sin(ky)';
+                    where_lines = {
+                        'where:';
+                        'k controls spectral scale (higher k => finer structures)';
+                        'G scales initial vorticity magnitude';
+                    };
                     app.handles.ic_coeff3.Visible = 'off';
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
+                    visible_coeff_count = 2;
 
                 case 'random_turbulence'
                     app.handles.ic_coeff1_label.Text = 'Spectrum exponent (alpha):';
                     app.handles.ic_coeff2_label.Text = 'Energy level (E0):';
                     app.handles.ic_coeff3_label.Text = 'Seed:';
-                    app.handles.ic_equation.Value = {'Randomized trigonometric spectrum'};
+                    eq_tex = '\omega(x,y)=\sum_{k}A_k\,\sin(k\cdot x+\phi_k),\;A_k\propto |k|^{-\alpha}';
+                    where_lines = {
+                        'where:';
+                        '\alpha controls decay of high-frequency modes';
+                        'E_0 sets total energy scale';
+                        'seed fixes reproducibility of random phases';
+                    };
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
+                    visible_coeff_count = 3;
 
                 case 'elliptical_vortex'
                     app.handles.ic_coeff1_label.Text = 'Peak vorticity:';
                     app.handles.ic_coeff2_label.Text = 'Sigma x:';
                     app.handles.ic_coeff3_label.Text = 'Sigma y:';
                     app.handles.ic_coeff4_label.Text = 'Rotation theta (rad):';
-                    app.handles.ic_equation.Value = {'w = w0*exp(-(xr^2/(2*sx^2) + yr^2/(2*sy^2)))'};
+                    eq_tex = '\omega=w_0\exp\left(-\frac{x_r^2}{2\sigma_x^2}-\frac{y_r^2}{2\sigma_y^2}\right)';
+                    where_lines = {
+                        'where:';
+                        'w_0 sets peak intensity';
+                        '\sigma_x,\sigma_y set anisotropic spread; \theta rotates ellipse';
+                    };
+                    visible_coeff_count = 4;
 
                 otherwise
                     app.handles.ic_coeff1_label.Text = 'Coeff 1:';
                     app.handles.ic_coeff2_label.Text = 'Coeff 2:';
                     app.handles.ic_coeff3_label.Text = 'Coeff 3:';
                     app.handles.ic_coeff4_label.Text = 'Coeff 4:';
-                    app.handles.ic_equation.Value = {'IC expression not specified'};
+                    eq_tex = '\omega(x,y)=f(x,y)';
+                    where_lines = {
+                        'where:';
+                        'coefficients map directly into selected IC factory implementation';
+                    };
             end
+
+            app.set_ic_equation_and_where(ic_display, eq_tex, where_lines);
+            app.update_ic_compact_layout(visible_coeff_count);
+        end
+
+        function set_ic_equation_and_where(app, ic_name, eq_tex, where_lines)
+            if app.has_valid_handle('ic_equation')
+                app.handles.ic_equation.HTMLSource = app.render_math_html(ic_name, eq_tex);
+            end
+            if app.has_valid_handle('ic_where')
+                app.handles.ic_where.Value = where_lines;
+            end
+        end
+
+        function html = render_math_html(~, ic_name, eq_tex)
+            html = "<div style='font-family:Segoe UI,Arial,sans-serif;font-size:12px;color:#dcdcdc;line-height:1.3;'>" + ...
+                "<b style='color:#80c7ff;'>Initial Condition Equation - " + string(ic_name) + "</b><br>" + ...
+                "$$" + string(eq_tex) + "$$" + ...
+                "</div>" + ...
+                "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>";
+            html = char(html);
+        end
+
+        function update_ic_compact_layout(app, visible_coeff_count)
+            if ~app.has_valid_handle('ic_layout')
+                return;
+            end
+            n = max(2, min(4, round(visible_coeff_count)));
+            base_top = 34;
+            equation_h = 92;
+            where_h = 72;
+            coeff_total = 124;
+            coeff_row = max(28, floor(coeff_total / n));
+            center_row = max(28, 36 + (4 - n) * 4);
+            status_row = 28;
+            app.handles.ic_layout.RowHeight = {base_top, base_top, equation_h, where_h, coeff_row, coeff_row, center_row, status_row};
         end
 
         function run_convergence_test(app)
