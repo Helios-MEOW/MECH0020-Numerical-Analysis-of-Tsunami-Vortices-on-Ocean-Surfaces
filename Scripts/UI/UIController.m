@@ -784,10 +784,7 @@ classdef UIController < handle
             app.handles.ic_count.Layout.Row = 2; app.handles.ic_count.Layout.Column = 4;
 
             app.handles.ic_equation = uihtml(ic_layout, ...
-                'HTMLSource', "<div style='font-family:Segoe UI;font-size:12px;color:#ddd;'>" + ...
-                "<b style='color:#80c7ff;'>Initial Condition Equation</b><br>" + ...
-                "$\\omega(x,y)=\\exp(-a(x-x_0)^2-b(y-y_0)^2)$</div>" + ...
-                "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>");
+                'HTMLSource', app.render_math_html('Stretched Gaussian', '\omega(x,y)=\exp(-a(x-x_0)^2-b(y-y_0)^2)'));
             app.handles.ic_equation.Layout.Row = 3;
             app.handles.ic_equation.Layout.Column = [1 4];
 
@@ -1968,6 +1965,22 @@ classdef UIController < handle
                 label = 'off';
             end
         end
+
+        function restore_contour_warning_state(~, warn1, warn2, warn3, warn4)
+            % Restore contour warning states after guarded contour rendering.
+            if isstruct(warn1) && isfield(warn1, 'identifier') && ~isempty(warn1.identifier)
+                warning(warn1.state, warn1.identifier);
+            end
+            if isstruct(warn2) && isfield(warn2, 'identifier') && ~isempty(warn2.identifier)
+                warning(warn2.state, warn2.identifier);
+            end
+            if nargin >= 4 && isstruct(warn3) && isfield(warn3, 'identifier') && ~isempty(warn3.identifier)
+                warning(warn3.state, warn3.identifier);
+            end
+            if nargin >= 5 && isstruct(warn4) && isfield(warn4, 'identifier') && ~isempty(warn4.identifier)
+                warning(warn4.state, warn4.identifier);
+            end
+        end
         
         function yesno = to_yes_no(~, tf)
             if tf
@@ -2675,17 +2688,17 @@ classdef UIController < handle
                 z_min = min(Z, [], 'all');
                 z_max = max(Z, [], 'all');
                 z_span = z_max - z_min;
-                z_tol = max(1e-12, 1e-10 * max(1, abs(z_max)));
+                z_tol = max(1e-10, 1e-7 * max(1, max(abs(Z), [], 'all')));
 
                 if z_span <= z_tol
-                    imagesc(ax, X(1, :), Y(:, 1), Z);
-                    set(ax, 'YDir', 'normal');
-                    hold(ax, 'on');
+                    app.render_ic_image(ax, X, Y, Z);
                 else
-                    contourf(ax, X, Y, Z, 20, 'LineStyle', 'none');
-                    hold(ax, 'on');
-                    contour(ax, X, Y, Z, 12, 'LineWidth', 0.9, 'LineColor', [0.82 0.82 0.82]);
+                    rendered_contour = app.render_ic_contours(ax, X, Y, Z);
+                    if ~rendered_contour
+                        app.render_ic_image(ax, X, Y, Z);
+                    end
                 end
+                hold(ax, 'on');
                 rectangle(ax, 'Position', [-Lx/2 -Ly/2 Lx Ly], ...
                     'EdgeColor', app.layout_cfg.colors.accent_gray, ...
                     'LineStyle', '--', ...
@@ -2723,6 +2736,34 @@ classdef UIController < handle
             % Update IC field labels and preview when IC selection changes
             app.update_ic_fields();
             app.update_ic_preview();
+        end
+
+        function render_ic_image(~, ax, X, Y, Z)
+            % Render IC preview as image-only field (safe for constant Z).
+            imagesc(ax, X(1, :), Y(:, 1), Z);
+            set(ax, 'YDir', 'normal');
+        end
+
+        function rendered = render_ic_contours(app, ax, X, Y, Z)
+            % Render contours with guarded warning handling; fallback controlled by caller.
+            rendered = false;
+            warn1 = warning('query', 'MATLAB:contour:ConstantZData');
+            warn2 = warning('query', 'MATLAB:contourf:ConstantZData');
+            warn3 = warning('query', 'MATLAB:contour:ConstantData');
+            warn4 = warning('query', 'MATLAB:contourf:ConstantData');
+            cleanup_obj = onCleanup(@() app.restore_contour_warning_state(warn1, warn2, warn3, warn4)); %#ok<NASGU>
+            warning('off', 'MATLAB:contour:ConstantZData');
+            warning('off', 'MATLAB:contourf:ConstantZData');
+            warning('off', 'MATLAB:contour:ConstantData');
+            warning('off', 'MATLAB:contourf:ConstantData');
+            try
+                contourf(ax, X, Y, Z, 20, 'LineStyle', 'none');
+                hold(ax, 'on');
+                contour(ax, X, Y, Z, 12, 'LineWidth', 0.9, 'LineColor', [0.82 0.82 0.82]);
+                rendered = true;
+            catch
+                rendered = false;
+            end
         end
 
         function update_ic_fields(app)
@@ -2924,13 +2965,47 @@ classdef UIController < handle
             end
         end
 
-        function html = render_math_html(~, ic_name, eq_tex)
-            html = "<div style='font-family:Segoe UI,Arial,sans-serif;font-size:12px;color:#dcdcdc;line-height:1.3;'>" + ...
-                "<b style='color:#80c7ff;'>Initial Condition Equation - " + string(ic_name) + "</b><br>" + ...
-                "$$" + string(eq_tex) + "$$" + ...
-                "</div>" + ...
-                "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>";
-            html = char(html);
+        function html = render_math_html(app, ic_name, eq_tex)
+            eq_text = app.equation_tex_to_plain(eq_tex);
+            eq_text = app.escape_html_text(eq_text);
+            html = "<div style='font-family:Segoe UI,Arial,sans-serif;font-size:12px;color:#dcdcdc;line-height:1.35;'>" + ...
+                "<b style='color:#80c7ff;'>Initial Condition Equation - " + app.escape_html_text(string(ic_name)) + "</b><br>" + ...
+                "<div style='margin-top:6px;padding:6px 8px;border:1px solid #505050;background:#1a1a1a;" + ...
+                "font-family:Consolas,Monaco,monospace;font-size:12px;color:#f2f2f2;'>" + eq_text + ...
+                "</div></div>";
+            html = char(string(html));
+        end
+
+        function eq_plain = equation_tex_to_plain(~, eq_tex)
+            eq_plain = char(string(eq_tex));
+            eq_plain = regexprep(eq_plain, '\\left|\\right', '');
+            eq_plain = regexprep(eq_plain, '\\mathrm\{([^{}]+)\}', '$1');
+            eq_plain = regexprep(eq_plain, '\\frac\{([^{}]+)\}\{([^{}]+)\}', '($1)/($2)');
+            eq_plain = strrep(eq_plain, '\omega', 'ω');
+            eq_plain = strrep(eq_plain, '\Gamma', 'Γ');
+            eq_plain = strrep(eq_plain, '\nu', 'ν');
+            eq_plain = strrep(eq_plain, '\theta', 'θ');
+            eq_plain = strrep(eq_plain, '\sigma', 'σ');
+            eq_plain = strrep(eq_plain, '\alpha', 'α');
+            eq_plain = strrep(eq_plain, '\pi', 'π');
+            eq_plain = strrep(eq_plain, '\sum', 'Σ');
+            eq_plain = strrep(eq_plain, '\cdot', '·');
+            eq_plain = strrep(eq_plain, '\exp', 'exp');
+            eq_plain = strrep(eq_plain, '\begin{cases}', '');
+            eq_plain = strrep(eq_plain, '\end{cases}', '');
+            eq_plain = strrep(eq_plain, '\;', ' ');
+            eq_plain = strrep(eq_plain, '\\', '');
+            eq_plain = strrep(eq_plain, '{', '(');
+            eq_plain = strrep(eq_plain, '}', ')');
+            eq_plain = regexprep(eq_plain, '\s+', ' ');
+            eq_plain = strtrim(eq_plain);
+        end
+
+        function escaped = escape_html_text(~, txt)
+            escaped = char(string(txt));
+            escaped = strrep(escaped, '&', '&amp;');
+            escaped = strrep(escaped, '<', '&lt;');
+            escaped = strrep(escaped, '>', '&gt;');
         end
 
         function update_ic_compact_layout(app, visible_coeff_count)
