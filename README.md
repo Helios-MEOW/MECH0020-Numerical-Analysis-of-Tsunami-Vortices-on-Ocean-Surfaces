@@ -1,483 +1,171 @@
 # Tsunami Vortex Numerical Modelling
 
-Numerical simulation of tsunami-induced vortex dynamics using vorticity–streamfunction formulations. This repository implements finite-difference solvers with Arakawa Jacobian schemes, elliptic Poisson solvers, and explicit time-stepping, supporting automated convergence studies and parameter exploration.
+Repository for numerical analysis of 2D vortex dynamics in vorticity-streamfunction form.
 
-## Key Features
-
-- **Dual-mode operation**: UI mode (3-tab MATLAB interface with Developer Mode) or Standard mode (command-line)
-- **Four FD simulation modes**: Evolution, Convergence, ParameterSweep, Plotting
-- **Adaptive convergence agent**: Intelligent mesh refinement using learning-based navigation
-- **Run tracking**: Unique run IDs, professional reports, master CSV table
-- **User-editable configuration**: Centralized parameter/settings files in `Scripts/Editable/`
-- **Grid-based UI layout**: Intuitive editing via `UI_Layout_Config.m` with Developer Mode inspector
-- **Organized outputs**: Structured directory tree in `Data/Output/` (gitignored)
-- **CI/CD**: GitHub Actions workflow for automated testing and static analysis
+## Current Entrypoints
+- Standard/UI driver: `Scripts/Drivers/Tsunami_Vorticity_Emulator.m`
+- Mode dispatcher: `Scripts/Infrastructure/Runners/ModeDispatcher.m`
+- Method-level runner: `Scripts/Solvers/run_simulation_with_method.m`
 
 ## Quick Start
 
-### Prerequisites
-
-- MATLAB R2020b or later
-- No toolboxes required (base MATLAB only)
-- Operating System: Windows, macOS, or Linux
-
-### Installation
-
-```bash
-git clone https://github.com/Helios-MEOW/MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces.git
-cd MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces
-```
-
-### Running a Simulation
-
-**Option 1: UI Mode (Interactive)**
-
-Launch MATLAB, navigate to the repository, and run:
-
+### 1) Open MATLAB at repo root
 ```matlab
-cd Scripts/Drivers
-Analysis
+cd('C:/path/to/MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces')
 ```
 
-A startup dialog appears. Select "UI Mode" to access the 3-tab interface:
-- **Tab 1: Configuration** — Method, mode, parameters, initial conditions
-- **Tab 2: Live Monitor** — Real-time metrics, progress, terminal output
-- **Tab 3: Results & Figures** — Load and visualize previous runs
-
-**Developer Mode (for UI editing):**
-- Click **"🔧 Developer Mode"** button in menu bar to enable
-- Click any component to inspect its properties (type, parent, Layout.Row/Column)
-- Use validation tools to check layout correctness
-- Edit layout parameters in `Scripts/UI/UI_Layout_Config.m` only
-
-**Expected output**: Interactive UI opens. Configure and run simulations from Tab 1. Results save to `Data/Output/FD/<Mode>/<run_id>/`.
-
-**Option 2: Standard Mode (Command-line)**
-
-Launch MATLAB, navigate to the repository, and run:
-
+### 2) Run UI mode
 ```matlab
-cd Scripts/Drivers
-Analysis
+Tsunami_Vorticity_Emulator('Mode','UI')
 ```
 
-When the startup dialog appears, select **"Standard Mode"**.
-
-**Preflight Workflow:**
-1. Prompt: "Have you edited parameters in this script? (Y/N)"
-   - If **No**: Warning + option to continue or abort
-   - If **Yes**: Proceeds with confirmation
-2. Comprehensive configuration report displayed
-   - Method, mode, IC
-   - Grid and domain parameters
-   - Time integration (dt, Tfinal, steps, snapshots)
-   - Physics (viscosity)
-   - Stability (CFL check with ✓/⚠/✗ indicator)
-   - Output settings
-3. Simulation launches via ModeDispatcher
-
-**Default Parameters:**
-- Method: Finite Difference (FD)
-- Mode: Evolution
-- IC: Lamb-Oseen vortex
-- Grid: 128×128
-- Time: dt=0.001, Tfinal=1.0
-
-**To Customize:** Edit `Analysis.m` lines 86-104 before running.
-
-**Expected output**:
+### 3) Run standard mode
+```matlab
+Tsunami_Vorticity_Emulator('Mode','Standard')
 ```
-═══════════════════════════════════════════════════════════════
-  MECH0020 TSUNAMI VORTEX SIMULATION - STANDARD MODE
-═══════════════════════════════════════════════════════════════
 
-───────────────────────────────────────────────────────────────
-  PREFLIGHT CHECK
-───────────────────────────────────────────────────────────────
+## Editable Configuration (Standard Mode)
+Standard mode expects editable user defaults in:
+- `Scripts/Editable/Parameters.m`
+- `Scripts/Editable/Settings.m`
 
-Have you edited parameters in this script? (Y/N): Y
+If you want to change animation frame behavior, edit:
+- `Parameters.m`: `num_plot_snapshots`, `num_animation_frames`, `animation_format`, `animation_codec`
+- `Settings.m`: `animation_frame_rate`, `animation_frame_count`, `animation_format`, `animation_quality`
 
-[SUCCESS] Parameters edited - proceeding with custom configuration
+## UI Mode Expectations
+UI mode is for interactive setup and live monitoring. The canonical run execution still routes through shared infrastructure (build config + dispatch + save paths), not a separate solver stack.
 
-───────────────────────────────────────────────────────────────
-  CONFIGURATION REPORT
-───────────────────────────────────────────────────────────────
-
-[METHOD & MODE]
-  Method:              FD
-  Mode:                Evolution
-  Initial Condition:   Lamb-Oseen
-
-[GRID & DOMAIN]
-  Nx × Ny:             128 × 128
-  ...
-
-[INFO] Launching simulation via ModeDispatcher...
-
-... (simulation runs) ...
-
-[SUCCESS] Simulation completed successfully (12.34 s)
-
-Run ID:              FD_Evol_LambOseen_YYYYMMDD_HHMMSS
-Output Directory:    Data/Output/FD/Evolution/FD_Evol_LambOseen_.../
+## Architecture Flow
+```mermaid
+flowchart TD
+    A[Tsunami_Vorticity_Emulator] --> B{Mode}
+    B -->|UI| C[UIController]
+    B -->|Standard| D[Build_Run_Config]
+    D --> E[ModeDispatcher]
+    E --> F[mode_evolution]
+    E --> G[mode_convergence]
+    E --> H[mode_parameter_sweep]
+    E --> I[mode_plotting]
+    F --> J[PathBuilder]
+    G --> J
+    H --> J
+    I --> J
+    J --> K[Results tree]
 ```
 
 ## Repository Structure
+```text
+Scripts/
+  Drivers/
+    Tsunami_Vorticity_Emulator.m
+  Editable/
+    Parameters.m
+    Settings.m
+  Infrastructure/
+    Builds/
+    DataRelatedHelpers/
+    Initialisers/
+    Runners/
+    Utilities/
+  Methods/
+    FiniteDifference/
+    Spectral/
+    FiniteVolume/
+  Modes/
+    mode_evolution.m
+    mode_parameter_sweep.m
+    mode_plotting.m
+    Convergence/mode_convergence.m
+  Solvers/
+    run_simulation_with_method.m
+  Sustainability/
+  UI/
 
-```
-MECH0020-Numerical-Analysis-of-Tsunami-Vortices-on-Ocean-Surfaces/
-├── Scripts/
-│   ├── Drivers/              # Entry points
-│   │   ├── Analysis.m        # Main UI/Standard mode launcher
-│   │   └── run_adaptive_convergence.m  # Convergence agent runner
-│   ├── Solvers/
-│   │   ├── FD/               # Finite difference kernels and modes
-│   │   ├── Spectral_Analysis.m
-│   │   ├── Finite_Volume_Analysis.m
-│   │   └── Variable_Bathymetry_Analysis.m
-│   ├── Infrastructure/       # Core utilities
-│   │   ├── Builds/           # Configuration builders
-│   │   ├── DataRelatedHelpers/ # Data persistence and paths
-│   │   ├── Initialisers/     # IC factories and setup
-│   │   ├── Runners/          # Mode dispatchers
-│   │   └── Utilities/        # Validation, metrics, monitoring
-│   ├── Editable/             # User-editable configuration files
-│   │   ├── Parameters.m      # Physics and numerics defaults
-│   │   └── Settings.m        # Operational settings
-│   ├── UI/                   # MATLAB UI components
-│   ├── Plotting/             # Visualization functions
-│   └── Sustainability/       # Performance monitoring
-├── Data/
-│   ├── Input/                # Reference data (tracked)
-│   └── Output/               # Generated results (gitignored)
-├── docs/                     # Documentation
-│   ├── Extra/                # Error registry and additional docs
-│   └── 03_NOTEBOOKS/
-│       └── Tsunami_Vortex_Analysis_Complete_Guide.ipynb
-├── utilities/                # Plotting helpers (optional)
-├── tests/                    # Test suite
-│   └── Run_All_Tests.m
-└── README.md
+docs/
+  03_NOTEBOOKS/
+  implementation/
+
+tests/
 ```
 
-**Key directories**:
-- **Drivers**: Main entry points (`Analysis.m`)
-- **Modes**: Simulation modes (Evolution, Convergence, ParameterSweep, Plotting)
-- **Modes/Convergence**: Adaptive convergence agent (`run_adaptive_convergence.m`, `AdaptiveConvergenceAgent.m`)
-- **Editable**: Configuration files users should modify
-- **Output** (created at runtime): `Data/Output/{Method}/{Mode}/{run_id}/`
+## Data and Output Storage
+Canonical runtime output root is `Results/`.
 
-## Configuration
-
-User-editable configuration is centralized in `Scripts/Editable/`:
-
-### `Parameters.m` - Physics and Numerics
-
-Key parameters (edit this file to change defaults):
-- `nu`: Kinematic viscosity (default: 0.001)
-- `Lx`, `Ly`: Domain size (default: 2π × 2π)
-- `Nx`, `Ny`: Grid resolution (default: 128 × 128)
-- `dt`: Time step (default: 0.001)
-- `Tfinal`: Simulation end time (default: 1.0)
-- `ic_type`: Initial condition type (default: 'Lamb-Oseen')
-- `snap_times`: Times to save snapshots (default: 11 evenly spaced)
-
-### `Settings.m` - Operational Settings
-
-Key settings (edit this file to change defaults):
-- `save_figures`: Save plots to disk (default: true)
-- `save_data`: Save MAT files (default: true)
-- `save_reports`: Generate text reports (default: true)
-- `monitor_enabled`: Show live monitor (default: true)
-- `monitor_theme`: Monitor color scheme (default: 'dark')
-- `append_to_master`: Add run to master table (default: true)
-- `animation_enabled`: Generate animations (default: false)
-
-You can also override parameters in your own scripts:
-```matlab
-Parameters = Default_FD_Parameters();
-Parameters.Nx = 256;  % Override grid resolution
-Parameters.Tfinal = 5.0;  % Override end time
+### Run tree
+```text
+Results/
+  <Method>/
+    <Mode>/
+      <RunID>/
+        Config.mat
+        Data/
+          results.mat
+        Figures/
+          Evolution/
+          Contours/
+          Vector/
+          Streamlines/
+          Animation/
+        Reports/
+          Report.txt
 ```
 
-## Adaptive Convergence Agent
+### Figure and media intent
+- Plot snapshots: controlled by `num_plot_snapshots`.
+- Animation frames: controlled by `num_animation_frames` and `animation_frame_rate`.
+- Plot snapshots and animation frames are independent controls.
 
-The adaptive convergence agent provides intelligent mesh refinement. Located in `Scripts/Modes/Convergence/`.
+## Mode and Method Compatibility
 
-**What it does**:
-- Runs preflight simulations to establish convergence patterns
-- Adaptively selects mesh resolutions based on observed convergence rates
-- Avoids brute-force grid sweeps by learning from intermediate results
-- Detects early convergence and stops when tolerance is met
-- Logs all decisions and metrics to a convergence trace
+### ModeDispatcher path
+- Fully supported now: FD mode routing (`Evolution`, `Convergence`, `ParameterSweep`, `Plotting`)
+- Spectral/FV dispatcher callbacks are currently placeholder/blocked in dispatcher mode
 
-**How to run**:
+### Method-level runner path
+- `run_simulation_with_method` can execute currently available method-level run paths (`finite_difference`, `spectral`, `finite_volume`) independent of dispatcher restrictions
 
-```matlab
-cd Scripts/Modes/Convergence
-run_adaptive_convergence
+## Run and Report Pipeline
+```mermaid
+flowchart LR
+    A[Run_Config + Parameters + Settings] --> B[Mode function]
+    B --> C[Simulation state + metrics]
+    C --> D[Data save]
+    C --> E[Figure save]
+    C --> F[Report generation]
+    D --> G[Results/.../Data]
+    E --> H[Results/.../Figures]
+    F --> I[Results/.../Reports]
 ```
 
-**Expected outputs**:
-- Console output showing each iteration's mesh, metrics, and decision logic
-- Convergence trace CSV: `Data/Output/Convergence_Study/convergence_trace.csv`
-- Preflight figures: `Data/Output/Convergence_Study/preflight/`
-- Final recommendation: Converged (Nx, Ny, dt) printed to console
+## Sustainability Tracking Direction
+The implementation plan adds continuous per-run sustainability logging with machine tagging and collector source flags, rooted at:
+- `Results/Sustainability/runs_sustainability.csv`
 
-**Runtime**: Typically 5-10 iterations for simple ICs, 10-15 for complex cases (depends on tolerance).
-
-## Outputs and Artifacts
-
-All simulation outputs are saved under `Data/Output/` (gitignored):
-
-**Directory structure**:
-```
-Data/Output/
-└── {Method}/              # e.g., FD
-    └── {Mode}/            # e.g., Evolution, Convergence
-        └── {run_id}/      # Unique ID: FD_Evol_LambOseen_20260207_143022
-            ├── Figures/   # PNG plots
-            ├── Data/      # MAT files with full state
-            └── Reports/   # Text report with metadata
+```mermaid
+flowchart TD
+    A[Run starts] --> B[Collect baseline metrics: MATLAB + OS]
+    B --> C[Optional enrichers: CPU-Z/HWiNFO/iCUE]
+    C --> D[Append run ledger row]
+    D --> E[Use in report templates]
 ```
 
-**Run ID format**: `{Method}_{Mode}_{IC}_{YYYYMMDD}_{HHMMSS}`
+## Notebook
+Primary notebook:
+- `docs/03_NOTEBOOKS/Tsunami_Vortex_Analysis_Complete_Guide.ipynb`
 
-**Generated files**:
-- **Figures**: Vorticity contours, streamlines, vector fields (PNG, 300 DPI)
-- **Data**: Full workspace including omega, psi, grid, parameters (MAT)
-- **Reports**: Professional text report with run metadata, parameters, metrics, paths
-
-**Master runs table**: `PathBuilder.get_master_table_path()` returns the location of the append-safe CSV tracking all runs.
-
-**What to commit**:
-- Source code, configuration files, documentation
-- Reference data in `Data/Input/`
-
-**What NOT to commit** (already in `.gitignore`):
-- `Data/Output/` - simulation results
-- `*.asv` - MATLAB autosaves
-- `*.log` - log files
-- Test outputs
-
-## Troubleshooting
-
-### Missing path errors
-**Symptom**: `Undefined function or variable 'Build_Run_Config'`  
-**Cause**: MATLAB path not set up correctly  
-**Fix**: Run from `Scripts/Drivers/` directory, or manually add paths as shown in `Analysis.m` lines 14-22
-
-### UI doesn't launch
-**Symptom**: UI window doesn't appear after running `Analysis`  
-**Cause**: MATLAB App Designer support missing or corrupted UI files  
-**Fix**: Select "Standard Mode" from the startup dialog to bypass UI. Check `Scripts/UI/UIController.m` exists.
-
-### Missing output directory
-**Symptom**: Error creating output directory  
-**Cause**: `Data/Output/` not created automatically  
-**Fix**: Directory is created on first run. If error persists, manually create: `mkdir Data/Output`
-
-### Very slow simulations
-**Symptom**: Simulation takes hours for small grids
-**Cause**: Likely high resolution or small dt causing many timesteps
-**Fix**: Check `Parameters.dt` and `Parameters.Tfinal`. Reduce `Nx`, `Ny`, or increase `dt` (watch CFL < 1).
-
-### Standard mode vs UI mode confusion
-**Symptom**: Unsure which mode is running
-**Cause**: Startup dialog is modal
-**Fix**: The dialog forces a choice. "UI Mode" opens tabs, "Standard Mode" continues script execution in command window.
-
-## Error Codes
-
-The repository uses a structured error code system for consistent debugging and error reporting.
-
-### Error Code Format
-
-Format: `PREFIX-CATEGORY-NNNN`
-- `PREFIX`: Module/subsystem (SYS, CFG, UI, RUN, SOL, IO, MON, TST, GEN)
-- `CATEGORY`: Error category or severity
-- `NNNN`: Unique number
-
-### Error Code Categories
-
-**SYS-BOOT-xxxx**: System Bootstrap & Initialization
-- `SYS-BOOT-0001`: Failed to locate repository root
-- `SYS-BOOT-0002`: Required directory missing
-- `SYS-BOOT-0003`: Required MATLAB function not found
-
-**CFG-VAL-xxxx**: Configuration Validation
-- `CFG-VAL-0001`: Invalid grid resolution (Nx/Ny)
-- `CFG-VAL-0002`: Invalid time step or final time
-- `CFG-VAL-0003`: CFL condition warning
-- `CFG-VAL-0004`: Invalid initial condition type
-- `CFG-VAL-0005`: Method/mode combination not supported
-
-**UI-LAY-xxxx / UI-CB-xxxx**: User Interface
-- `UI-LAY-0001`: Component grid position out of bounds
-- `UI-LAY-0002`: Component uses Position instead of grid layout
-- `UI-CB-0001`: Callback execution failed
-- `UI-CB-0002`: Launch simulation with invalid configuration
-
-**RUN-EXEC-xxxx**: Runner & Dispatcher
-- `RUN-EXEC-0001`: Unknown method specified
-- `RUN-EXEC-0002`: Unknown mode for method
-- `RUN-EXEC-0003`: Simulation failed during execution
-
-**SOL-FD-xxxx / SOL-SP-xxxx / SOL-FV-xxxx**: Solvers
-- `SOL-FD-0001`: FD solver encountered NaN/Inf
-- `SOL-FD-0002`: Poisson solver failed to converge
-- `SOL-SP-0001`: Spectral method not implemented
-- `SOL-FV-0001`: Finite Volume method not implemented
-
-**IO-FS-xxxx**: File I/O
-- `IO-FS-0001`: Failed to create output directory
-- `IO-FS-0002`: Failed to save output file
-- `IO-FS-0003`: Failed to load previous run data
-
-**MON-SUS-xxxx**: Monitoring & Sustainability
-- `MON-SUS-0001`: Hardware monitor bridge unavailable
-- `MON-SUS-0002`: iCUE bridge unavailable
-
-**TST-xxxx**: Testing Framework
-- `TST-0001`: Test case failed
-- `TST-0002`: Test harness infrastructure error
-
-**GEN-xxxx**: Generic
-- `GEN-0001`: Unclassified error
-
-### Using Error Codes
-
-**Print error registry**:
-```matlab
-ErrorRegistry.print_registry();
-```
-
-**Lookup specific code**:
-```matlab
-info = ErrorRegistry.lookup('CFG-VAL-0001');
-fprintf('%s\n', info.remediation);
-```
-
-**All error codes**:
-```matlab
-codes = ErrorRegistry.get_all_codes();
-```
-
-For implementation details, see `Scripts/Infrastructure/Utilities/ErrorRegistry.m` and `ErrorHandler.m`.
+It is aligned with current paths and distinguishes method-level execution from dispatcher-mode compatibility.
 
 ## Testing
+Main regression entrypoint:
+- `tests/Run_All_Tests.m`
 
-Run the comprehensive test suite to verify installation:
+Planned hardening checks include:
+- path invariants (no writes outside canonical output roots)
+- report artifact generation checks
+- media output policy checks
+- sustainability ledger append checks
 
-```matlab
-cd tests
-Run_All_Tests
-```
-
-**Expected output**: Summary of passed/failed tests for core infrastructure, solvers, and UI components.
-
-**Static analysis** (check code quality):
-```matlab
-cd tests
-static_analysis
-```
-
-**CI/CD**: GitHub Actions workflow automatically runs tests on every push (see `.github/workflows/matlab-tests.yml`).
-
-## Editing the UI Layout (Developer Mode)
-
-The UI uses a **grid-based layout** for intuitive editing. All layout parameters are centralized in `Scripts/UI/UI_Layout_Config.m`.
-
-### How to Edit Layout Safely
-
-1. **Enable Developer Mode:**
-   - Launch UI: `app = UIController();`
-   - Click menu bar button: **"🔧 Developer Mode: OFF"** → turns ON
-   - Inspector panel appears showing component details
-
-2. **Inspect a Component:**
-   - Click any UI element (dropdown, button, panel)
-   - Inspector displays:
-     - Type (e.g., `matlab.ui.control.DropDown`)
-     - Parent container
-     - `Layout.Row` and `Layout.Column` (grid position)
-     - Parent grid dimensions
-
-3. **Edit Layout Config:**
-   - Open `Scripts/UI/UI_Layout_Config.m`
-   - Find the relevant grid definition (e.g., `cfg.config_tab.left.row_heights`)
-   - Modify row/column sizes, spacing, or padding
-   - Save the file
-
-4. **Validate Changes:**
-   - In Developer Inspector, click **"Validate All Layouts"**
-   - Checks for invalid row/col indices, leftover `Position` usage
-   - Click **"Dump UI Map to Console"** to see full component tree
-
-5. **Reload UI:**
-   - Close UI figure
-   - Rerun: `app = UIController();`
-   - Verify changes took effect
-
-### Rules for UI Editing
-
-✅ **DO:**
-- Edit `UI_Layout_Config.m` only
-- Use `Layout.Row` and `Layout.Column` for placement
-- Use grid layout row/column sizes (`'fit'`, `'1x'`, `'2x'`, pixels)
-
-❌ **DON'T:**
-- Add `Position` properties to components
-- Edit layout parameters directly in `UIController.m`
-- Change callback function signatures (breaks functionality)
-
-### Adding a New Component
-
-1. Add entry to `cfg.placement` in `UI_Layout_Config.m`:
-   ```matlab
-   'my_new_button', 'config_left', 3, 1, [1 1];  % row 3, col 1, no span
-   ```
-
-2. Create component in appropriate `create_*_tab` method in `UIController.m`:
-   ```matlab
-   app.handles.my_new_button = uibutton(parent_grid, 'Text', 'My Button');
-   app.handles.my_new_button.Layout.Row = 3;
-   app.handles.my_new_button.Layout.Column = 1;
-   ```
-
-3. Validate with Developer Mode before committing
-
-**Reference:** See [MATLAB uigridlayout documentation](https://www.mathworks.com/help/matlab/ref/matlab.ui.container.gridlayout-properties.html)
-
-## Documentation
-
-This README serves as the central replication manual. Additional documentation:
-
-**Research & Constraints:**
-- [docs/research.md](docs/research.md) - Method/mode compatibility matrix, unviable combinations, experimental features, future work, known limitations
-- [docs/research_log.md](docs/research_log.md) - Literature references (Vancouver-style), research notes, implementation sources
-
-**Notebooks:**
-- [Complete Analysis Guide (Jupyter)](docs/03_NOTEBOOKS/Tsunami_Vortex_Analysis_Complete_Guide.ipynb) - Interactive tutorial and examples
-
-**Error Tracking:**
-- [docs/Extra/Error_Registry.md](docs/Extra/Error_Registry.md) - Permanent log of all errors encountered and resolved
-
-**Implementation Details:**
-- Error codes: See "Error Codes" section above
-- Test suite: `tests/Run_All_Tests.m` - omnipotent test harness (static + unit + integration)
-- UI layout: `Scripts/UI/UI_Layout_Config.m` - grid-based layout configuration
-
-**What to Read First:**
-1. This README for quick start and basic usage
-2. `docs/research.md` for compatibility matrix and constraints
-3. Jupyter notebook for in-depth analysis examples
-4. `docs/research_log.md` for literature references and research notes
-
-## License
-
-*License information to be added.*
-
-## Contact
-
-*Contact information to be added.*
+## Implementation Plan Artifacts
+- `docs/implementation/2026-02-11_repo_hardening_execution_plan.md`
+- `docs/implementation/2026-02-11_repo_hardening_baseline.md`
