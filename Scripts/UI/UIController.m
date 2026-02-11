@@ -1006,8 +1006,8 @@ classdef UIController < handle
 
             ic_display_name = app.handles.ic_dropdown.Value;
             app.config.ic_type = map_ic_display_to_type(ic_display_name);
-            app.config.ic_pattern = app.handles.ic_pattern.Value;
-            app.config.ic_count = max(1, round(app.handles.ic_count.Value));
+            app.config.ic_pattern = app.get_ic_pattern_value();
+            app.config.ic_count = app.get_ic_count_value();
             [c1, c2, c3, c4, x0, y0] = app.get_ic_coeff_control_values();
             app.config.ic_coeff1 = c1;
             app.config.ic_coeff2 = c2;
@@ -1353,8 +1353,8 @@ classdef UIController < handle
             c4 = coeffs(4);
             x0 = app.handles.ic_center_x.Value;
             y0 = app.handles.ic_center_y.Value;
-            n_vort = max(1, round(app.handles.ic_count.Value));
-            pattern = app.handles.ic_pattern.Value;
+            n_vort = app.get_ic_count_value();
+            pattern = app.get_ic_pattern_value();
             scale = app.handles.ic_scale.Value;
 
             switch ic_type
@@ -1608,27 +1608,30 @@ classdef UIController < handle
         end
 
         function update_convergence_display(app)
-            % Update convergence criterion display to include selected method
+            % Update convergence criterion display without sprintf parsing risk.
             method_val = app.handles.method_dropdown.Value;
             mode_val = app.handles.mode_dropdown.Value;
-            
-            % Build HTML with method information
-            html_content = sprintf([ ...
+
+            method_txt = string(method_val);
+            mode_txt = string(mode_val);
+            header = method_txt + " | " + mode_txt + " Mode";
+            details = "Method: <b>" + method_txt + "</b> | Mode: <b>" + ...
+                mode_txt + "</b> | Agent: <b>" + ...
+                app.to_yes_no(app.handles.conv_agent_enabled.Value) + "</b> | Binary: <b>" + ...
+                app.to_yes_no(app.handles.conv_binary.Value) + "</b>";
+
+            html_content = [ ...
                 "<div style='font-family:Segoe UI;font-size:12px;color:#dcdcdc;'>" ...
-                "<b style='color:#80c7ff;'>%s | %s Mode</b><br>" ...
+                "<b style='color:#80c7ff;'>" char(header) "</b><br>" ...
                 "<b>Convergence Criterion:</b><br>" ...
                 "$$\\epsilon_N = \\frac{\\|\\omega_N-\\omega_{2N}\\|_2}{\\|\\omega_{2N}\\|_2}$$<br>" ...
-                "<span style='font-size:11px;color:#a0a0a0;'>" ...
-                "Method: <b>%s</b> | Mode: <b>%s</b> | Agent: <b>%s</b> | Binary: <b>%s</b>" ...
-                "</span></div>" ...
-                "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>"], ...
-                method_val, mode_val, method_val, mode_val, ...
-                app.to_yes_no(app.handles.conv_agent_enabled.Value), ...
-                app.to_yes_no(app.handles.conv_binary.Value));
-            
-            % Update the convergence criterion display
-            if isfield(app.handles, 'conv_math') && ishghandle(app.handles.conv_math)
-                app.handles.conv_math.HTMLSource = html_content;
+                "<span style='font-size:11px;color:#a0a0a0;'>" char(details) "</span>" ...
+                "</div>" ...
+                "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>" ...
+            ];
+
+            if app.has_valid_handle('conv_math')
+                app.handles.conv_math.HTMLSource = char(html_content);
             end
         end
 
@@ -1743,8 +1746,8 @@ classdef UIController < handle
             config_export.nu = app.handles.nu.Value;
             config_export.num_snapshots = round(app.handles.num_snapshots.Value);
             config_export.ic_type = map_ic_display_to_type(app.handles.ic_dropdown.Value);
-            config_export.ic_pattern = app.handles.ic_pattern.Value;
-            config_export.ic_count = max(1, round(app.handles.ic_count.Value));
+            config_export.ic_pattern = app.get_ic_pattern_value();
+            config_export.ic_count = app.get_ic_count_value();
             config_export.ic_scale = app.handles.ic_scale.Value;
             config_export.ic_coeff1 = app.handles.ic_coeff1.Value;
             config_export.ic_coeff2 = app.handles.ic_coeff2.Value;
@@ -1955,10 +1958,7 @@ classdef UIController < handle
                 diary(app.diary_file);
                 diary on;
 
-                if ~isempty(app.diary_timer) && isvalid(app.diary_timer)
-                    stop(app.diary_timer);
-                    delete(app.diary_timer);
-                end
+                app.safe_stop_timer('diary_timer');
 
                 app.diary_timer = timer('ExecutionMode', 'fixedSpacing', ...
                     'Period', 1.0, ...
@@ -1974,7 +1974,7 @@ classdef UIController < handle
             if isempty(app.diary_file) || ~isfile(app.diary_file)
                 return;
             end
-            if ~isfield(app.handles, 'terminal_output') || ~ishghandle(app.handles.terminal_output)
+            if ~app.has_valid_handle('terminal_output')
                 return;
             end
 
@@ -2065,11 +2065,7 @@ classdef UIController < handle
         function cleanup(app)
             % Cleanup when UI closes
             try
-                if ~isempty(app.diary_timer) && isvalid(app.diary_timer)
-                    stop(app.diary_timer);
-                    delete(app.diary_timer);
-                    app.diary_timer = [];
-                end
+                app.safe_stop_timer('diary_timer');
                 diary off;
                 if ~isempty(app.fig) && isvalid(app.fig)
                     delete(app.fig);
@@ -2081,11 +2077,7 @@ classdef UIController < handle
         function delete(app)
             % Defensive destructor: ensure background timer is never leaked
             try
-                if ~isempty(app.diary_timer) && isvalid(app.diary_timer)
-                    stop(app.diary_timer);
-                    delete(app.diary_timer);
-                    app.diary_timer = [];
-                end
+                app.safe_stop_timer('diary_timer');
             catch
             end
             try
@@ -2129,16 +2121,25 @@ classdef UIController < handle
                     error('Initial condition generated non-finite values for preview.');
                 end
 
-                warning('off', 'MATLAB:contour:ConstantData');
-                contourf(ax, X, Y, Z, 20, 'LineStyle', 'none');
-                hold(ax, 'on');
-                contour(ax, X, Y, Z, 12, 'LineWidth', 0.9, 'LineColor', [0.82 0.82 0.82]);
+                z_min = min(Z, [], 'all');
+                z_max = max(Z, [], 'all');
+                z_span = z_max - z_min;
+                z_tol = max(1e-12, 1e-10 * max(1, abs(z_max)));
+
+                if z_span <= z_tol
+                    imagesc(ax, X(1, :), Y(:, 1), Z);
+                    set(ax, 'YDir', 'normal');
+                    hold(ax, 'on');
+                else
+                    contourf(ax, X, Y, Z, 20, 'LineStyle', 'none');
+                    hold(ax, 'on');
+                    contour(ax, X, Y, Z, 12, 'LineWidth', 0.9, 'LineColor', [0.82 0.82 0.82]);
+                end
                 rectangle(ax, 'Position', [-Lx/2 -Ly/2 Lx Ly], ...
                     'EdgeColor', app.layout_cfg.colors.accent_gray, ...
                     'LineStyle', '--', ...
                     'LineWidth', 1.0);
                 hold(ax, 'off');
-                warning('on', 'MATLAB:contour:ConstantData');
 
                 colormap(ax, 'turbo');
                 cb = colorbar(ax);
@@ -2187,8 +2188,8 @@ classdef UIController < handle
             app.handles.ic_coeff3_label.Visible = 'on';
             app.handles.ic_coeff4_label.Visible = 'on';
 
-            app.handles.ic_pattern.Enable = 'off';
-            app.handles.ic_count.Enable = 'off';
+            app.set_optional_handle_enable('ic_pattern', 'off');
+            app.set_optional_handle_enable('ic_count', 'off');
 
             switch ic_type
                 case 'stretched_gaussian'
@@ -2225,8 +2226,8 @@ classdef UIController < handle
                     app.handles.ic_coeff4.Visible = 'off';
                     app.handles.ic_coeff3_label.Visible = 'off';
                     app.handles.ic_coeff4_label.Visible = 'off';
-                    app.handles.ic_pattern.Enable = 'on';
-                    app.handles.ic_count.Enable = 'on';
+                    app.set_optional_handle_enable('ic_pattern', 'on');
+                    app.set_optional_handle_enable('ic_count', 'on');
 
                 case 'lamb_oseen'
                     app.handles.ic_coeff1_label.Text = 'Circulation (Gamma):';
@@ -2639,62 +2640,79 @@ classdef UIController < handle
             if ~app.dev_mode_enabled
                 return;  % Only active in dev mode
             end
-            
+
+            if nargin < 2 || isempty(component) || ~ishghandle(component)
+                return;
+            end
+
+            % If inspector widgets were deleted manually, fail closed.
+            if ~app.has_valid_handle('dev_inspector_fig') || ...
+                    ~strcmpi(app.handles.dev_inspector_fig.Visible, 'on')
+                app.dev_mode_enabled = false;
+                app.disable_click_inspector();
+                if app.has_valid_handle('dev_mode_toggle')
+                    app.handles.dev_mode_toggle.Text = 'Developer Mode: OFF';
+                    app.handles.dev_mode_toggle.BackgroundColor = [0.3 0.3 0.3];
+                    app.handles.dev_mode_toggle.FontColor = [0.9 0.9 0.9];
+                end
+                return;
+            end
+
             app.selected_component = component;
-            
+
             % Get component type
             comp_type = class(component);
-            app.handles.dev_type.Text = comp_type;
-            
+            app.set_dev_text('dev_type', comp_type);
+
             % Get parent
             try
                 parent = component.Parent;
                 parent_type = class(parent);
-                app.handles.dev_parent.Text = parent_type;
+                app.set_dev_text('dev_parent', parent_type);
             catch
-                app.handles.dev_parent.Text = '(no parent)';
+                app.set_dev_text('dev_parent', '(no parent)');
             end
-            
+
             % Get Layout properties
             try
                 if isprop(component, 'Layout')
                     layout = component.Layout;
-                    
+
                     if isprop(layout, 'Row')
-                        app.handles.dev_row.Text = mat2str(layout.Row);
+                        app.set_dev_text('dev_row', mat2str(layout.Row));
                     else
-                        app.handles.dev_row.Text = '(not grid layout)';
+                        app.set_dev_text('dev_row', '(not grid layout)');
                     end
-                    
+
                     if isprop(layout, 'Column')
-                        app.handles.dev_col.Text = mat2str(layout.Column);
+                        app.set_dev_text('dev_col', mat2str(layout.Column));
                     else
-                        app.handles.dev_col.Text = '(not grid layout)';
+                        app.set_dev_text('dev_col', '(not grid layout)');
                     end
                 else
-                    app.handles.dev_row.Text = '(no Layout property)';
-                    app.handles.dev_col.Text = '(no Layout property)';
+                    app.set_dev_text('dev_row', '(no Layout property)');
+                    app.set_dev_text('dev_col', '(no Layout property)');
                 end
             catch
-                app.handles.dev_row.Text = '(error)';
-                app.handles.dev_col.Text = '(error)';
+                app.set_dev_text('dev_row', '(error)');
+                app.set_dev_text('dev_col', '(error)');
             end
-            
+
             % Get parent grid properties
             try
                 parent = component.Parent;
                 if isa(parent, 'matlab.ui.container.GridLayout')
-                    app.handles.dev_parent_rows.Text = sprintf('%d rows', length(parent.RowHeight));
-                    app.handles.dev_parent_cols.Text = sprintf('%d cols', length(parent.ColumnWidth));
+                    app.set_dev_text('dev_parent_rows', sprintf('%d rows', length(parent.RowHeight)));
+                    app.set_dev_text('dev_parent_cols', sprintf('%d cols', length(parent.ColumnWidth)));
                 else
-                    app.handles.dev_parent_rows.Text = '(parent not grid)';
-                    app.handles.dev_parent_cols.Text = '(parent not grid)';
+                    app.set_dev_text('dev_parent_rows', '(parent not grid)');
+                    app.set_dev_text('dev_parent_cols', '(parent not grid)');
                 end
             catch
-                app.handles.dev_parent_rows.Text = '(error)';
-                app.handles.dev_parent_cols.Text = '(error)';
+                app.set_dev_text('dev_parent_rows', '(error)');
+                app.set_dev_text('dev_parent_cols', '(error)');
             end
-            
+
             % Get callbacks
             callback_names = {};
             try
@@ -2708,30 +2726,30 @@ classdef UIController < handle
                     end
                 end
                 if isempty(callback_names)
-                    app.handles.dev_callbacks.Text = '(none)';
+                    app.set_dev_text('dev_callbacks', '(none)');
                 else
-                    app.handles.dev_callbacks.Text = strjoin(callback_names, ', ');
+                    app.set_dev_text('dev_callbacks', strjoin(callback_names, ', '));
                 end
             catch
-                app.handles.dev_callbacks.Text = '(error)';
+                app.set_dev_text('dev_callbacks', '(error)');
             end
-            
+
             % Get Tag
             try
                 if isprop(component, 'Tag')
                     tag_val = component.Tag;
                     if isempty(tag_val)
-                        app.handles.dev_tag.Text = '(no tag)';
+                        app.set_dev_text('dev_tag', '(no tag)');
                     else
-                        app.handles.dev_tag.Text = tag_val;
+                        app.set_dev_text('dev_tag', tag_val);
                     end
                 else
-                    app.handles.dev_tag.Text = '(no Tag property)';
+                    app.set_dev_text('dev_tag', '(no Tag property)');
                 end
             catch
-                app.handles.dev_tag.Text = '(error)';
+                app.set_dev_text('dev_tag', '(error)');
             end
-            
+
             % Log to inspector
             log_msg = sprintf('Inspected: %s', comp_type);
             app.append_dev_log(log_msg);
@@ -2756,6 +2774,112 @@ classdef UIController < handle
                 scroll(app.handles.dev_log, 'bottom');
             catch
                 % scroll may not be available in all MATLAB versions
+            end
+        end
+
+        function safe_stop_timer(app, field_name)
+            % Stop and delete timer handles defensively without noisy warnings.
+            if ~isprop(app, field_name)
+                return;
+            end
+            t = app.(field_name);
+            if isempty(t)
+                app.(field_name) = [];
+                return;
+            end
+
+            try
+                if isvalid(t)
+                    try
+                        if strcmpi(char(string(t.Running)), 'on')
+                            stop(t);
+                        end
+                    catch
+                        stop(t);
+                    end
+                    delete(t);
+                end
+            catch
+            end
+
+            app.(field_name) = [];
+        end
+
+        function tf = has_valid_handle(app, field_name)
+            % True when app.handles.<field_name> exists and is a live UI handle.
+            tf = false;
+            if ~isfield(app.handles, field_name)
+                return;
+            end
+            h = app.handles.(field_name);
+            if isempty(h)
+                return;
+            end
+            try
+                tf = isvalid(h);
+            catch
+                try
+                    tf = ishghandle(h);
+                catch
+                    tf = false;
+                end
+            end
+        end
+
+        function pattern = get_ic_pattern_value(app)
+            % Return a safe IC pattern value even when legacy UI layouts omit the control.
+            pattern = 'single';
+            if ~app.has_valid_handle('ic_pattern')
+                return;
+            end
+            try
+                raw = char(string(app.handles.ic_pattern.Value));
+                allowed = {'single', 'circular', 'grid', 'random'};
+                if any(strcmpi(raw, allowed))
+                    pattern = lower(raw);
+                end
+            catch
+                pattern = 'single';
+            end
+        end
+
+        function n_vort = get_ic_count_value(app)
+            % Return a safe positive integer vortex count when control is missing/unset.
+            n_vort = 1;
+            if ~app.has_valid_handle('ic_count')
+                return;
+            end
+            try
+                value = app.handles.ic_count.Value;
+                if isfinite(value)
+                    n_vort = max(1, round(value));
+                end
+            catch
+                n_vort = 1;
+            end
+        end
+
+        function set_optional_handle_enable(app, field_name, state)
+            % Toggle Enable for optional controls without throwing if absent.
+            if ~app.has_valid_handle(field_name)
+                return;
+            end
+            h = app.handles.(field_name);
+            if isprop(h, 'Enable')
+                h.Enable = state;
+            end
+        end
+
+        function set_dev_text(app, field_name, value)
+            % Set inspector label text only when the target UI element is valid.
+            if ~app.has_valid_handle(field_name)
+                return;
+            end
+            h = app.handles.(field_name);
+            if isprop(h, 'Text')
+                h.Text = char(string(value));
+            elseif isprop(h, 'Value')
+                h.Value = char(string(value));
             end
         end
         
@@ -2877,27 +3001,28 @@ function ic_type = map_ic_display_to_type(display_name)
     % Map UI display names to internal ic_type values
     % This ensures the display names are human-friendly while 
     % the actual ic_type values match the initialise_omega switch cases
-    
+    display_name = char(string(display_name));
+
     switch display_name
-        case 'Stretched Gaussian'
+        case {'Stretched Gaussian', 'stretched_gaussian'}
             ic_type = 'stretched_gaussian';
-        case 'Vortex Blob'
+        case {'Vortex Blob', 'Vortex Blob Gaussian', 'vortex_blob', 'vortex_blob_gaussian'}
             ic_type = 'vortex_blob_gaussian';
-        case 'Vortex Pair'
+        case {'Vortex Pair', 'vortex_pair'}
             ic_type = 'vortex_pair';
-        case 'Multi-Vortex'
+        case {'Multi-Vortex', 'multi_vortex'}
             ic_type = 'multi_vortex';
-        case 'Lamb-Oseen'
+        case {'Lamb-Oseen', 'lamb_oseen'}
             ic_type = 'lamb_oseen';
-        case 'Rankine'
+        case {'Rankine', 'rankine'}
             ic_type = 'rankine';
-        case 'Lamb Dipole'
+        case {'Lamb Dipole', 'lamb_dipole'}
             ic_type = 'lamb_dipole';
-        case 'Taylor-Green'
+        case {'Taylor-Green', 'taylor_green'}
             ic_type = 'taylor_green';
-        case 'Random Turbulence'
+        case {'Random Turbulence', 'random_turbulence'}
             ic_type = 'random_turbulence';
-        case 'Elliptical Vortex'
+        case {'Elliptical Vortex', 'elliptical_vortex'}
             ic_type = 'elliptical_vortex';
         otherwise
             % Fallback: try to use display_name directly if it's a valid ic_type
