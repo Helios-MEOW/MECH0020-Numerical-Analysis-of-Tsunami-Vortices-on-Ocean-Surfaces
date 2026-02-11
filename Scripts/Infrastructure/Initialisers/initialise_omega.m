@@ -1,9 +1,20 @@
 function omega = initialise_omega(X, Y, ic_type, ic_coeff)
-    % Standalone initial condition generator (extracted from Analysis.m)
-    % Enables access from other methods (Spectral, Finite Volume, tests).
+    % initialise_omega - Shared initial-condition factory for all methods.
+    %
+    % Why this exists:
+    %   Keeps FD/Spectral/FV and test runs aligned on the same IC formulas.
+    %   Avoids duplicated IC logic across method implementations.
+    %
+    % Inputs:
+    %   X, Y      - meshgrid coordinates (Ny-by-Nx)
+    %   ic_type   - canonical IC name or alias (case/spacing tolerant)
+    %   ic_coeff  - optional coefficient vector interpreted per ic_type
+    %
+    % Output:
+    %   omega     - initial vorticity field, same size as X/Y
 
     if isstring(ic_type) || ischar(ic_type)
-        % Normalize: lowercase and replace hyphens/spaces with underscores
+        % Normalize user-facing aliases into one switch-friendly token.
         ic_type = lower(char(ic_type));
         ic_type = strrep(ic_type, '-', '_');
         ic_type = strrep(ic_type, ' ', '_');
@@ -55,6 +66,7 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
             alpha = params.spectrum_exp;
             E0 = params.energy_level;
             seed = params.seed;
+            % Deterministic random IC: reproducible when seed is fixed.
             rng(seed);
             kmax = 4;
             omega = zeros(size(X));
@@ -80,6 +92,8 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
                 x_coeff = -1.0;
                 y_coeff = -1.0;
             else
+                % Legacy convention stores positive widths; we convert to the
+                % negative quadratic exponent form expected by exp(a*x^2+b*y^2).
                 x_coeff = -ic_coeff(1);
                 y_coeff = -ic_coeff(2);
             end
@@ -124,6 +138,7 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
         case 'multi_vortex'
             omega = zeros(size(X));
             if numel(ic_coeff) >= 10
+                % Coeff layout: [G1 R1 x1 y1 G2 R2 x2 y2 G3 x3 y3 (R3 optional)]
                 G1 = ic_coeff(1); R1 = ic_coeff(2); x1 = ic_coeff(3); y1 = ic_coeff(4);
                 omega = omega + G1/(2*pi*R1^2) * exp(-((X-x1).^2 + (Y-y1).^2)/(2*R1^2));
 
@@ -163,6 +178,8 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
 end
 
 function params = ic_coeff_to_params(ic_type, ic_coeff)
+    % ic_coeff_to_params - Decode coefficient vector into named parameters.
+    % Unspecified coefficients fall back to physically safe defaults.
     params = struct();
 
     switch ic_type
@@ -202,6 +219,7 @@ function params = ic_coeff_to_params(ic_type, ic_coeff)
 end
 
 function val = get_coeff(ic_coeff, index, default)
+    % get_coeff - Safe coefficient accessor with default fallback.
     if numel(ic_coeff) >= index
         val = ic_coeff(index);
     else

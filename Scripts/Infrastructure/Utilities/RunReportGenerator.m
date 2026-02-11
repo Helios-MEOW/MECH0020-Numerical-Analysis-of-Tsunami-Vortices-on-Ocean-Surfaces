@@ -2,8 +2,12 @@ classdef RunReportGenerator
     % RunReportGenerator - Professional ANSYS/Abaqus-inspired run reports
     %
     % Purpose:
-    %   Generate text-based professional reports for each run/study
-    %   Include metadata, parameters, metrics, file manifest
+    %   Generate plain-text reports for each run/study.
+    %   Include metadata, parameters, metrics, and output manifest.
+    %
+    % Scope note:
+    %   This class is intentionally text-only (Report.txt). Rich HTML/PDF
+    %   report generation is handled by the newer report pipeline utilities.
     %
     % Usage:
     %   RunReportGenerator.generate(run_id, Run_Config, Parameters, Settings, Results, paths);
@@ -11,7 +15,7 @@ classdef RunReportGenerator
     methods (Static)
         function generate(run_id, Run_Config, Parameters, Settings, Results, paths)
             % Generate complete run report
-            % Save as Report.txt in reports directory
+            % Save as Report.txt in reports directory.
             
             report_path = fullfile(paths.reports, 'Report.txt');
             
@@ -24,7 +28,8 @@ classdef RunReportGenerator
             end
             
             try
-                % Write report sections
+                % Keep section order stable so downstream parsers can read
+                % historical reports with simple text anchors.
                 RunReportGenerator.write_header(fid, run_id);
                 RunReportGenerator.write_metadata(fid);
                 RunReportGenerator.write_configuration(fid, Run_Config);
@@ -60,7 +65,8 @@ classdef RunReportGenerator
             fprintf(fid, '  SYSTEM METADATA\n');
             fprintf(fid, '───────────────────────────────────────────────────────────────────\n');
             
-            % MATLAB version
+            % MATLAB/OS metadata helps explain runtime differences between
+            % machines when comparing benchmark or sustainability outputs.
             rel_info = matlabRelease;
             fprintf(fid, 'MATLAB Version: %s (%s)\n', version, rel_info.Release);
             
@@ -208,7 +214,8 @@ classdef RunReportGenerator
                 
                 val = paths.(fields{i});
                 if ischar(val) || isstring(val)
-                    % Count files in directory
+                    % Include file counts to quickly spot empty directories
+                    % caused by incomplete or interrupted runs.
                     if exist(val, 'dir')
                         files = dir(val);
                         file_count = sum(~[files.isdir]);

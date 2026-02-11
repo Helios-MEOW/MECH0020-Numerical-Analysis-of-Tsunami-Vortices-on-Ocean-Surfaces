@@ -15,6 +15,11 @@
 
 classdef HardwareMonitorBridge < handle
     % Bridge class for MATLAB-Python hardware monitoring integration
+    %
+    % Design intent:
+    %   Keep MATLAB solver code decoupled from sensor polling internals.
+    %   MATLAB sees a small API (start/stop/stats/report) while Python
+    %   handles device-specific telemetry collection.
     
     properties (SetAccess = private)
         python_script_path     % Path to hardware_monitor.py
@@ -67,7 +72,9 @@ classdef HardwareMonitorBridge < handle
                 error('Failed to import hardware_monitor module: %s', ME.message);
             end
             
-            % Create Python logger instance
+            % Create Python logger instance.
+            % Raw sensor logs are stored outside run folders so a single
+            % sensor stream can be reused for comparative studies.
             obj.py_logger = py.hardware_monitor.SensorDataLogger(...
                 pyargs('output_dir', '../../sensor_logs', 'interval', 0.5));  % Relative to Scripts/Sustainability/
             
@@ -169,7 +176,7 @@ classdef HardwareMonitorBridge < handle
                 stats.ram_usage_max = max(T.ram_usage);
                 stats.ram_percent_mean = mean(T.ram_percent);
                 
-                % Power stats
+                % Power stats (optional fields depending on platform/tooling)
                 valid_powers = T.power_consumption(~isnan(T.power_consumption));
                 if ~isempty(valid_powers)
                     stats.power_mean = mean(valid_powers);
@@ -215,7 +222,7 @@ classdef HardwareMonitorBridge < handle
             report.hardware_metrics = stats;
             
             if nargin > 1
-                % Save to JSON
+                % Save machine-readable report for downstream aggregators.
                 try
                     json_str = jsonencode(report);
                     fid = fopen(output_file, 'w');
@@ -245,7 +252,7 @@ classdef HardwareMonitorBridge < handle
             hw_stats = obj.get_statistics();
             obj.hardware_metrics = hw_stats;
             
-            % Create correlation report
+            % Emit a concise terminal report for exploratory debugging.
             fprintf('\n%s\n', repmat('=', 1, 70));
             fprintf('ENERGY-SIMULATION CORRELATION ANALYSIS\n');
             fprintf('%s\n', repmat('=', 1, 70));
