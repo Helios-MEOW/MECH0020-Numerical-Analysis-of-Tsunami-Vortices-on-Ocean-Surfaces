@@ -232,15 +232,15 @@ classdef RunReportPipeline
 
         function out = format_value(value)
             if isstring(value) || ischar(value)
-                out = char(string(value));
+                out = RunReportPipeline.safe_string(value);
             elseif islogical(value)
-                out = char(string(value));
+                out = RunReportPipeline.safe_string(value);
             elseif isnumeric(value)
                 if isscalar(value)
                     if isfinite(value)
                         out = num2str(value, '%.8g');
                     else
-                        out = char(string(value));
+                        out = RunReportPipeline.safe_string(value);
                     end
                 else
                     sz = size(value);
@@ -272,15 +272,36 @@ classdef RunReportPipeline
         end
 
         function out = escape_quotes(in)
-            out = strrep(char(string(in)), '"', '\"');
+            out = strrep(RunReportPipeline.safe_string(in), '"', '\"');
         end
 
         function out = escape_html(in)
-            out = char(string(in));
+            out = RunReportPipeline.safe_string(in);
             out = strrep(out, '&', '&amp;');
             out = strrep(out, '<', '&lt;');
             out = strrep(out, '>', '&gt;');
             out = strrep(out, '"', '&quot;');
+        end
+
+        function out = safe_string(value)
+            try
+                sval = string(value);
+                if isempty(sval)
+                    out = '';
+                    return;
+                end
+                if any(ismissing(sval))
+                    out = 'missing';
+                    return;
+                end
+                if isscalar(sval)
+                    out = char(sval);
+                else
+                    out = strjoin(cellstr(sval(:)), ', ');
+                end
+            catch
+                out = sprintf('[%s]', class(value));
+            end
         end
     end
 end

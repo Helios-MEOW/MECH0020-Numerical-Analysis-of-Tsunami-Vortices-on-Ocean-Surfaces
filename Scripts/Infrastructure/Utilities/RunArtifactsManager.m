@@ -169,7 +169,12 @@ classdef RunArtifactsManager
         function value = safe_field(s, field_name, default_value)
             value = default_value;
             if isstruct(s) && isfield(s, field_name) && ~isempty(s.(field_name))
-                value = s.(field_name);
+                candidate = s.(field_name);
+                if isstring(candidate) && any(ismissing(candidate))
+                    value = default_value;
+                else
+                    value = candidate;
+                end
             end
         end
 
