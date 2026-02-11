@@ -307,7 +307,7 @@ function exit_code = Run_All_Tests(varargin)
 ui_passed = true;
 
         % Test 1: UIController exists
-        fprintf('  [1/4] UIController exists ... ');
+        fprintf('  [1/5] UIController exists ... ');
         try
             if exist('UIController', 'file') || exist('UIController', 'class')
                 print_result('PASS', 'UIController found');
@@ -321,7 +321,7 @@ ui_passed = true;
         end
 
         % Test 2: UI_Layout_Config exists
-        fprintf('  [2/4] UI_Layout_Config exists ... ');
+        fprintf('  [2/5] UI_Layout_Config exists ... ');
         try
             if exist('UI_Layout_Config', 'file') || exist('UI_Layout_Config', 'class')
                 print_result('PASS', 'UI_Layout_Config found');
@@ -335,7 +335,7 @@ ui_passed = true;
         end
 
         % Test 3: Simulated user startup flow (select UI mode)
-        fprintf('  [3/4] UI user startup flow ... ');
+        fprintf('  [3/5] UI user startup flow ... ');
         try
             [flow_passed, flow_details] = test_ui_user_flow();
             if flow_passed
@@ -350,7 +350,7 @@ ui_passed = true;
         end
 
         % Test 4: Monitor/layout contracts
-        fprintf('  [4/4] UI monitor layout contracts ... ');
+        fprintf('  [4/5] UI monitor layout contracts ... ');
         try
             [monitor_passed, monitor_details] = test_ui_monitor_contracts();
             if monitor_passed
@@ -362,6 +362,21 @@ ui_passed = true;
         catch ME
             ui_passed = false;
             print_result('FAIL', sprintf('[UI-LAY-0002] %s', ME.message));
+        end
+
+        % Test 5: Warning regressions
+        fprintf('  [5/5] UI warning regressions ... ');
+        try
+            [warn_passed, warn_details] = test_ui_warning_regressions();
+            if warn_passed
+                print_result('PASS', warn_details);
+            else
+                ui_passed = false;
+                print_result('FAIL', sprintf('[UI-CB-0002] %s', warn_details));
+            end
+        catch ME
+            ui_passed = false;
+            print_result('FAIL', sprintf('[UI-CB-0002] %s', ME.message));
         end
 
         report.phases.ui_contract = struct();

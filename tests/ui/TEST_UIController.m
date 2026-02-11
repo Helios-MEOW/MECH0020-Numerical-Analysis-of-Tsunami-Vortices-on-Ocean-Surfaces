@@ -1,4 +1,4 @@
-﻿%% COMPREHENSIVE UI CONTROLLER TEST SUITE
+%% COMPREHENSIVE UI CONTROLLER TEST SUITE
 % Tests all UIController functionality including:
 %   - UI creation and initialization
 %   - Parameter validation
@@ -156,7 +156,7 @@ function result = test_ui_creation()
         assert(ishghandle(app.fig), 'Figure handle invalid');
         
         % Cleanup
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'UI created successfully';
@@ -203,13 +203,13 @@ function result = test_tab_creation()
         assert(isfield(app.tabs, 'terminal'), 'Terminal tab missing');
         assert(isfield(app.tabs, 'results'), 'Results tab missing');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'All 5 tabs created successfully';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -230,13 +230,13 @@ function result = test_component_handles()
                 sprintf('Missing handle: %s', required{i}));
         end
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = sprintf('%d critical handles verified', length(required));
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -263,13 +263,13 @@ function result = test_param_validation_pass()
         % Run validation (should pass silently)
         app.validate_parameters();
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Valid parameters accepted';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -292,13 +292,13 @@ function result = test_param_validation_fail_Nx()
         % (We check this indirectly by ensuring no crash)
         app.validate_parameters();
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Invalid Nx correctly identified';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -319,13 +319,13 @@ function result = test_param_validation_fail_dt()
         
         app.validate_parameters();
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Invalid dt correctly identified';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -346,13 +346,13 @@ function result = test_param_validation_fail_cfl()
         
         app.validate_parameters();
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'CFL violation detected';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -373,13 +373,13 @@ function result = test_param_validation_boundaries()
         
         app.validate_parameters();
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Boundary values handled correctly';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -404,13 +404,13 @@ function result = test_load_preset_kutz()
         assert(app.handles.dt.Value == 0.001, 'Kutz dt incorrect');
         assert(app.handles.ic_coeff1.Value == 2.0, 'Kutz coeff1 incorrect');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Kutz preset loaded correctly';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -427,13 +427,13 @@ function result = test_load_preset_convergence()
         assert(app.handles.Nx.Value == 128, 'Convergence Nx incorrect');
         assert(app.handles.conv_tolerance.Value == 1e-5, 'Convergence tolerance incorrect');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Convergence preset loaded correctly';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -450,13 +450,13 @@ function result = test_load_preset_animation()
         assert(app.handles.Nx.Value == 256, 'Animation Nx incorrect');
         assert(strcmp(app.handles.mode_dropdown.Value, 'Animation'), 'Animation mode not set');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Animation preset loaded correctly';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -473,13 +473,13 @@ function result = test_load_preset_fast_test()
         assert(app.handles.Nx.Value == 64, 'Fast test Nx incorrect');
         assert(app.handles.dt.Value == 0.01, 'Fast test dt incorrect');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Fast test preset loaded correctly';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -508,13 +508,13 @@ function result = test_config_collection()
         assert(app.config.Ny == 128, 'Config Ny mismatch');
         assert(abs(app.config.dt - 0.002) < 1e-10, 'Config dt mismatch');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Configuration collected correctly';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -534,13 +534,13 @@ function result = test_config_export()
         % Note: Actual file dialog would block - we just test the config is set
         assert(~isempty(app.config), 'Config empty');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Config export ready';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -560,13 +560,13 @@ function result = test_config_persistence()
         retrieved = getappdata(app.fig, 'ui_config');
         assert(retrieved.test_value == 42, 'Config persistence failed');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Config persists via appdata';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -589,13 +589,13 @@ function result = test_terminal_logging()
         % Verify log storage
         assert(length(app.terminal_log) >= 2, 'Terminal log not storing messages');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Terminal logging functional';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -615,13 +615,13 @@ function result = test_terminal_log_save()
         % Verify storage
         assert(length(app.terminal_log) >= 10, 'Logs not accumulating');
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Terminal log save ready';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -644,13 +644,13 @@ function result = test_error_handling()
             % Errors are acceptable here, just ensuring no crash
         end
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Error handling robust';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -687,13 +687,13 @@ function result = test_resize_behavior()
         app.resize_ui();
         
         % Should not crash
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Resize handling robust';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
 
@@ -714,12 +714,29 @@ function result = test_concurrent_operations()
         app.validate_parameters();
         app.validate_parameters();
         
-        delete(app.fig);
+        cleanup_app(app);
         
         result.passed = true;
         result.message = 'Concurrent operations handled';
     catch ME
         result.message = ME.message;
-        try delete(app.fig); catch; end
+        try cleanup_app(app); catch; end
     end
 end
+
+function cleanup_app(app)
+    % Centralized teardown helper to ensure timers are stopped before deletion.
+    if isempty(app)
+        return;
+    end
+    try
+        if isvalid(app)
+            app.cleanup();
+            delete(app);
+        elseif isprop(app, 'fig') && ~isempty(app.fig) && isvalid(app.fig)
+            delete(app.fig);
+        end
+    catch
+    end
+end
+

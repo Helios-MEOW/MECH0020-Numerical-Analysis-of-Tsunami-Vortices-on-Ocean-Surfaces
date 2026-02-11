@@ -27,6 +27,19 @@ function [passed, details] = test_ui_monitor_contracts()
         assert(isfield(app.handles, 'bathy_enable') && isfield(app.handles, 'motion_enable'), ...
             'Bathymetry and motion controls must be separate handles.');
 
+        mode_panels = findall(app.fig, 'Type', 'uipanel', 'Title', 'Mode-Specific Controls');
+        assert(isempty(mode_panels), 'Mode-Specific Controls panel must not exist.');
+        assert(~isfield(app.handles, 'sweep_parameter'), 'Legacy sweep UI handle should not exist.');
+        assert(~isfield(app.handles, 'exp_coeff_selector'), 'Legacy experimentation UI handle should not exist.');
+
+        app.collect_configuration_from_ui();
+        assert(isfield(app.config, 'sweep_parameter') && ~isempty(app.config.sweep_parameter), ...
+            'Config must provide sweep_parameter defaults when UI controls are absent.');
+        assert(isfield(app.config, 'sweep_values') && numel(app.config.sweep_values) >= 1, ...
+            'Config must provide sweep_values defaults when UI controls are absent.');
+        assert(isfield(app.config, 'experimentation') && isstruct(app.config.experimentation), ...
+            'Config must provide experimentation defaults when UI controls are absent.');
+
         app.handles.mode_dropdown.Value = 'Evolution';
         app.on_mode_changed();
         assert(strcmpi(string(app.handles.conv_N_coarse.Enable), "off"), ...
