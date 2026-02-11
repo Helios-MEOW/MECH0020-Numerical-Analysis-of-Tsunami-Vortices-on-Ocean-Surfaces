@@ -31,8 +31,7 @@ classdef SustainabilityLedger
     methods (Static, Access = private)
         function row = build_row(Run_Config, Parameters, Settings, Results, paths)
             run_id = SustainabilityLedger.resolve_run_id(Run_Config, Results);
-            machine_id = SustainabilityLedger.resolve_machine_id(Settings);
-            machine_label = SustainabilityLedger.resolve_machine_label(Settings, machine_id);
+            profile = SystemProfileCollector.collect(Settings);
             timestamp_utc = char(datetime('now', 'TimeZone', 'UTC', 'Format', 'yyyy-MM-dd''T''HH:mm:ss''Z'''));
 
             [memory_mb, memory_source] = SustainabilityLedger.get_memory_snapshot();
@@ -40,26 +39,32 @@ classdef SustainabilityLedger
             cpu_time_s = SustainabilityLedger.safe_extract_number(Results, {'cpu_time_s'});
             energy_j = SustainabilityLedger.safe_extract_number(Results, {'energy_joules', 'energy_j', 'total_energy_joules'});
 
-            [collector_cpuz, collector_hwinfo, collector_icue, source_quality] = ...
-                SustainabilityLedger.resolve_collector_flags(Settings);
-
             row = struct();
             row.timestamp_utc = string(timestamp_utc);
             row.run_id = string(run_id);
             row.method = string(SustainabilityLedger.safe_extract_text(Run_Config, 'method', 'unknown'));
             row.mode = string(SustainabilityLedger.safe_extract_text(Run_Config, 'mode', 'unknown'));
-            row.machine_id = string(machine_id);
-            row.machine_label = string(machine_label);
+            row.machine_id = string(profile.machine_id);
+            row.machine_label = string(profile.machine_label);
+            row.hostname = string(profile.hostname);
+            row.os = string(profile.os);
+            row.matlab_release = string(profile.matlab_release);
+            row.cpu_arch = string(profile.cpu_arch);
+            row.cpu_cores = profile.cpu_cores;
+            row.ram_total_gb = profile.ram_total_gb;
             row.wall_time_s = wall_time_s;
             row.cpu_time_s = cpu_time_s;
             row.memory_mb = memory_mb;
             row.memory_source = string(memory_source);
             row.energy_joules = energy_j;
             row.collector_matlab = "__YES__";
-            row.collector_cpuz = SustainabilityLedger.bool_to_token(collector_cpuz);
-            row.collector_hwinfo = SustainabilityLedger.bool_to_token(collector_hwinfo);
-            row.collector_icue = SustainabilityLedger.bool_to_token(collector_icue);
-            row.source_quality = string(source_quality);
+            row.collector_cpuz = SustainabilityLedger.bool_to_token(profile.collectors.cpuz);
+            row.collector_hwinfo = SustainabilityLedger.bool_to_token(profile.collectors.hwinfo);
+            row.collector_icue = SustainabilityLedger.bool_to_token(profile.collectors.icue);
+            row.collector_cpuz_source = string(profile.collectors.cpuz_source);
+            row.collector_hwinfo_source = string(profile.collectors.hwinfo_source);
+            row.collector_icue_source = string(profile.collectors.icue_source);
+            row.source_quality = string(profile.source_quality);
             row.results_path = string(SustainabilityLedger.safe_extract_text(paths, 'base', ''));
             row.grid_nx = SustainabilityLedger.safe_extract_number(Parameters, {'Nx'});
             row.grid_ny = SustainabilityLedger.safe_extract_number(Parameters, {'Ny'});
@@ -112,36 +117,6 @@ classdef SustainabilityLedger
             run_id = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
         end
 
-        function machine_id = resolve_machine_id(Settings)
-            machine_id = '';
-            if isfield(Settings, 'sustainability') && isfield(Settings.sustainability, 'machine_id')
-                requested = char(string(Settings.sustainability.machine_id));
-                if ~strcmpi(requested, 'auto') && ~isempty(strtrim(requested))
-                    machine_id = requested;
-                end
-            end
-
-            if isempty(machine_id)
-                machine_id = getenv('COMPUTERNAME');
-            end
-            if isempty(machine_id)
-                machine_id = getenv('HOSTNAME');
-            end
-            if isempty(machine_id)
-                machine_id = 'unknown_machine';
-            end
-        end
-
-        function label = resolve_machine_label(Settings, machine_id)
-            label = '';
-            if isfield(Settings, 'sustainability') && isfield(Settings.sustainability, 'machine_label')
-                label = char(string(Settings.sustainability.machine_label));
-            end
-            if isempty(label)
-                label = machine_id;
-            end
-        end
-
         function [memory_mb, source] = get_memory_snapshot()
             memory_mb = NaN;
             source = 'unavailable';
@@ -153,23 +128,6 @@ classdef SustainabilityLedger
                 catch
                     memory_mb = NaN;
                 end
-            end
-        end
-
-        function [cpuz, hwinfo, icue, quality] = resolve_collector_flags(Settings)
-            cpuz = false;
-            hwinfo = false;
-            icue = false;
-            if isfield(Settings, 'sustainability') && isfield(Settings.sustainability, 'external_collectors')
-                ext = Settings.sustainability.external_collectors;
-                if isfield(ext, 'cpuz'), cpuz = logical(ext.cpuz); end
-                if isfield(ext, 'hwinfo'), hwinfo = logical(ext.hwinfo); end
-                if isfield(ext, 'icue'), icue = logical(ext.icue); end
-            end
-            if cpuz || hwinfo || icue
-                quality = 'enriched_external_collectors';
-            else
-                quality = 'baseline_matlab_only';
             end
         end
 

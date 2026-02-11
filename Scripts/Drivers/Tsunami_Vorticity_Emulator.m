@@ -255,6 +255,17 @@ function [params, settings] = ensure_time_sampling(params, settings)
     if ~isfield(params.media, 'fallback_format')
         params.media.fallback_format = 'gif';
     end
+
+    % Keep sustainability collector path hints aligned between parameters
+    % (editable policy) and settings (runtime policy used by ledger hooks).
+    if isfield(params, 'sustainability') && isstruct(params.sustainability)
+        if ~isfield(settings, 'sustainability') || ~isstruct(settings.sustainability)
+            settings.sustainability = struct();
+        end
+        if isfield(params.sustainability, 'collector_paths')
+            settings.sustainability.collector_paths = params.sustainability.collector_paths;
+        end
+    end
 end
 
 function show_standard_mode_summary(params, settings)
