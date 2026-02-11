@@ -68,7 +68,7 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.left.row_spacing = 8;
 
     cfg.config_tab.right.rows_cols = [4, 1];
-    cfg.config_tab.right.row_heights = {360, 330, 140, '1x'};
+    cfg.config_tab.right.row_heights = {'0.9x', '1.1x', '0.7x', '1.3x'};
     cfg.config_tab.right.padding = [10 10 10 10];
     cfg.config_tab.right.row_spacing = 8;
 
@@ -103,9 +103,9 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.sus_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.sus_grid.padding = [6 6 6 6];
 
-    cfg.config_tab.check_grid.rows_cols = [10, 2];
-    cfg.config_tab.check_grid.col_widths = {20, '1x'};
-    cfg.config_tab.check_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, 8, cfg.heights.button, cfg.heights.button, cfg.heights.button, cfg.heights.form_row};
+    cfg.config_tab.check_grid.rows_cols = [4, 1];
+    cfg.config_tab.check_grid.col_widths = {'1x'};
+    cfg.config_tab.check_grid.row_heights = {76, 40, cfg.heights.form_row, cfg.heights.button};
     cfg.config_tab.check_grid.padding = [6 6 6 6];
     cfg.config_tab.check_grid.row_spacing = 6;
 

@@ -541,38 +541,78 @@ classdef UIController < handle
             check_layout.Padding = cfg_check.padding;
             check_layout.RowSpacing = cfg_check.row_spacing;
 
-            app.handles.check_grid = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_grid.Layout.Row = 1; app.handles.check_grid.Layout.Column = 1;
-            lbl = uilabel(check_layout, 'Text', 'Grid (Nx, Ny)', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 2;
-            app.handles.check_domain = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_domain.Layout.Row = 2; app.handles.check_domain.Layout.Column = 1;
-            lbl = uilabel(check_layout, 'Text', 'Domain (Lx, Ly)', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 2;
-            app.handles.check_time = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_time.Layout.Row = 3; app.handles.check_time.Layout.Column = 1;
-            lbl = uilabel(check_layout, 'Text', 'Time (dt, Tfinal)', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 2;
-            app.handles.check_ic = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_ic.Layout.Row = 4; app.handles.check_ic.Layout.Column = 1;
-            lbl = uilabel(check_layout, 'Text', 'Initial condition', 'FontColor', C.fg_text); lbl.Layout.Row = 4; lbl.Layout.Column = 2;
-            app.handles.check_conv = uilabel(check_layout, 'Text', 'o', 'FontSize', 12, 'FontColor', C.accent_red); app.handles.check_conv.Layout.Row = 5; app.handles.check_conv.Layout.Column = 1;
-            lbl = uilabel(check_layout, 'Text', 'Convergence settings', 'FontColor', C.fg_text); lbl.Layout.Row = 5; lbl.Layout.Column = 2;
+            checks_grid = uigridlayout(check_layout, [2 5]);
+            checks_grid.Layout.Row = 1;
+            checks_grid.Layout.Column = 1;
+            checks_grid.RowHeight = {20, 24};
+            checks_grid.ColumnWidth = {'1x', '1x', '1x', '1x', '1x'};
+            checks_grid.Padding = [0 0 0 0];
+            checks_grid.RowSpacing = 2;
+            checks_grid.ColumnSpacing = 8;
 
-            app.handles.btn_launch = uibutton(check_layout, 'push', ...
-                'Text', 'Launch', 'FontWeight', 'bold', ...
-                'BackgroundColor', C.accent_green, 'FontColor', [0.05 0.05 0.05], ...
-                'ButtonPushedFcn', @(~,~) app.launch_simulation());
-            app.handles.btn_launch.Layout.Row = 7; app.handles.btn_launch.Layout.Column = [1 2];
+            app.handles.check_grid = uilabel(checks_grid, 'Text', '■', ...
+                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
+            app.handles.check_grid.Layout.Row = 1; app.handles.check_grid.Layout.Column = 1;
+            app.handles.check_domain = uilabel(checks_grid, 'Text', '■', ...
+                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
+            app.handles.check_domain.Layout.Row = 1; app.handles.check_domain.Layout.Column = 2;
+            app.handles.check_time = uilabel(checks_grid, 'Text', '■', ...
+                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
+            app.handles.check_time.Layout.Row = 1; app.handles.check_time.Layout.Column = 3;
+            app.handles.check_ic = uilabel(checks_grid, 'Text', '■', ...
+                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
+            app.handles.check_ic.Layout.Row = 1; app.handles.check_ic.Layout.Column = 4;
+            app.handles.check_conv = uilabel(checks_grid, 'Text', '■', ...
+                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
+            app.handles.check_conv.Layout.Row = 1; app.handles.check_conv.Layout.Column = 5;
 
-            app.handles.btn_export = uibutton(check_layout, 'push', ...
-                'Text', 'Export Config', ...
-                'BackgroundColor', C.accent_cyan, 'FontColor', [0.05 0.05 0.05], ...
-                'ButtonPushedFcn', @(~,~) app.export_configuration());
-            app.handles.btn_export.Layout.Row = 8; app.handles.btn_export.Layout.Column = [1 2];
+            lbl = uilabel(checks_grid, 'Text', 'Grid', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            lbl = uilabel(checks_grid, 'Text', 'Domain', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 2;
+            lbl = uilabel(checks_grid, 'Text', 'Time', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 3;
+            lbl = uilabel(checks_grid, 'Text', 'IC', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 4;
+            lbl = uilabel(checks_grid, 'Text', 'Convergence', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 5;
 
-            app.handles.btn_save_log = uibutton(check_layout, 'push', ...
-                'Text', 'Save Log', ...
-                'BackgroundColor', C.accent_yellow, 'FontColor', [0.05 0.05 0.05], ...
-                'ButtonPushedFcn', @(~,~) app.save_terminal_log());
-            app.handles.btn_save_log.Layout.Row = 9; app.handles.btn_save_log.Layout.Column = [1 2];
+            info_lbl = uilabel(check_layout, ...
+                'Text', 'Legend: green = ready, red = needs input', ...
+                'FontColor', C.fg_muted, 'HorizontalAlignment', 'center');
+            info_lbl.Layout.Row = 2;
+            info_lbl.Layout.Column = 1;
 
             app.handles.run_status = uilabel(check_layout, 'Text', 'Idle', ...
                 'FontColor', C.fg_muted, 'HorizontalAlignment', 'center');
-            app.handles.run_status.Layout.Row = 10; app.handles.run_status.Layout.Column = [1 2];
+            app.handles.run_status.Layout.Row = 3;
+            app.handles.run_status.Layout.Column = 1;
+
+            buttons_row = uigridlayout(check_layout, [1 3]);
+            buttons_row.Layout.Row = 4;
+            buttons_row.Layout.Column = 1;
+            buttons_row.ColumnWidth = {'1x', '1x', '1x'};
+            buttons_row.RowHeight = {'1x'};
+            buttons_row.Padding = [0 0 0 0];
+            buttons_row.ColumnSpacing = 8;
+
+            app.handles.btn_launch = uibutton(buttons_row, 'push', ...
+                'Text', 'Launch', 'FontWeight', 'bold', ...
+                'BackgroundColor', C.accent_green, 'FontColor', [0.05 0.05 0.05], ...
+                'ButtonPushedFcn', @(~,~) app.launch_simulation());
+            app.handles.btn_launch.Layout.Row = 1; app.handles.btn_launch.Layout.Column = 1;
+
+            app.handles.btn_export = uibutton(buttons_row, 'push', ...
+                'Text', 'Export', ...
+                'BackgroundColor', C.accent_cyan, 'FontColor', [0.05 0.05 0.05], ...
+                'ButtonPushedFcn', @(~,~) app.export_configuration());
+            app.handles.btn_export.Layout.Row = 1; app.handles.btn_export.Layout.Column = 2;
+
+            app.handles.btn_import = uibutton(buttons_row, 'push', ...
+                'Text', 'Import', ...
+                'BackgroundColor', C.accent_yellow, 'FontColor', [0.05 0.05 0.05], ...
+                'ButtonPushedFcn', @(~,~) app.import_configuration());
+            app.handles.btn_import.Layout.Row = 1; app.handles.btn_import.Layout.Column = 3;
 
             % IC configuration
             panel_ic = uipanel(right_layout, 'Title', 'Initial Condition', ...
@@ -1803,6 +1843,162 @@ classdef UIController < handle
             app.append_to_terminal(sprintf('✓ Configuration exported to: %s', file));
         end
         
+        function import_configuration(app)
+            [file, path] = uigetfile({'*.json;*.mat', 'Config Files (*.json, *.mat)'}, ...
+                'Import Configuration');
+            if isequal(file, 0)
+                return;
+            end
+
+            filepath = fullfile(path, file);
+            cfg = struct();
+            try
+                if endsWith(lower(file), '.json')
+                    cfg = jsondecode(fileread(filepath));
+                else
+                    payload = load(filepath);
+                    if isfield(payload, 'config_export')
+                        cfg = payload.config_export;
+                    else
+                        keys = fieldnames(payload);
+                        if ~isempty(keys) && isstruct(payload.(keys{1}))
+                            cfg = payload.(keys{1});
+                        end
+                    end
+                end
+            catch ME
+                uialert(app.fig, sprintf('Could not import config: %s', ME.message), ...
+                    'Import Error', 'icon', 'error');
+                app.append_to_terminal(sprintf('Import failed: %s', ME.message), 'error');
+                return;
+            end
+
+            if ~isstruct(cfg) || isempty(fieldnames(cfg))
+                uialert(app.fig, 'Config file contained no usable fields.', ...
+                    'Import Error', 'icon', 'error');
+                app.append_to_terminal('Import failed: no usable fields found.', 'error');
+                return;
+            end
+
+            if isfield(cfg, 'method')
+                method_token = lower(char(string(cfg.method)));
+                switch method_token
+                    case 'finite_difference'
+                        app.handles.method_dropdown.Value = 'Finite Difference';
+                    case 'finite_volume'
+                        app.handles.method_dropdown.Value = 'Finite Volume';
+                    case 'spectral'
+                        app.handles.method_dropdown.Value = 'Spectral';
+                end
+            end
+
+            if isfield(cfg, 'mode')
+                mode_token = lower(char(string(cfg.mode)));
+                switch mode_token
+                    case 'evolution'
+                        app.handles.mode_dropdown.Value = 'Evolution';
+                    case 'convergence'
+                        app.handles.mode_dropdown.Value = 'Convergence';
+                    case 'sweep'
+                        app.handles.mode_dropdown.Value = 'Sweep';
+                    case 'animation'
+                        app.handles.mode_dropdown.Value = 'Animation';
+                    case 'experimentation'
+                        app.handles.mode_dropdown.Value = 'Experimentation';
+                end
+            end
+
+            if isfield(cfg, 'Nx'), app.handles.Nx.Value = cfg.Nx; end
+            if isfield(cfg, 'Ny'), app.handles.Ny.Value = cfg.Ny; end
+            if isfield(cfg, 'Lx'), app.handles.Lx.Value = cfg.Lx; end
+            if isfield(cfg, 'Ly'), app.handles.Ly.Value = cfg.Ly; end
+            if isfield(cfg, 'delta'), app.handles.delta.Value = cfg.delta; end
+            if isfield(cfg, 'dt'), app.handles.dt.Value = cfg.dt; end
+            if isfield(cfg, 't_final'), app.handles.t_final.Value = cfg.t_final; end
+            if isfield(cfg, 'Tfinal'), app.handles.t_final.Value = cfg.Tfinal; end
+            if isfield(cfg, 'nu'), app.handles.nu.Value = cfg.nu; end
+            if isfield(cfg, 'num_snapshots'), app.handles.num_snapshots.Value = cfg.num_snapshots; end
+
+            if isfield(cfg, 'ic_type')
+                target_ic = char(string(cfg.ic_type));
+                for k = 1:numel(app.handles.ic_dropdown.Items)
+                    item = app.handles.ic_dropdown.Items{k};
+                    if strcmp(map_ic_display_to_type(item), target_ic)
+                        app.handles.ic_dropdown.Value = item;
+                        break;
+                    end
+                end
+            end
+
+            if isfield(cfg, 'ic_pattern') && app.has_valid_handle('ic_pattern')
+                requested = char(string(cfg.ic_pattern));
+                if any(strcmpi(requested, app.handles.ic_pattern.Items))
+                    app.handles.ic_pattern.Value = requested;
+                end
+            end
+            if isfield(cfg, 'ic_count') && app.has_valid_handle('ic_count')
+                app.handles.ic_count.Value = cfg.ic_count;
+            end
+            if isfield(cfg, 'ic_scale'), app.handles.ic_scale.Value = cfg.ic_scale; end
+            if isfield(cfg, 'ic_coeff1'), app.handles.ic_coeff1.Value = cfg.ic_coeff1; end
+            if isfield(cfg, 'ic_coeff2'), app.handles.ic_coeff2.Value = cfg.ic_coeff2; end
+            if isfield(cfg, 'ic_coeff3'), app.handles.ic_coeff3.Value = cfg.ic_coeff3; end
+            if isfield(cfg, 'ic_coeff4'), app.handles.ic_coeff4.Value = cfg.ic_coeff4; end
+            if isfield(cfg, 'ic_center_x'), app.handles.ic_center_x.Value = cfg.ic_center_x; end
+            if isfield(cfg, 'ic_center_y'), app.handles.ic_center_y.Value = cfg.ic_center_y; end
+
+            if isfield(cfg, 'bathymetry_enabled'), app.handles.bathy_enable.Value = logical(cfg.bathymetry_enabled); end
+            if isfield(cfg, 'bathymetry_file'), app.handles.bathy_file.Value = char(string(cfg.bathymetry_file)); end
+
+            if isfield(cfg, 'convergence_N_coarse'), app.handles.conv_N_coarse.Value = cfg.convergence_N_coarse; end
+            if isfield(cfg, 'convergence_N_max'), app.handles.conv_N_max.Value = cfg.convergence_N_max; end
+            if isfield(cfg, 'convergence_tol'), app.handles.conv_tolerance.Value = cfg.convergence_tol; end
+            if isfield(cfg, 'convergence_criterion_type'), app.handles.conv_criterion.Value = char(string(cfg.convergence_criterion_type)); end
+            if isfield(cfg, 'convergence_binary'), app.handles.conv_binary.Value = logical(cfg.convergence_binary); end
+            if isfield(cfg, 'convergence_use_adaptive'), app.handles.conv_use_adaptive.Value = logical(cfg.convergence_use_adaptive); end
+            if isfield(cfg, 'convergence_max_jumps'), app.handles.conv_max_jumps.Value = cfg.convergence_max_jumps; end
+            if isfield(cfg, 'convergence_agent_enabled'), app.handles.conv_agent_enabled.Value = logical(cfg.convergence_agent_enabled); end
+
+            if isfield(cfg, 'sweep_parameter'), app.handles.sweep_parameter.Value = char(string(cfg.sweep_parameter)); end
+            if isfield(cfg, 'sweep_values')
+                vals = cfg.sweep_values;
+                if isnumeric(vals)
+                    app.handles.sweep_values.Value = strjoin(arrayfun(@(x) sprintf('%.6g', x), vals(:).', 'UniformOutput', false), ',');
+                elseif ischar(vals) || isstring(vals)
+                    app.handles.sweep_values.Value = char(string(vals));
+                end
+            end
+            if isfield(cfg, 'experimentation') && isstruct(cfg.experimentation)
+                exp_cfg = cfg.experimentation;
+                if isfield(exp_cfg, 'coeff_selector'), app.handles.exp_coeff_selector.Value = char(string(exp_cfg.coeff_selector)); end
+                if isfield(exp_cfg, 'range_start'), app.handles.exp_range_start.Value = exp_cfg.range_start; end
+                if isfield(exp_cfg, 'range_end'), app.handles.exp_range_end.Value = exp_cfg.range_end; end
+                if isfield(exp_cfg, 'num_points'), app.handles.exp_num_points.Value = exp_cfg.num_points; end
+            end
+
+            if isfield(cfg, 'save_csv'), app.handles.save_csv.Value = logical(cfg.save_csv); end
+            if isfield(cfg, 'save_mat'), app.handles.save_mat.Value = logical(cfg.save_mat); end
+            if isfield(cfg, 'figures_save_png'), app.handles.figures_save_png.Value = logical(cfg.figures_save_png); end
+            if isfield(cfg, 'figures_save_fig'), app.handles.figures_save_fig.Value = logical(cfg.figures_save_fig); end
+            if isfield(cfg, 'figures_dpi'), app.handles.figures_dpi.Value = cfg.figures_dpi; end
+            if isfield(cfg, 'figures_close_after_save'), app.handles.figures_close_after_save.Value = logical(cfg.figures_close_after_save); end
+            if isfield(cfg, 'figures_use_owl_saver'), app.handles.figures_use_owl_saver.Value = logical(cfg.figures_use_owl_saver); end
+            if isfield(cfg, 'create_animations'), app.handles.create_animations.Value = logical(cfg.create_animations); end
+            if isfield(cfg, 'animation_format'), app.handles.animation_format.Value = char(string(cfg.animation_format)); end
+            if isfield(cfg, 'animation_fps'), app.handles.animation_fps.Value = cfg.animation_fps; end
+            if isfield(cfg, 'animation_num_frames'), app.handles.animation_num_frames.Value = cfg.animation_num_frames; end
+
+            if isfield(cfg, 'enable_monitoring'), app.handles.enable_monitoring.Value = logical(cfg.enable_monitoring); end
+            if isfield(cfg, 'sample_interval'), app.handles.sample_interval.Value = cfg.sample_interval; end
+
+            app.on_method_changed();
+            app.on_mode_changed();
+            app.on_ic_changed();
+            app.update_delta();
+            app.update_checklist();
+            app.append_to_terminal(sprintf('Configuration imported from: %s', file), 'success');
+        end
+
         function save_terminal_log(app)
             if isempty(app.terminal_log)
                 uialert(app.fig, 'No terminal output to save', 'Empty Log', 'icon', 'warning');
