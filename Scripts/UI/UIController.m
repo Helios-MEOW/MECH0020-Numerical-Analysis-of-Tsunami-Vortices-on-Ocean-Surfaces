@@ -465,32 +465,48 @@ classdef UIController < handle
             conv_layout.Padding = cfg_conv.padding;
 
             lbl = uilabel(conv_layout, 'Text', 'N coarse', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
-            app.handles.conv_N_coarse = uieditfield(conv_layout, 'numeric', 'Value', 64);
+            app.handles.conv_N_coarse = uieditfield(conv_layout, 'numeric', 'Value', 64, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_N_coarse.Layout.Row = 1; app.handles.conv_N_coarse.Layout.Column = 2;
             lbl = uilabel(conv_layout, 'Text', 'N max', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
-            app.handles.conv_N_max = uieditfield(conv_layout, 'numeric', 'Value', 512);
+            app.handles.conv_N_max = uieditfield(conv_layout, 'numeric', 'Value', 512, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_N_max.Layout.Row = 1; app.handles.conv_N_max.Layout.Column = 4;
 
             lbl = uilabel(conv_layout, 'Text', 'Tolerance', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
-            app.handles.conv_tolerance = uieditfield(conv_layout, 'numeric', 'Value', 1e-2);
+            app.handles.conv_tolerance = uieditfield(conv_layout, 'numeric', 'Value', 1e-2, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_tolerance.Layout.Row = 2; app.handles.conv_tolerance.Layout.Column = 2;
             lbl = uilabel(conv_layout, 'Text', 'Criterion', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
             app.handles.conv_criterion = uidropdown(conv_layout, ...
                 'Items', {'l2_relative', 'l2_absolute', 'linf_relative', 'max_vorticity', 'energy_dissipation', 'auto_physical'}, ...
-                'Value', 'l2_relative');
+                'Value', 'l2_relative', ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_criterion.Layout.Row = 2; app.handles.conv_criterion.Layout.Column = 4;
 
-            app.handles.conv_binary = uicheckbox(conv_layout, 'Text', 'Binary search', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.conv_binary = uicheckbox(conv_layout, ...
+                'Text', 'Binary search', 'Value', true, 'FontColor', C.fg_text, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_binary.Layout.Row = 3; app.handles.conv_binary.Layout.Column = 1;
-            app.handles.conv_use_adaptive = uicheckbox(conv_layout, 'Text', 'Adaptive', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.conv_use_adaptive = uicheckbox(conv_layout, ...
+                'Text', 'Adaptive', 'Value', true, 'FontColor', C.fg_text, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_use_adaptive.Layout.Row = 3; app.handles.conv_use_adaptive.Layout.Column = 2;
             lbl = uilabel(conv_layout, 'Text', 'Max jumps', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 3;
-            app.handles.conv_max_jumps = uieditfield(conv_layout, 'numeric', 'Value', 5);
+            app.handles.conv_max_jumps = uieditfield(conv_layout, 'numeric', 'Value', 5, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_max_jumps.Layout.Row = 3; app.handles.conv_max_jumps.Layout.Column = 4;
 
-            app.handles.conv_agent_enabled = uicheckbox(conv_layout, 'Text', 'Agent-guided', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.conv_agent_enabled = uicheckbox(conv_layout, ...
+                'Text', 'Agent-guided', 'Value', true, 'FontColor', C.fg_text, ...
+                'ValueChangedFcn', @(~,~) app.on_convergence_agent_changed());
             app.handles.conv_agent_enabled.Layout.Row = 4;
             app.handles.conv_agent_enabled.Layout.Column = 1;
+
+            app.handles.conv_agent_status = uilabel(conv_layout, ...
+                'Text', 'Agent lock active', 'FontColor', C.accent_yellow);
+            app.handles.conv_agent_status.Layout.Row = 4;
+            app.handles.conv_agent_status.Layout.Column = 2;
 
             app.handles.conv_math = uihtml(conv_layout, 'HTMLSource', ...
                 "<div style='font-family:Segoe UI;font-size:12px;color:#ddd;'>" + ...
@@ -499,7 +515,7 @@ classdef UIController < handle
                 "$\\epsilon_N = \\frac{\\|\\omega_N-\\omega_{2N}\\|_2}{\\|\\omega_{2N}\\|_2}$</div>" + ...
                 "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>");
             app.handles.conv_math.Layout.Row = 4;
-            app.handles.conv_math.Layout.Column = [2 4];
+            app.handles.conv_math.Layout.Column = [3 4];
 
             % Sustainability panel
             panel_sus = uipanel(left_layout, 'Title', 'Sustainability', ...
@@ -767,6 +783,7 @@ classdef UIController < handle
             app.update_delta();
             app.update_ic_fields();
             app.update_mode_control_visibility();
+            app.update_convergence_control_state();
             app.update_ic_preview();
             app.update_checklist();
         end
@@ -1605,22 +1622,44 @@ classdef UIController < handle
         end
 
         function on_mode_changed(app)
-            mode_val = app.handles.mode_dropdown.Value;
-            conv_on = strcmp(mode_val, 'Convergence');
-            
-            app.handles.conv_N_coarse.Enable = app.on_off(conv_on);
-            app.handles.conv_N_max.Enable = app.on_off(conv_on);
-            app.handles.conv_tolerance.Enable = app.on_off(conv_on);
-            app.handles.conv_criterion.Enable = app.on_off(conv_on);
-            app.handles.conv_binary.Enable = app.on_off(conv_on);
-            app.handles.conv_use_adaptive.Enable = app.on_off(conv_on);
-            app.handles.conv_max_jumps.Enable = app.on_off(conv_on);
-            app.handles.conv_agent_enabled.Enable = app.on_off(conv_on);
-            
             % Update convergence display when mode changes
             app.update_convergence_display();
             app.update_mode_control_visibility();
+            app.update_convergence_control_state();
             app.update_checklist();
+        end
+
+        function on_convergence_agent_changed(app)
+            % When agent-guided convergence is active, lock manual controls.
+            app.update_convergence_control_state();
+            app.update_convergence_display();
+            app.update_checklist();
+        end
+
+        function update_convergence_control_state(app)
+            mode_val = app.handles.mode_dropdown.Value;
+            conv_on = strcmp(mode_val, 'Convergence');
+            agent_on = conv_on && app.handles.conv_agent_enabled.Value;
+
+            manual_fields = {'conv_N_coarse', 'conv_N_max', 'conv_tolerance', ...
+                'conv_criterion', 'conv_binary', 'conv_use_adaptive', 'conv_max_jumps'};
+            for i = 1:numel(manual_fields)
+                app.set_optional_handle_enable(manual_fields{i}, app.on_off(conv_on && ~agent_on));
+            end
+            app.set_optional_handle_enable('conv_agent_enabled', app.on_off(conv_on));
+
+            if app.has_valid_handle('conv_agent_status')
+                if ~conv_on
+                    app.handles.conv_agent_status.Text = 'Convergence mode inactive';
+                    app.handles.conv_agent_status.FontColor = app.layout_cfg.colors.fg_muted;
+                elseif agent_on
+                    app.handles.conv_agent_status.Text = 'Agent mode: manual fields locked';
+                    app.handles.conv_agent_status.FontColor = app.layout_cfg.colors.accent_yellow;
+                else
+                    app.handles.conv_agent_status.Text = 'Manual mode: controls editable';
+                    app.handles.conv_agent_status.FontColor = app.layout_cfg.colors.accent_green;
+                end
+            end
         end
 
         function update_checklist(app)
