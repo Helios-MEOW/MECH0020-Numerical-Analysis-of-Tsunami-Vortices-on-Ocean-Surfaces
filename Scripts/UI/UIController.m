@@ -314,7 +314,7 @@ classdef UIController < handle
             lbl = uilabel(method_grid, 'Text', 'Method', 'FontColor', C.fg_text);
             lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.method_dropdown = uidropdown(method_grid, ...
-                'Items', {'Finite Difference', 'Finite Volume', 'Spectral', 'Variable Bathymetry + Motion'}, ...
+                'Items', {'Finite Difference', 'Finite Volume', 'Spectral'}, ...
                 'Value', 'Finite Difference', ...
                 'ValueChangedFcn', @(~,~) app.on_method_changed());
             app.handles.method_dropdown.Layout.Row = 1;
@@ -337,21 +337,50 @@ classdef UIController < handle
             app.handles.boundary_label.Layout.Column = [2 4];
 
             app.handles.bathy_enable = uicheckbox(method_grid, ...
-                'Text', 'Use Bathymetry', 'Value', false, 'Visible', 'off', ...
+                'Text', 'Use Bathymetry', 'Value', false, ...
                 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.on_method_changed());
             app.handles.bathy_enable.Layout.Row = 3;
             app.handles.bathy_enable.Layout.Column = 1;
 
             app.handles.bathy_file = uieditfield(method_grid, 'text', ...
-                'Value', '', 'Placeholder', 'Bathymetry file', 'Visible', 'off');
+                'Value', '', 'Placeholder', 'Bathymetry file');
             app.handles.bathy_file.Layout.Row = 3;
             app.handles.bathy_file.Layout.Column = [2 3];
 
             app.handles.bathy_browse_btn = uibutton(method_grid, 'Text', 'Browse', ...
-                'Visible', 'off', 'ButtonPushedFcn', @(~,~) app.browse_bathymetry_file());
+                'ButtonPushedFcn', @(~,~) app.browse_bathymetry_file());
             app.handles.bathy_browse_btn.Layout.Row = 3;
             app.handles.bathy_browse_btn.Layout.Column = 4;
+
+            app.handles.motion_enable = uicheckbox(method_grid, ...
+                'Text', 'Enable Seabed Motion', 'Value', false, ...
+                'FontColor', C.fg_text, ...
+                'ValueChangedFcn', @(~,~) app.on_method_changed());
+            app.handles.motion_enable.Layout.Row = 4;
+            app.handles.motion_enable.Layout.Column = 1;
+
+            app.handles.motion_model = uidropdown(method_grid, ...
+                'Items', {'none', 'sinusoidal', 'gaussian_pulse', 'file_driven'}, ...
+                'Value', 'none', ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.motion_model.Layout.Row = 4;
+            app.handles.motion_model.Layout.Column = 2;
+
+            app.handles.motion_amplitude = uieditfield(method_grid, 'numeric', ...
+                'Value', 0.0, 'Limits', [0 Inf], ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.motion_amplitude.Layout.Row = 4;
+            app.handles.motion_amplitude.Layout.Column = 3;
+            lbl = uilabel(method_grid, 'Text', 'Amplitude', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 4;
+            lbl.Layout.Column = 4;
+
+            app.handles.physics_status = uilabel(method_grid, ...
+                'Text', 'Bathymetry and motion configured independently', ...
+                'FontColor', C.fg_muted);
+            app.handles.physics_status.Layout.Row = 5;
+            app.handles.physics_status.Layout.Column = [1 4];
 
             % Grid and domain panel
             panel_grid = uipanel(left_layout, 'Title', 'Grid and Domain', ...
@@ -519,6 +548,15 @@ classdef UIController < handle
             app.handles.conv_math.Layout.Row = 4;
             app.handles.conv_math.Layout.Column = [3 4];
 
+            app.handles.btn_load_converged_mesh = uibutton(conv_layout, 'Text', 'Load converged mesh preset', ...
+                'ButtonPushedFcn', @(~,~) app.load_converged_mesh_preset());
+            app.handles.btn_load_converged_mesh.Layout.Row = 5;
+            app.handles.btn_load_converged_mesh.Layout.Column = [1 2];
+            app.handles.converged_mesh_status = uilabel(conv_layout, ...
+                'Text', 'No preset loaded', 'FontColor', C.fg_muted);
+            app.handles.converged_mesh_status.Layout.Row = 5;
+            app.handles.converged_mesh_status.Layout.Column = [3 4];
+
             % Sustainability panel
             panel_sus = uipanel(left_layout, 'Title', 'Sustainability', ...
                 'BackgroundColor', C.bg_panel_alt);
@@ -537,8 +575,41 @@ classdef UIController < handle
             lbl.Layout.Row = 1;
             lbl.Layout.Column = 2;
             app.handles.sample_interval = uieditfield(sus_layout, 'numeric', 'Value', 0.5);
-            app.handles.sample_interval.Layout.Row = 2;
-            app.handles.sample_interval.Layout.Column = 2;
+            app.handles.sample_interval.Layout.Row = 1;
+            app.handles.sample_interval.Layout.Column = 3;
+            app.handles.sustainability_auto_log = uicheckbox(sus_layout, ...
+                'Text', 'Always log run ledger', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.sustainability_auto_log.Layout.Row = 1;
+            app.handles.sustainability_auto_log.Layout.Column = 4;
+
+            app.handles.cpuz_enable = uicheckbox(sus_layout, ...
+                'Text', 'CPU-Z collector', 'Value', false, 'FontColor', C.fg_text, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.cpuz_enable.Layout.Row = 2; app.handles.cpuz_enable.Layout.Column = 1;
+            app.handles.hwinfo_enable = uicheckbox(sus_layout, ...
+                'Text', 'HWiNFO collector', 'Value', false, 'FontColor', C.fg_text, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.hwinfo_enable.Layout.Row = 2; app.handles.hwinfo_enable.Layout.Column = 2;
+            app.handles.icue_enable = uicheckbox(sus_layout, ...
+                'Text', 'iCUE collector', 'Value', false, 'FontColor', C.fg_text, ...
+                'ValueChangedFcn', @(~,~) app.update_checklist());
+            app.handles.icue_enable.Layout.Row = 2; app.handles.icue_enable.Layout.Column = 3;
+            app.handles.collector_strict = uicheckbox(sus_layout, ...
+                'Text', 'Strict external checks', 'Value', false, 'FontColor', C.fg_text);
+            app.handles.collector_strict.Layout.Row = 2; app.handles.collector_strict.Layout.Column = 4;
+
+            lbl = uilabel(sus_layout, 'Text', 'Machine tag', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 3; lbl.Layout.Column = 1;
+            default_machine = getenv('COMPUTERNAME');
+            if isempty(default_machine), default_machine = 'unknown_machine'; end
+            app.handles.machine_tag = uieditfield(sus_layout, 'text', 'Value', default_machine);
+            app.handles.machine_tag.Layout.Row = 3; app.handles.machine_tag.Layout.Column = [2 4];
+
+            app.handles.collector_status = uilabel(sus_layout, ...
+                'Text', 'Collector readiness: MATLAB baseline active', ...
+                'FontColor', C.fg_muted);
+            app.handles.collector_status.Layout.Row = 4;
+            app.handles.collector_status.Layout.Column = [1 4];
 
             % Right panel stack
             cfg_right = app.layout_cfg.config_tab.right;
@@ -559,14 +630,14 @@ classdef UIController < handle
             check_layout.Padding = cfg_check.padding;
             check_layout.RowSpacing = cfg_check.row_spacing;
 
-            checks_grid = uigridlayout(check_layout, [2 5]);
+            checks_grid = uigridlayout(check_layout, [2 8]);
             checks_grid.Layout.Row = 1;
             checks_grid.Layout.Column = 1;
             checks_grid.RowHeight = {20, 24};
-            checks_grid.ColumnWidth = {'1x', '1x', '1x', '1x', '1x'};
+            checks_grid.ColumnWidth = {'1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x'};
             checks_grid.Padding = [0 0 0 0];
             checks_grid.RowSpacing = 2;
-            checks_grid.ColumnSpacing = 8;
+            checks_grid.ColumnSpacing = 6;
 
             app.handles.check_grid = uilabel(checks_grid, 'Text', '■', ...
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
@@ -583,6 +654,35 @@ classdef UIController < handle
             app.handles.check_conv = uilabel(checks_grid, 'Text', '■', ...
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
             app.handles.check_conv.Layout.Row = 1; app.handles.check_conv.Layout.Column = 5;
+            app.handles.check_monitor = uilabel(checks_grid, 'Text', '[ ]', ...
+                'HorizontalAlignment', 'center', 'FontSize', 11, 'FontColor', C.accent_red);
+            app.handles.check_monitor.Layout.Row = 1; app.handles.check_monitor.Layout.Column = 6;
+            app.handles.check_collectors = uilabel(checks_grid, 'Text', '[ ]', ...
+                'HorizontalAlignment', 'center', 'FontSize', 11, 'FontColor', C.accent_red);
+            app.handles.check_collectors.Layout.Row = 1; app.handles.check_collectors.Layout.Column = 7;
+            app.handles.check_outputs = uilabel(checks_grid, 'Text', '[ ]', ...
+                'HorizontalAlignment', 'center', 'FontSize', 11, 'FontColor', C.accent_red);
+            app.handles.check_outputs.Layout.Row = 1; app.handles.check_outputs.Layout.Column = 8;
+            app.handles.check_grid.Text = '[ ]';
+            app.handles.check_domain.Text = '[ ]';
+            app.handles.check_time.Text = '[ ]';
+            app.handles.check_ic.Text = '[ ]';
+            app.handles.check_conv.Text = '[ ]';
+            app.handles.check_grid.FontSize = 11;
+            app.handles.check_domain.FontSize = 11;
+            app.handles.check_time.FontSize = 11;
+            app.handles.check_ic.FontSize = 11;
+            app.handles.check_conv.FontSize = 11;
+            app.handles.check_grid.Text = '[ ]';
+            app.handles.check_domain.Text = '[ ]';
+            app.handles.check_time.Text = '[ ]';
+            app.handles.check_ic.Text = '[ ]';
+            app.handles.check_conv.Text = '[ ]';
+            app.handles.check_grid.FontSize = 11;
+            app.handles.check_domain.FontSize = 11;
+            app.handles.check_time.FontSize = 11;
+            app.handles.check_ic.FontSize = 11;
+            app.handles.check_conv.FontSize = 11;
 
             lbl = uilabel(checks_grid, 'Text', 'Grid', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
             lbl.Layout.Row = 2; lbl.Layout.Column = 1;
@@ -594,6 +694,18 @@ classdef UIController < handle
             lbl.Layout.Row = 2; lbl.Layout.Column = 4;
             lbl = uilabel(checks_grid, 'Text', 'Convergence', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
             lbl.Layout.Row = 2; lbl.Layout.Column = 5;
+            lbl = uilabel(checks_grid, 'Text', 'Monitor', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 6;
+            lbl = uilabel(checks_grid, 'Text', 'Collectors', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 7;
+            lbl = uilabel(checks_grid, 'Text', 'Outputs', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 8;
+            lbl = uilabel(checks_grid, 'Text', 'Monitor', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 6;
+            lbl = uilabel(checks_grid, 'Text', 'Collectors', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 7;
+            lbl = uilabel(checks_grid, 'Text', 'Outputs', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 8;
 
             info_lbl = uilabel(check_layout, ...
                 'Text', 'Legend: green = ready, red = needs input', ...
@@ -793,6 +905,7 @@ classdef UIController < handle
             % Initialize display
             app.update_delta();
             app.update_ic_fields();
+            app.on_method_changed();
             app.update_mode_control_visibility();
             app.update_convergence_control_state();
             app.update_ic_preview();
@@ -1037,7 +1150,7 @@ classdef UIController < handle
                 case 'Spectral'
                     app.config.method = 'spectral';
                 otherwise
-                    app.config.method = 'bathymetry';
+                    app.config.method = 'finite_difference';
             end
 
             mode_val = app.handles.mode_dropdown.Value;
@@ -1089,6 +1202,9 @@ classdef UIController < handle
 
             app.config.bathymetry_enabled = app.handles.bathy_enable.Value;
             app.config.bathymetry_file = app.handles.bathy_file.Value;
+            app.config.motion_enabled = app.handles.motion_enable.Value;
+            app.config.motion_model = app.handles.motion_model.Value;
+            app.config.motion_amplitude = app.handles.motion_amplitude.Value;
 
             ic_display_name = app.handles.ic_dropdown.Value;
             app.config.ic_type = map_ic_display_to_type(ic_display_name);
@@ -1125,6 +1241,13 @@ classdef UIController < handle
 
             app.config.enable_monitoring = app.handles.enable_monitoring.Value;
             app.config.sample_interval = app.handles.sample_interval.Value;
+            app.config.sustainability_auto_log = app.handles.sustainability_auto_log.Value;
+            app.config.collectors = struct( ...
+                'cpuz', app.handles.cpuz_enable.Value, ...
+                'hwinfo', app.handles.hwinfo_enable.Value, ...
+                'icue', app.handles.icue_enable.Value, ...
+                'strict', app.handles.collector_strict.Value, ...
+                'machine_tag', app.handles.machine_tag.Value);
 
             setappdata(app.fig, 'ui_config', app.config);
         end
@@ -1265,6 +1388,18 @@ classdef UIController < handle
 
         function [run_config, parameters, settings] = build_runtime_inputs(app, cfg)
             % Convert UI config to ModeDispatcher-compatible inputs
+            if ~isfield(cfg, 'motion_enabled'), cfg.motion_enabled = false; end
+            if ~isfield(cfg, 'motion_model'), cfg.motion_model = 'none'; end
+            if ~isfield(cfg, 'motion_amplitude'), cfg.motion_amplitude = 0.0; end
+            if ~isfield(cfg, 'sustainability_auto_log'), cfg.sustainability_auto_log = true; end
+            if ~isfield(cfg, 'collectors') || ~isstruct(cfg.collectors)
+                cfg.collectors = struct('cpuz', false, 'hwinfo', false, 'icue', false, ...
+                    'strict', false, 'machine_tag', getenv('COMPUTERNAME'));
+            end
+            if ~isfield(cfg.collectors, 'cpuz'), cfg.collectors.cpuz = false; end
+            if ~isfield(cfg.collectors, 'hwinfo'), cfg.collectors.hwinfo = false; end
+            if ~isfield(cfg.collectors, 'icue'), cfg.collectors.icue = false; end
+            if ~isfield(cfg.collectors, 'machine_tag'), cfg.collectors.machine_tag = getenv('COMPUTERNAME'); end
             parameters = create_default_parameters();
             settings = Settings();
 
@@ -1309,6 +1444,19 @@ classdef UIController < handle
                 settings.figure_format = 'fig';
             end
             settings.output_root = 'Results';
+            settings.bathymetry_enabled = logical(cfg.bathymetry_enabled);
+            settings.bathymetry_file = char(string(cfg.bathymetry_file));
+            settings.motion = struct( ...
+                'enabled', logical(cfg.motion_enabled), ...
+                'model', char(string(cfg.motion_model)), ...
+                'amplitude', cfg.motion_amplitude);
+            settings.sustainability = struct();
+            settings.sustainability.auto_log = logical(cfg.sustainability_auto_log);
+            settings.sustainability.machine_id = char(string(cfg.collectors.machine_tag));
+            settings.sustainability.external_collectors = struct( ...
+                'cpuz', logical(cfg.collectors.cpuz), ...
+                'hwinfo', logical(cfg.collectors.hwinfo), ...
+                'icue', logical(cfg.collectors.icue));
 
             if strcmp(cfg.mode, 'convergence')
                 parameters.mesh_sizes = app.build_mesh_sizes(cfg.convergence_N_coarse, cfg.convergence_N_max);
@@ -1624,7 +1772,9 @@ classdef UIController < handle
 
         function on_method_changed(app)
             method_val = app.handles.method_dropdown.Value;
-            is_bathy = strcmp(method_val, 'Variable Bathymetry + Motion');
+            is_fd = strcmp(method_val, 'Finite Difference');
+            bathy_on = app.handles.bathy_enable.Value;
+            motion_on = app.handles.motion_enable.Value;
             
             switch method_val
                 case 'Finite Difference'
@@ -1633,22 +1783,43 @@ classdef UIController < handle
                     app.handles.boundary_label.Text = 'Periodic (x,y)';
                 case 'Spectral'
                     app.handles.boundary_label.Text = 'Periodic (x,y)';
-                case 'Variable Bathymetry + Motion'
-                    app.handles.boundary_label.Text = 'Periodic (x,y) + Bathymetry';
             end
 
-            app.handles.bathy_enable.Visible = app.on_off(is_bathy);
-            app.handles.bathy_file.Visible = app.on_off(is_bathy);
-            app.handles.bathy_browse_btn.Visible = app.on_off(is_bathy);
+            app.set_optional_handle_enable('bathy_enable', app.on_off(is_fd));
+            app.set_optional_handle_enable('bathy_file', app.on_off(is_fd && bathy_on));
+            app.set_optional_handle_enable('bathy_browse_btn', app.on_off(is_fd && bathy_on));
+            app.set_optional_handle_enable('motion_enable', app.on_off(is_fd));
+            app.set_optional_handle_enable('motion_model', app.on_off(is_fd && motion_on));
+            app.set_optional_handle_enable('motion_amplitude', app.on_off(is_fd && motion_on));
             
-            if ~is_bathy
+            if ~is_fd
                 app.handles.bathy_enable.Value = false;
+                app.handles.motion_enable.Value = false;
                 app.handles.bathy_file.Value = '';
+                app.handles.motion_model.Value = 'none';
+                app.handles.motion_amplitude.Value = 0.0;
+                if app.has_valid_handle('physics_status')
+                    app.handles.physics_status.Text = 'Bathymetry/motion disabled for non-FD method';
+                    app.handles.physics_status.FontColor = app.layout_cfg.colors.accent_yellow;
+                end
+            else
+                if bathy_on && motion_on
+                    app.handles.boundary_label.Text = 'Periodic (x,y) + Bathymetry + Motion';
+                elseif bathy_on
+                    app.handles.boundary_label.Text = 'Periodic (x,y) + Bathymetry';
+                elseif motion_on
+                    app.handles.boundary_label.Text = 'Periodic (x,y) + Motion';
+                end
+                if app.has_valid_handle('physics_status')
+                    app.handles.physics_status.Text = 'Bathymetry and motion configured independently';
+                    app.handles.physics_status.FontColor = app.layout_cfg.colors.fg_muted;
+                end
             end
             
             % Update convergence display with selected method
             app.update_convergence_display();
             app.update_ic_preview();
+            app.update_checklist();
         end
 
         function on_mode_changed(app)
@@ -1677,6 +1848,7 @@ classdef UIController < handle
                 app.set_optional_handle_enable(manual_fields{i}, app.on_off(conv_on && ~agent_on));
             end
             app.set_optional_handle_enable('conv_agent_enabled', app.on_off(conv_on));
+            app.set_optional_handle_enable('btn_load_converged_mesh', app.on_off(conv_on));
 
             if app.has_valid_handle('conv_agent_status')
                 if ~conv_on
@@ -1714,6 +1886,56 @@ classdef UIController < handle
             app.handles.check_time.FontColor = app.bool_to_color(time_ok);
             app.handles.check_ic.FontColor = app.bool_to_color(ic_ok);
             app.handles.check_conv.FontColor = app.bool_to_color(conv_ok);
+
+            monitor_ok = app.handles.enable_monitoring.Value && app.handles.sample_interval.Value > 0;
+            outputs_ok = app.handles.save_csv.Value || app.handles.save_mat.Value || ...
+                app.handles.figures_save_png.Value || app.handles.figures_save_fig.Value;
+            collectors_ok = true;
+            if app.handles.collector_strict.Value
+                collectors_ok = app.handles.cpuz_enable.Value || ...
+                    app.handles.hwinfo_enable.Value || app.handles.icue_enable.Value;
+            end
+
+            if app.has_valid_handle('check_monitor')
+                app.handles.check_monitor.FontColor = app.bool_to_color(monitor_ok);
+            end
+            if app.has_valid_handle('check_collectors')
+                app.handles.check_collectors.FontColor = app.bool_to_color(collectors_ok);
+            end
+            if app.has_valid_handle('check_outputs')
+                app.handles.check_outputs.FontColor = app.bool_to_color(outputs_ok);
+            end
+
+            if app.has_valid_handle('collector_status')
+                collector_msg = "Collector readiness: MATLAB baseline active";
+                if app.handles.cpuz_enable.Value || app.handles.hwinfo_enable.Value || app.handles.icue_enable.Value
+                    collector_msg = "Collector readiness: external collectors configured";
+                end
+                if app.handles.collector_strict.Value && ~collectors_ok
+                    collector_msg = "Collector readiness: strict mode requires at least one external collector";
+                    app.handles.collector_status.FontColor = app.layout_cfg.colors.accent_yellow;
+                else
+                    app.handles.collector_status.FontColor = app.layout_cfg.colors.fg_muted;
+                end
+                app.handles.collector_status.Text = char(collector_msg);
+            end
+
+            if app.has_valid_handle('metrics_source_matlab')
+                app.handles.metrics_source_matlab.Text = 'ready';
+                app.handles.metrics_source_matlab.FontColor = app.layout_cfg.colors.accent_green;
+            end
+            if app.has_valid_handle('metrics_source_cpuz')
+                app.handles.metrics_source_cpuz.Text = app.on_off_label(app.handles.cpuz_enable.Value);
+                app.handles.metrics_source_cpuz.FontColor = app.bool_to_color(app.handles.cpuz_enable.Value);
+            end
+            if app.has_valid_handle('metrics_source_hwinfo')
+                app.handles.metrics_source_hwinfo.Text = app.on_off_label(app.handles.hwinfo_enable.Value);
+                app.handles.metrics_source_hwinfo.FontColor = app.bool_to_color(app.handles.hwinfo_enable.Value);
+            end
+            if app.has_valid_handle('metrics_source_icue')
+                app.handles.metrics_source_icue.Text = app.on_off_label(app.handles.icue_enable.Value);
+                app.handles.metrics_source_icue.FontColor = app.bool_to_color(app.handles.icue_enable.Value);
+            end
         end
 
         function update_convergence_display(app)
@@ -1729,18 +1951,16 @@ classdef UIController < handle
                 app.to_yes_no(app.handles.conv_agent_enabled.Value) + "</b> | Binary: <b>" + ...
                 app.to_yes_no(app.handles.conv_binary.Value) + "</b>";
 
-            html_content = [ ...
-                "<div style='font-family:Segoe UI;font-size:12px;color:#dcdcdc;'>" ...
-                "<b style='color:#80c7ff;'>" char(header) "</b><br>" ...
-                "<b>Convergence Criterion:</b><br>" ...
-                "$$\\epsilon_N = \\frac{\\|\\omega_N-\\omega_{2N}\\|_2}{\\|\\omega_{2N}\\|_2}$$<br>" ...
-                "<span style='font-size:11px;color:#a0a0a0;'>" char(details) "</span>" ...
-                "</div>" ...
-                "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>" ...
-            ];
+            html_content = "<div style='font-family:Segoe UI;font-size:12px;color:#dcdcdc;'>" + ...
+                "<b style='color:#80c7ff;'>" + header + "</b><br>" + ...
+                "<b>Convergence Criterion:</b><br>" + ...
+                "$$\\epsilon_N = \\frac{\\|\\omega_N-\\omega_{2N}\\|_2}{\\|\\omega_{2N}\\|_2}$$<br>" + ...
+                "<span style='font-size:11px;color:#a0a0a0;'>" + details + "</span>" + ...
+                "</div>" + ...
+                "<script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>";
 
             if app.has_valid_handle('conv_math')
-                app.handles.conv_math.HTMLSource = char(html_content);
+                app.handles.conv_math.HTMLSource = char(string(html_content));
             end
         end
 
@@ -1757,6 +1977,14 @@ classdef UIController < handle
                 state = 'on';
             else
                 state = 'off';
+            end
+        end
+
+        function label = on_off_label(~, tf)
+            if tf
+                label = 'on';
+            else
+                label = 'off';
             end
         end
         
@@ -1822,7 +2050,7 @@ classdef UIController < handle
                 case 'Spectral'
                     config_export.method = 'spectral';
                 otherwise
-                    config_export.method = 'bathymetry';
+                    config_export.method = 'finite_difference';
             end
 
             mode_val = app.handles.mode_dropdown.Value;
@@ -1866,6 +2094,9 @@ classdef UIController < handle
             config_export.ic_center_y = app.handles.ic_center_y.Value;
             config_export.bathymetry_enabled = app.handles.bathy_enable.Value;
             config_export.bathymetry_file = app.handles.bathy_file.Value;
+            config_export.motion_enabled = app.handles.motion_enable.Value;
+            config_export.motion_model = app.handles.motion_model.Value;
+            config_export.motion_amplitude = app.handles.motion_amplitude.Value;
             config_export.ic_coeff = app.build_ic_coeff_vector(config_export.ic_type);
 
             config_export.convergence_N_coarse = app.handles.conv_N_coarse.Value;
@@ -1899,6 +2130,13 @@ classdef UIController < handle
 
             config_export.enable_monitoring = app.handles.enable_monitoring.Value;
             config_export.sample_interval = app.handles.sample_interval.Value;
+            config_export.sustainability_auto_log = app.handles.sustainability_auto_log.Value;
+            config_export.collectors = struct( ...
+                'cpuz', app.handles.cpuz_enable.Value, ...
+                'hwinfo', app.handles.hwinfo_enable.Value, ...
+                'icue', app.handles.icue_enable.Value, ...
+                'strict', app.handles.collector_strict.Value, ...
+                'machine_tag', app.handles.machine_tag.Value);
             
             if endsWith(file, '.json')
                 json_str = jsonencode(config_export);
@@ -1958,6 +2196,9 @@ classdef UIController < handle
                         app.handles.method_dropdown.Value = 'Finite Volume';
                     case 'spectral'
                         app.handles.method_dropdown.Value = 'Spectral';
+                    case 'bathymetry'
+                        app.handles.method_dropdown.Value = 'Finite Difference';
+                        app.handles.bathy_enable.Value = true;
                 end
             end
 
@@ -2018,6 +2259,14 @@ classdef UIController < handle
 
             if isfield(cfg, 'bathymetry_enabled'), app.handles.bathy_enable.Value = logical(cfg.bathymetry_enabled); end
             if isfield(cfg, 'bathymetry_file'), app.handles.bathy_file.Value = char(string(cfg.bathymetry_file)); end
+            if isfield(cfg, 'motion_enabled'), app.handles.motion_enable.Value = logical(cfg.motion_enabled); end
+            if isfield(cfg, 'motion_model')
+                requested_model = char(string(cfg.motion_model));
+                if any(strcmpi(requested_model, app.handles.motion_model.Items))
+                    app.handles.motion_model.Value = requested_model;
+                end
+            end
+            if isfield(cfg, 'motion_amplitude'), app.handles.motion_amplitude.Value = cfg.motion_amplitude; end
 
             if isfield(cfg, 'convergence_N_coarse'), app.handles.conv_N_coarse.Value = cfg.convergence_N_coarse; end
             if isfield(cfg, 'convergence_N_max'), app.handles.conv_N_max.Value = cfg.convergence_N_max; end
@@ -2059,6 +2308,15 @@ classdef UIController < handle
 
             if isfield(cfg, 'enable_monitoring'), app.handles.enable_monitoring.Value = logical(cfg.enable_monitoring); end
             if isfield(cfg, 'sample_interval'), app.handles.sample_interval.Value = cfg.sample_interval; end
+            if isfield(cfg, 'sustainability_auto_log'), app.handles.sustainability_auto_log.Value = logical(cfg.sustainability_auto_log); end
+            if isfield(cfg, 'collectors') && isstruct(cfg.collectors)
+                c = cfg.collectors;
+                if isfield(c, 'cpuz'), app.handles.cpuz_enable.Value = logical(c.cpuz); end
+                if isfield(c, 'hwinfo'), app.handles.hwinfo_enable.Value = logical(c.hwinfo); end
+                if isfield(c, 'icue'), app.handles.icue_enable.Value = logical(c.icue); end
+                if isfield(c, 'strict'), app.handles.collector_strict.Value = logical(c.strict); end
+                if isfield(c, 'machine_tag'), app.handles.machine_tag.Value = char(string(c.machine_tag)); end
+            end
 
             app.on_method_changed();
             app.on_mode_changed();
@@ -2667,6 +2925,69 @@ classdef UIController < handle
             app.handles.ic_layout.RowHeight = {base_top, base_top, equation_h, where_h, coeff_row, coeff_row, center_row, status_row};
         end
 
+        function load_converged_mesh_preset(app)
+            % Load latest convergence study settings as a reusable mesh preset.
+            candidates = dir(fullfile('Results', '*', 'Convergence', '*', 'Config', 'Config.mat'));
+            if isempty(candidates)
+                candidates = dir(fullfile('Results', '*', 'Convergence', '*', 'Config.mat'));
+            end
+
+            if isempty(candidates)
+                app.append_to_terminal('No convergence preset found under Results/*/Convergence.', 'warning');
+                if app.has_valid_handle('converged_mesh_status')
+                    app.handles.converged_mesh_status.Text = 'No convergence preset found';
+                    app.handles.converged_mesh_status.FontColor = app.layout_cfg.colors.accent_yellow;
+                end
+                return;
+            end
+
+            [~, idx] = max([candidates.datenum]);
+            preset_file = fullfile(candidates(idx).folder, candidates(idx).name);
+            S = load(preset_file);
+
+            n_coarse = NaN;
+            n_max = NaN;
+            tol = NaN;
+
+            if isfield(S, 'Parameters')
+                P = S.Parameters;
+                if isfield(P, 'mesh_sizes') && isnumeric(P.mesh_sizes) && ~isempty(P.mesh_sizes)
+                    n_coarse = min(P.mesh_sizes);
+                    n_max = max(P.mesh_sizes);
+                end
+                if isfield(P, 'conv_tolerance')
+                    tol = P.conv_tolerance;
+                elseif isfield(P, 'convergence_tol')
+                    tol = P.convergence_tol;
+                end
+            end
+            if isfield(S, 'Results')
+                R = S.Results;
+                if (isnan(n_coarse) || isnan(n_max)) && isfield(R, 'mesh_sizes') && isnumeric(R.mesh_sizes) && ~isempty(R.mesh_sizes)
+                    n_coarse = min(R.mesh_sizes);
+                    n_max = max(R.mesh_sizes);
+                end
+            end
+
+            if isnan(n_coarse), n_coarse = app.handles.conv_N_coarse.Value; end
+            if isnan(n_max), n_max = app.handles.conv_N_max.Value; end
+            if isnan(tol), tol = app.handles.conv_tolerance.Value; end
+
+            app.handles.conv_N_coarse.Value = max(8, round(n_coarse));
+            app.handles.conv_N_max.Value = max(app.handles.conv_N_coarse.Value + 8, round(n_max));
+            app.handles.conv_tolerance.Value = tol;
+
+            msg = sprintf('Loaded preset N=[%d,%d], tol=%.2e', ...
+                app.handles.conv_N_coarse.Value, app.handles.conv_N_max.Value, app.handles.conv_tolerance.Value);
+            if app.has_valid_handle('converged_mesh_status')
+                app.handles.converged_mesh_status.Text = msg;
+                app.handles.converged_mesh_status.FontColor = app.layout_cfg.colors.accent_green;
+            end
+            app.append_to_terminal(sprintf('Loaded convergence preset from %s', preset_file), 'success');
+            app.update_checklist();
+            app.update_convergence_display();
+        end
+
         function run_convergence_test(app)
             % Run a quick convergence test
             app.append_to_terminal('🔧 Convergence test would run here (integrate with Tsunami_Vorticity_Emulator)');
@@ -2770,6 +3091,12 @@ classdef UIController < handle
             config.ic_pattern = 'single';
             config.sweep_parameter = 'nu';
             config.sweep_values = [1e-6, 5e-6, 1e-5];
+            config.motion_enabled = false;
+            config.motion_model = 'none';
+            config.motion_amplitude = 0.0;
+            config.sustainability_auto_log = true;
+            config.collectors = struct('cpuz', false, 'hwinfo', false, 'icue', false, ...
+                'strict', false, 'machine_tag', getenv('COMPUTERNAME'));
             config.experimentation = struct( ...
                 'coeff_selector', 'ic_coeff1', ...
                 'range_start', 0.5, ...

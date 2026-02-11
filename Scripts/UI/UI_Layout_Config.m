@@ -72,9 +72,9 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.right.padding = [10 10 10 10];
     cfg.config_tab.right.row_spacing = 8;
 
-    cfg.config_tab.method_grid.rows_cols = [3, 4];
+    cfg.config_tab.method_grid.rows_cols = [5, 4];
     cfg.config_tab.method_grid.col_widths = {'1x', '1x', '1x', '1x'};
-    cfg.config_tab.method_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
+    cfg.config_tab.method_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.method_grid.padding = [6 6 6 6];
     cfg.config_tab.method_grid.row_spacing = 6;
 
@@ -93,14 +93,14 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.sim_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.sim_grid.padding = [6 6 6 6];
 
-    cfg.config_tab.conv_grid.rows_cols = [4, 4];
+    cfg.config_tab.conv_grid.rows_cols = [5, 4];
     cfg.config_tab.conv_grid.col_widths = {'1x', '1x', '1x', '1x'};
-    cfg.config_tab.conv_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
+    cfg.config_tab.conv_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.conv_grid.padding = [6 6 6 6];
 
-    cfg.config_tab.sus_grid.rows_cols = [2, 2];
-    cfg.config_tab.sus_grid.col_widths = {'1x', '1x'};
-    cfg.config_tab.sus_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row};
+    cfg.config_tab.sus_grid.rows_cols = [4, 4];
+    cfg.config_tab.sus_grid.col_widths = {'1x', '1x', '1x', '1x'};
+    cfg.config_tab.sus_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.sus_grid.padding = [6 6 6 6];
 
     cfg.config_tab.check_grid.rows_cols = [4, 1];
