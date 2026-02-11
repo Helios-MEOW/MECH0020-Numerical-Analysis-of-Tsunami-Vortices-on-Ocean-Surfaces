@@ -67,8 +67,8 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.left.padding = [10 10 10 10];
     cfg.config_tab.left.row_spacing = 8;
 
-    cfg.config_tab.right.rows_cols = [4, 1];
-    cfg.config_tab.right.row_heights = {'0.9x', '1.1x', '0.7x', '1.3x'};
+    cfg.config_tab.right.rows_cols = [3, 1];
+    cfg.config_tab.right.row_heights = {'0.9x', '1.15x', '1.45x'};
     cfg.config_tab.right.padding = [10 10 10 10];
     cfg.config_tab.right.row_spacing = 8;
 
@@ -114,12 +114,6 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.ic_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, 92, 72, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.ic_grid.padding = [6 6 6 6];
     cfg.config_tab.ic_grid.row_spacing = 6;
-
-    cfg.config_tab.mode_grid.rows_cols = [3, 4];
-    cfg.config_tab.mode_grid.col_widths = {'1x', '1x', '1x', '1x'};
-    cfg.config_tab.mode_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
-    cfg.config_tab.mode_grid.padding = [6 6 6 6];
-    cfg.config_tab.mode_grid.row_spacing = 6;
 
     % ===== MONITOR TAB =====
     cfg.monitor_tab.root.rows_cols = [1, 2];
@@ -175,8 +169,7 @@ function cfg = UI_Layout_Config()
     cfg.coords.config.panel_sus = [6, 1, 1, 1];
     cfg.coords.config.panel_check = [1, 1, 1, 1];
     cfg.coords.config.panel_ic = [2, 1, 1, 1];
-    cfg.coords.config.panel_mode = [3, 1, 1, 1];
-    cfg.coords.config.panel_preview = [4, 1, 1, 1];
+    cfg.coords.config.panel_preview = [3, 1, 1, 1];
 
     cfg.coords.monitor.left_panel = [1, 1, 1, 1];
     cfg.coords.monitor.terminal_panel = [1, 2, 1, 1];

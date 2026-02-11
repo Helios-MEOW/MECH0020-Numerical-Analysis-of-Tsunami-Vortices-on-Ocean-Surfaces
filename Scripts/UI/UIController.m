@@ -833,65 +833,6 @@ classdef UIController < handle
             app.handles.ic_status.Layout.Row = 8;
             app.handles.ic_status.Layout.Column = [1 4];
 
-            % Mode-specific controls
-            panel_mode = uipanel(right_layout, 'Title', 'Mode-Specific Controls', ...
-                'BackgroundColor', C.bg_panel_alt);
-            panel_mode.Layout.Row = app.layout_cfg.coords.config.panel_mode(1);
-            panel_mode.Layout.Column = app.layout_cfg.coords.config.panel_mode(2);
-            cfg_mode = app.layout_cfg.config_tab.mode_grid;
-            mode_layout = uigridlayout(panel_mode, cfg_mode.rows_cols);
-            mode_layout.ColumnWidth = cfg_mode.col_widths;
-            mode_layout.RowHeight = cfg_mode.row_heights;
-            mode_layout.Padding = cfg_mode.padding;
-            mode_layout.RowSpacing = cfg_mode.row_spacing;
-
-            app.handles.sweep_parameter_label = uilabel(mode_layout, 'Text', 'Sweep Param', 'FontColor', C.fg_text);
-            app.handles.sweep_parameter_label.Layout.Row = 1;
-            app.handles.sweep_parameter_label.Layout.Column = 1;
-            app.handles.sweep_parameter = uidropdown(mode_layout, ...
-                'Items', {'nu', 'dt', 'Nx', 'Ny', 'Tfinal'}, ...
-                'Value', 'nu', ...
-                'ValueChangedFcn', @(~,~) app.update_checklist());
-            app.handles.sweep_parameter.Layout.Row = 1; app.handles.sweep_parameter.Layout.Column = 2;
-            app.handles.sweep_values_label = uilabel(mode_layout, 'Text', 'Sweep Values', 'FontColor', C.fg_text);
-            app.handles.sweep_values_label.Layout.Row = 1;
-            app.handles.sweep_values_label.Layout.Column = 3;
-            app.handles.sweep_values = uieditfield(mode_layout, 'text', ...
-                'Value', '1e-6,5e-6,1e-5', ...
-                'ValueChangedFcn', @(~,~) app.update_checklist());
-            app.handles.sweep_values.Layout.Row = 1; app.handles.sweep_values.Layout.Column = 4;
-
-            app.handles.exp_coeff_label = uilabel(mode_layout, 'Text', 'Exp Coeff', 'FontColor', C.fg_text);
-            app.handles.exp_coeff_label.Layout.Row = 2;
-            app.handles.exp_coeff_label.Layout.Column = 1;
-            app.handles.exp_coeff_selector = uidropdown(mode_layout, ...
-                'Items', {'ic_coeff1', 'ic_coeff2', 'ic_coeff3', 'ic_coeff4'}, ...
-                'Value', 'ic_coeff1', ...
-                'ValueChangedFcn', @(~,~) app.update_checklist());
-            app.handles.exp_coeff_selector.Layout.Row = 2; app.handles.exp_coeff_selector.Layout.Column = 2;
-            app.handles.exp_range_start_label = uilabel(mode_layout, 'Text', 'Exp Range Start', 'FontColor', C.fg_text);
-            app.handles.exp_range_start_label.Layout.Row = 2;
-            app.handles.exp_range_start_label.Layout.Column = 3;
-            app.handles.exp_range_start = uieditfield(mode_layout, 'numeric', ...
-                'Value', 0.5, ...
-                'ValueChangedFcn', @(~,~) app.update_checklist());
-            app.handles.exp_range_start.Layout.Row = 2; app.handles.exp_range_start.Layout.Column = 4;
-
-            app.handles.exp_range_end_label = uilabel(mode_layout, 'Text', 'Exp End', 'FontColor', C.fg_text);
-            app.handles.exp_range_end_label.Layout.Row = 3;
-            app.handles.exp_range_end_label.Layout.Column = 1;
-            app.handles.exp_range_end = uieditfield(mode_layout, 'numeric', ...
-                'Value', 2.0, ...
-                'ValueChangedFcn', @(~,~) app.update_checklist());
-            app.handles.exp_range_end.Layout.Row = 3; app.handles.exp_range_end.Layout.Column = 2;
-            app.handles.exp_num_points_label = uilabel(mode_layout, 'Text', 'Exp Points', 'FontColor', C.fg_text);
-            app.handles.exp_num_points_label.Layout.Row = 3;
-            app.handles.exp_num_points_label.Layout.Column = 3;
-            app.handles.exp_num_points = uieditfield(mode_layout, 'numeric', ...
-                'Value', 4, ...
-                'ValueChangedFcn', @(~,~) app.update_checklist());
-            app.handles.exp_num_points.Layout.Row = 3; app.handles.exp_num_points.Layout.Column = 4;
-
             % IC preview
             panel_preview = uipanel(right_layout, 'Title', 'IC Preview (t=0)', ...
                 'BackgroundColor', C.bg_panel_alt);
@@ -1229,15 +1170,30 @@ classdef UIController < handle
             app.config.convergence_max_jumps = app.handles.conv_max_jumps.Value;
             app.config.convergence_agent_enabled = app.handles.conv_agent_enabled.Value;
 
-            app.config.sweep_parameter = app.handles.sweep_parameter.Value;
-            app.config.sweep_values = app.parse_numeric_csv(app.handles.sweep_values.Value);
-            app.config.sweep_values = unique(app.config.sweep_values, 'stable');
+            defaults = app.initialize_default_config();
+            app.config.sweep_parameter = defaults.sweep_parameter;
+            app.config.sweep_values = defaults.sweep_values;
+            app.config.experimentation = defaults.experimentation;
 
-            app.config.experimentation = struct( ...
-                'coeff_selector', app.handles.exp_coeff_selector.Value, ...
-                'range_start', app.handles.exp_range_start.Value, ...
-                'range_end', app.handles.exp_range_end.Value, ...
-                'num_points', round(app.handles.exp_num_points.Value));
+            if app.has_valid_handle('sweep_parameter')
+                app.config.sweep_parameter = app.handles.sweep_parameter.Value;
+            end
+            if app.has_valid_handle('sweep_values')
+                app.config.sweep_values = app.parse_numeric_csv(app.handles.sweep_values.Value);
+                app.config.sweep_values = unique(app.config.sweep_values, 'stable');
+            end
+            if app.has_valid_handle('exp_coeff_selector')
+                app.config.experimentation.coeff_selector = app.handles.exp_coeff_selector.Value;
+            end
+            if app.has_valid_handle('exp_range_start')
+                app.config.experimentation.range_start = app.handles.exp_range_start.Value;
+            end
+            if app.has_valid_handle('exp_range_end')
+                app.config.experimentation.range_end = app.handles.exp_range_end.Value;
+            end
+            if app.has_valid_handle('exp_num_points')
+                app.config.experimentation.num_points = round(app.handles.exp_num_points.Value);
+            end
 
             app.config.enable_monitoring = app.handles.enable_monitoring.Value;
             app.config.sample_interval = app.handles.sample_interval.Value;
@@ -1667,25 +1623,25 @@ classdef UIController < handle
             sweep_vis = app.on_off(sweep_on);
             exp_vis = app.on_off(exp_on);
 
-            app.handles.sweep_parameter.Enable = sweep_state;
-            app.handles.sweep_values.Enable = sweep_state;
-            app.handles.sweep_parameter.Visible = sweep_vis;
-            app.handles.sweep_values.Visible = sweep_vis;
-            app.handles.sweep_parameter_label.Visible = sweep_vis;
-            app.handles.sweep_values_label.Visible = sweep_vis;
+            app.set_optional_handle_enable('sweep_parameter', sweep_state);
+            app.set_optional_handle_enable('sweep_values', sweep_state);
+            app.set_optional_handle_property('sweep_parameter', 'Visible', sweep_vis);
+            app.set_optional_handle_property('sweep_values', 'Visible', sweep_vis);
+            app.set_optional_handle_property('sweep_parameter_label', 'Visible', sweep_vis);
+            app.set_optional_handle_property('sweep_values_label', 'Visible', sweep_vis);
 
-            app.handles.exp_coeff_selector.Enable = exp_state;
-            app.handles.exp_range_start.Enable = exp_state;
-            app.handles.exp_range_end.Enable = exp_state;
-            app.handles.exp_num_points.Enable = exp_state;
-            app.handles.exp_coeff_selector.Visible = exp_vis;
-            app.handles.exp_range_start.Visible = exp_vis;
-            app.handles.exp_range_end.Visible = exp_vis;
-            app.handles.exp_num_points.Visible = exp_vis;
-            app.handles.exp_coeff_label.Visible = exp_vis;
-            app.handles.exp_range_start_label.Visible = exp_vis;
-            app.handles.exp_range_end_label.Visible = exp_vis;
-            app.handles.exp_num_points_label.Visible = exp_vis;
+            app.set_optional_handle_enable('exp_coeff_selector', exp_state);
+            app.set_optional_handle_enable('exp_range_start', exp_state);
+            app.set_optional_handle_enable('exp_range_end', exp_state);
+            app.set_optional_handle_enable('exp_num_points', exp_state);
+            app.set_optional_handle_property('exp_coeff_selector', 'Visible', exp_vis);
+            app.set_optional_handle_property('exp_range_start', 'Visible', exp_vis);
+            app.set_optional_handle_property('exp_range_end', 'Visible', exp_vis);
+            app.set_optional_handle_property('exp_num_points', 'Visible', exp_vis);
+            app.set_optional_handle_property('exp_coeff_label', 'Visible', exp_vis);
+            app.set_optional_handle_property('exp_range_start_label', 'Visible', exp_vis);
+            app.set_optional_handle_property('exp_range_end_label', 'Visible', exp_vis);
+            app.set_optional_handle_property('exp_num_points_label', 'Visible', exp_vis);
         end
 
         function style_axes(app, ax)
@@ -1872,13 +1828,38 @@ classdef UIController < handle
             ic_ok = ~isempty(app.handles.ic_dropdown.Value);
             conv_ok = true;
             mode_val = app.handles.mode_dropdown.Value;
+            defaults = app.initialize_default_config();
             if strcmp(mode_val, 'Convergence')
                 conv_ok = app.handles.conv_N_max.Value > app.handles.conv_N_coarse.Value;
             elseif strcmp(mode_val, 'Sweep')
-                conv_ok = numel(app.parse_numeric_csv(app.handles.sweep_values.Value)) >= 2;
+                sweep_values = defaults.sweep_values;
+                if app.has_valid_handle('sweep_values')
+                    sweep_values = app.parse_numeric_csv(app.handles.sweep_values.Value);
+                elseif isfield(app.config, 'sweep_values')
+                    sweep_values = app.config.sweep_values;
+                end
+                conv_ok = numel(sweep_values) >= 2;
             elseif strcmp(mode_val, 'Experimentation')
-                conv_ok = app.handles.exp_num_points.Value >= 2 && ...
-                          app.handles.exp_range_end.Value ~= app.handles.exp_range_start.Value;
+                exp_cfg = defaults.experimentation;
+                if app.has_valid_handle('exp_num_points')
+                    exp_cfg.num_points = app.handles.exp_num_points.Value;
+                elseif isfield(app.config, 'experimentation') && isstruct(app.config.experimentation) ...
+                        && isfield(app.config.experimentation, 'num_points')
+                    exp_cfg.num_points = app.config.experimentation.num_points;
+                end
+                if app.has_valid_handle('exp_range_start')
+                    exp_cfg.range_start = app.handles.exp_range_start.Value;
+                elseif isfield(app.config, 'experimentation') && isstruct(app.config.experimentation) ...
+                        && isfield(app.config.experimentation, 'range_start')
+                    exp_cfg.range_start = app.config.experimentation.range_start;
+                end
+                if app.has_valid_handle('exp_range_end')
+                    exp_cfg.range_end = app.handles.exp_range_end.Value;
+                elseif isfield(app.config, 'experimentation') && isstruct(app.config.experimentation) ...
+                        && isfield(app.config.experimentation, 'range_end')
+                    exp_cfg.range_end = app.config.experimentation.range_end;
+                end
+                conv_ok = exp_cfg.num_points >= 2 && exp_cfg.range_end ~= exp_cfg.range_start;
             end
 
             app.handles.check_grid.FontColor = app.bool_to_color(grid_ok);
@@ -2108,13 +2089,21 @@ classdef UIController < handle
             config_export.convergence_max_jumps = app.handles.conv_max_jumps.Value;
             config_export.convergence_agent_enabled = app.handles.conv_agent_enabled.Value;
 
-            config_export.sweep_parameter = app.handles.sweep_parameter.Value;
-            config_export.sweep_values = app.parse_numeric_csv(app.handles.sweep_values.Value);
-            config_export.experimentation = struct( ...
-                'coeff_selector', app.handles.exp_coeff_selector.Value, ...
-                'range_start', app.handles.exp_range_start.Value, ...
-                'range_end', app.handles.exp_range_end.Value, ...
-                'num_points', round(app.handles.exp_num_points.Value));
+            defaults = app.initialize_default_config();
+            config_export.sweep_parameter = defaults.sweep_parameter;
+            config_export.sweep_values = defaults.sweep_values;
+            config_export.experimentation = defaults.experimentation;
+            if isfield(app, 'config') && isstruct(app.config) && ~isempty(fieldnames(app.config))
+                if isfield(app.config, 'sweep_parameter') && ~isempty(app.config.sweep_parameter)
+                    config_export.sweep_parameter = app.config.sweep_parameter;
+                end
+                if isfield(app.config, 'sweep_values') && ~isempty(app.config.sweep_values)
+                    config_export.sweep_values = app.config.sweep_values;
+                end
+                if isfield(app.config, 'experimentation') && isstruct(app.config.experimentation)
+                    config_export.experimentation = app.config.experimentation;
+                end
+            end
 
             config_export.save_csv = app.handles.save_csv.Value;
             config_export.save_mat = app.handles.save_mat.Value;
@@ -2277,21 +2266,55 @@ classdef UIController < handle
             if isfield(cfg, 'convergence_max_jumps'), app.handles.conv_max_jumps.Value = cfg.convergence_max_jumps; end
             if isfield(cfg, 'convergence_agent_enabled'), app.handles.conv_agent_enabled.Value = logical(cfg.convergence_agent_enabled); end
 
-            if isfield(cfg, 'sweep_parameter'), app.handles.sweep_parameter.Value = char(string(cfg.sweep_parameter)); end
+            if isfield(cfg, 'sweep_parameter')
+                app.config.sweep_parameter = char(string(cfg.sweep_parameter));
+                if app.has_valid_handle('sweep_parameter')
+                    app.handles.sweep_parameter.Value = app.config.sweep_parameter;
+                end
+            end
             if isfield(cfg, 'sweep_values')
                 vals = cfg.sweep_values;
                 if isnumeric(vals)
-                    app.handles.sweep_values.Value = strjoin(arrayfun(@(x) sprintf('%.6g', x), vals(:).', 'UniformOutput', false), ',');
+                    app.config.sweep_values = vals(:).';
+                    if app.has_valid_handle('sweep_values')
+                        app.handles.sweep_values.Value = strjoin(arrayfun(@(x) sprintf('%.6g', x), vals(:).', 'UniformOutput', false), ',');
+                    end
                 elseif ischar(vals) || isstring(vals)
-                    app.handles.sweep_values.Value = char(string(vals));
+                    app.config.sweep_values = app.parse_numeric_csv(char(string(vals)));
+                    if app.has_valid_handle('sweep_values')
+                        app.handles.sweep_values.Value = char(string(vals));
+                    end
                 end
             end
             if isfield(cfg, 'experimentation') && isstruct(cfg.experimentation)
                 exp_cfg = cfg.experimentation;
-                if isfield(exp_cfg, 'coeff_selector'), app.handles.exp_coeff_selector.Value = char(string(exp_cfg.coeff_selector)); end
-                if isfield(exp_cfg, 'range_start'), app.handles.exp_range_start.Value = exp_cfg.range_start; end
-                if isfield(exp_cfg, 'range_end'), app.handles.exp_range_end.Value = exp_cfg.range_end; end
-                if isfield(exp_cfg, 'num_points'), app.handles.exp_num_points.Value = exp_cfg.num_points; end
+                if ~isfield(app.config, 'experimentation') || ~isstruct(app.config.experimentation)
+                    app.config.experimentation = app.initialize_default_config().experimentation;
+                end
+                if isfield(exp_cfg, 'coeff_selector')
+                    app.config.experimentation.coeff_selector = char(string(exp_cfg.coeff_selector));
+                    if app.has_valid_handle('exp_coeff_selector')
+                        app.handles.exp_coeff_selector.Value = app.config.experimentation.coeff_selector;
+                    end
+                end
+                if isfield(exp_cfg, 'range_start')
+                    app.config.experimentation.range_start = exp_cfg.range_start;
+                    if app.has_valid_handle('exp_range_start')
+                        app.handles.exp_range_start.Value = exp_cfg.range_start;
+                    end
+                end
+                if isfield(exp_cfg, 'range_end')
+                    app.config.experimentation.range_end = exp_cfg.range_end;
+                    if app.has_valid_handle('exp_range_end')
+                        app.handles.exp_range_end.Value = exp_cfg.range_end;
+                    end
+                end
+                if isfield(exp_cfg, 'num_points')
+                    app.config.experimentation.num_points = exp_cfg.num_points;
+                    if app.has_valid_handle('exp_num_points')
+                        app.handles.exp_num_points.Value = exp_cfg.num_points;
+                    end
+                end
             end
 
             if isfield(cfg, 'save_csv'), app.handles.save_csv.Value = logical(cfg.save_csv); end
@@ -3573,6 +3596,17 @@ classdef UIController < handle
             h = app.handles.(field_name);
             if isprop(h, 'Enable')
                 h.Enable = state;
+            end
+        end
+
+        function set_optional_handle_property(app, field_name, prop_name, value)
+            % Set arbitrary handle property when the optional control exists.
+            if ~app.has_valid_handle(field_name)
+                return;
+            end
+            h = app.handles.(field_name);
+            if isprop(h, prop_name)
+                h.(prop_name) = value;
             end
         end
 
