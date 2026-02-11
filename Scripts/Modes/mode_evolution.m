@@ -154,6 +154,7 @@
     % ===== SAVE OUTPUTS =====
     if Settings.save_data
         data_path = fullfile(paths.data, 'results.mat');
+        State = sanitize_state_for_save(State); %#ok<NASGU>
         save(data_path, 'analysis', 'Results', 'State', '-v7.3');
     end
 
@@ -202,6 +203,21 @@ function [ok, issues] = validate_evolution(Run_Config, Parameters)
     if ~isfield(Parameters, 'Nx') || ~isfield(Parameters, 'Ny')
         ok = false;
         issues{end+1} = 'Parameters.Nx and Parameters.Ny are required';
+    end
+end
+
+function state_out = sanitize_state_for_save(state_in)
+    % Keep only serializable state fields to avoid decomposition/save warnings.
+    state_out = struct();
+    if ~isstruct(state_in)
+        return;
+    end
+    keep = {'omega', 'psi', 't', 'u', 'v', 'dt'};
+    for i = 1:numel(keep)
+        key = keep{i};
+        if isfield(state_in, key)
+            state_out.(key) = state_in.(key);
+        end
     end
 end
 

@@ -1776,11 +1776,15 @@ classdef UIController < handle
         end
 
         function on_mode_changed(app)
-            % Update convergence display when mode changes
-            app.update_convergence_display();
-            app.update_mode_control_visibility();
-            app.update_convergence_control_state();
-            app.update_checklist();
+            % Update mode-dependent views safely to avoid callback aborts.
+            try
+                app.update_convergence_display();
+                app.update_mode_control_visibility();
+                app.update_convergence_control_state();
+                app.update_checklist();
+            catch ME
+                app.append_to_terminal(sprintf('Mode change update failed: %s', ME.message), 'error');
+            end
         end
 
         function on_convergence_agent_changed(app)
@@ -2632,6 +2636,9 @@ classdef UIController < handle
                 app.safe_stop_timer('diary_timer');
                 diary off;
                 if ~isempty(app.fig) && isvalid(app.fig)
+                    if isprop(app.fig, 'CloseRequestFcn')
+                        app.fig.CloseRequestFcn = '';
+                    end
                     delete(app.fig);
                 end
             catch
@@ -3422,7 +3429,7 @@ classdef UIController < handle
                         app.dev_original_callbacks(handle_id) = [];
                     end
                     % Set inspector callback
-                    obj.ButtonDownFcn = @(src, ~) app.inspect_component(src);
+                    obj.ButtonDownFcn = @(src, ~) app.safe_inspect_component(src);
                 end
             catch
                 % Component doesn't support ButtonDownFcn
@@ -3557,6 +3564,18 @@ classdef UIController < handle
             % Log to inspector
             log_msg = sprintf('Inspected: %s', comp_type);
             app.append_dev_log(log_msg);
+        end
+
+        function safe_inspect_component(app, component)
+            % Guarded inspector callback to avoid propagating UI callback errors.
+            try
+                if isempty(app) || ~isvalid(app)
+                    return;
+                end
+                app.inspect_component(component);
+            catch
+                % Best effort only: ignore stale handle callback failures.
+            end
         end
         
         function append_dev_log(app, msg)
