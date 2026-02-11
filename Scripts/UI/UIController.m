@@ -783,8 +783,14 @@ classdef UIController < handle
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_count.Layout.Row = 2; app.handles.ic_count.Layout.Column = 4;
 
-            app.handles.ic_equation = uihtml(ic_layout, ...
-                'HTMLSource', app.render_math_html('Stretched Gaussian', '\omega(x,y)=\exp(-a(x-x_0)^2-b(y-y_0)^2)'));
+            if app.supports_equation_image_rendering() && (exist('uiimage', 'file') || exist('uiimage', 'builtin'))
+                app.handles.ic_equation = uiimage(ic_layout, ...
+                    'ImageSource', '', ...
+                    'ScaleMethod', 'fit');
+            else
+                app.handles.ic_equation = uihtml(ic_layout, ...
+                    'HTMLSource', app.render_math_html('Stretched Gaussian', '\omega(x,y)=\exp(-a(x-x_0)^2-b(y-y_0)^2)'));
+            end
             app.handles.ic_equation.Layout.Row = 3;
             app.handles.ic_equation.Layout.Column = [1 4];
 
@@ -2965,11 +2971,166 @@ classdef UIController < handle
 
         function set_ic_equation_and_where(app, ic_name, eq_tex, where_lines)
             if app.has_valid_handle('ic_equation')
-                app.handles.ic_equation.HTMLSource = app.render_math_html(ic_name, eq_tex);
+                eq_handle = app.handles.ic_equation;
+                if isprop(eq_handle, 'ImageSource') && app.supports_equation_image_rendering()
+                    eq_handle.ImageSource = app.render_equation_image(ic_name, eq_tex);
+                elseif isprop(eq_handle, 'ImageSource')
+                    eq_handle.ImageSource = '';
+                elseif isprop(eq_handle, 'HTMLSource')
+                    eq_handle.HTMLSource = app.render_math_html(ic_name, eq_tex);
+                end
             end
             if app.has_valid_handle('ic_where')
                 app.handles.ic_where.Value = where_lines;
             end
+        end
+
+        function image_path = render_equation_image(app, ic_name, eq_tex)
+            % Render equation as themed PNG so mathematical symbols display consistently.
+            cache_root = fullfile(tempdir, 'tsunami_ui_equations');
+            if ~exist(cache_root, 'dir')
+                mkdir(cache_root);
+            end
+
+            key = app.stable_text_hash(string(ic_name) + "|" + string(eq_tex));
+            stem = "ic_eq_" + key;
+            image_path = fullfile(cache_root, char(stem + ".png"));
+            md_path = fullfile(cache_root, char(stem + ".md"));
+
+            app.write_equation_markdown_source(md_path, ic_name, eq_tex);
+            if isfile(image_path)
+                return;
+            end
+
+            bg = app.layout_cfg.colors.bg_input;
+            fg = app.layout_cfg.colors.fg_text;
+            header = app.layout_cfg.colors.accent_cyan;
+
+            fig = figure('Visible', 'off', ...
+                'Color', bg, ...
+                'MenuBar', 'none', ...
+                'ToolBar', 'none', ...
+                'Units', 'pixels', ...
+                'Position', [100 100 1280 220]);
+            cleanup_obj = onCleanup(@() app.close_hidden_figure(fig)); %#ok<NASGU>
+
+            ax = axes('Parent', fig, ...
+                'Position', [0 0 1 1], ...
+                'Visible', 'off', ...
+                'Color', bg);
+            axis(ax, [0 1 0 1]);
+            axis(ax, 'off');
+
+            title_str = "Initial Condition Equation - " + string(ic_name);
+            eq_latex = app.normalize_equation_for_latex(eq_tex);
+            plain_eq = app.equation_tex_to_plain(eq_tex);
+
+            try
+                text(ax, 0.015, 0.88, title_str, ...
+                    'Interpreter', 'none', ...
+                    'Color', header, ...
+                    'FontWeight', 'bold', ...
+                    'FontSize', 13, ...
+                    'VerticalAlignment', 'top');
+
+                text(ax, 0.02, 0.42, "$\displaystyle " + string(eq_latex) + "$", ...
+                    'Interpreter', 'latex', ...
+                    'Color', fg, ...
+                    'FontSize', 24, ...
+                    'VerticalAlignment', 'middle', ...
+                    'Clipping', 'on');
+
+                drawnow;
+                exportgraphics(ax, image_path, 'Resolution', 170, 'BackgroundColor', bg);
+            catch
+                cla(ax);
+                axis(ax, [0 1 0 1]);
+                axis(ax, 'off');
+                text(ax, 0.015, 0.88, title_str, ...
+                    'Interpreter', 'none', ...
+                    'Color', header, ...
+                    'FontWeight', 'bold', ...
+                    'FontSize', 13, ...
+                    'VerticalAlignment', 'top');
+                text(ax, 0.02, 0.42, string(plain_eq), ...
+                    'Interpreter', 'none', ...
+                    'Color', fg, ...
+                    'FontName', 'Consolas', ...
+                    'FontSize', 15, ...
+                    'VerticalAlignment', 'middle', ...
+                    'Clipping', 'on');
+                drawnow;
+                exportgraphics(ax, image_path, 'Resolution', 170, 'BackgroundColor', bg);
+            end
+        end
+
+        function write_equation_markdown_source(~, md_path, ic_name, eq_tex)
+            % Persist markdown source used for equation-image rendering.
+            if isfile(md_path)
+                return;
+            end
+            lines = {
+                '# UI Equation Source'
+                ''
+                ['IC: ', char(string(ic_name))]
+                ''
+                '$$'
+                char(string(eq_tex))
+                '$$'
+                ''
+            };
+            fid = fopen(md_path, 'w');
+            if fid < 0
+                return;
+            end
+            cleanup_obj = onCleanup(@() fclose(fid)); %#ok<NASGU>
+            fprintf(fid, '%s\n', lines{:});
+        end
+
+        function close_hidden_figure(~, fig_handle)
+            if isempty(fig_handle)
+                return;
+            end
+            try
+                if isvalid(fig_handle)
+                    close(fig_handle);
+                end
+            catch
+            end
+        end
+
+        function eq_out = normalize_equation_for_latex(~, eq_tex)
+            % Convert unsupported TeX fragments to MATLAB-LaTeX-safe form.
+            eq_out = char(string(eq_tex));
+            eq_out = strrep(eq_out, '\begin{cases}', '(');
+            eq_out = strrep(eq_out, '\end{cases}', ')');
+            eq_out = strrep(eq_out, '\\', '; ');
+            eq_out = strrep(eq_out, '&', ' ');
+            eq_out = strrep(eq_out, '\left', '');
+            eq_out = strrep(eq_out, '\right', '');
+            eq_out = regexprep(eq_out, '\s+', ' ');
+            eq_out = strtrim(eq_out);
+        end
+
+        function key = stable_text_hash(~, txt)
+            raw = char(string(txt));
+            if isempty(raw)
+                key = "00000000";
+                return;
+            end
+            idx = 1:numel(raw);
+            bytes = double(raw);
+            h = uint32(2166136261);
+            for k = 1:numel(bytes)
+                h = bitxor(h, uint32(bytes(k)));
+                h = uint32(mod(double(h) * 16777619 + idx(k), 2^32));
+            end
+            key = string(dec2hex(h, 8));
+        end
+
+        function tf = supports_equation_image_rendering(~)
+            % Equation snapshot rendering is only enabled in desktop UI sessions.
+            tf = usejava('desktop');
         end
 
         function html = render_math_html(app, ic_name, eq_tex)

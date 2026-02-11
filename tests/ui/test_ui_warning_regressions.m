@@ -22,6 +22,16 @@ function [passed, details] = test_ui_warning_regressions()
         assert(isempty(strfind(lower(known_warn), 'contour not rendered for constant zdata')), ...
             'IC preview emitted constant-Z contour warning.');
 
+        % Equation widget should render without raw TeX leakage.
+        eq_h = app.handles.ic_equation;
+        if isprop(eq_h, 'HTMLSource')
+            eq_payload = char(string(eq_h.HTMLSource));
+            assert(isempty(strfind(eq_payload, '$$')), 'Equation HTML contains raw $$ markup.');
+        elseif isprop(eq_h, 'ImageSource')
+            eq_payload = char(string(eq_h.ImageSource));
+            assert(~isempty(eq_payload) && isfile(eq_payload), 'Equation image source missing.');
+        end
+
         % 2) Mode changes should not throw callback exceptions.
         modes = {'Evolution', 'Convergence', 'Sweep', 'Animation', 'Experimentation'};
         for k = 1:numel(modes)

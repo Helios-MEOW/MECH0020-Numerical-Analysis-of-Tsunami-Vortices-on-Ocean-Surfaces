@@ -72,13 +72,18 @@ function shot_path = run_windows_capture(label, output_dir)
         end
         target = fullfile(output_dir, sprintf('ui_acceptance_%s_%s.png', label, char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'))));
         cmd = sprintf('powershell -ExecutionPolicy Bypass -File "%s" -Path "%s" -ActiveWindow', script_path, target);
+        fallback_cmd = sprintf('powershell -ExecutionPolicy Bypass -File "%s" -Path "%s"', script_path, target);
     else
         cmd = sprintf('powershell -ExecutionPolicy Bypass -File "%s" -Mode temp -ActiveWindow', script_path);
+        fallback_cmd = sprintf('powershell -ExecutionPolicy Bypass -File "%s" -Mode temp', script_path);
     end
 
     [status, output_txt] = system(cmd);
     if status ~= 0
-        error('Screenshot command failed: %s', output_txt);
+        [status, output_txt] = system(fallback_cmd);
+        if status ~= 0
+            error('Screenshot command failed: %s', output_txt);
+        end
     end
 
     lines = splitlines(string(output_txt));
@@ -94,11 +99,17 @@ function checks = run_acceptance_checks(app)
     mode_panels = findall(app.fig, 'Type', 'uipanel', 'Title', 'Mode-Specific Controls');
     checks.mode_panel_absent = isempty(mode_panels);
 
-    eq_html = '';
+    checks.ic_equation_no_raw_tex = false;
     if isfield(app.handles, 'ic_equation') && isvalid(app.handles.ic_equation)
-        eq_html = char(string(app.handles.ic_equation.HTMLSource));
+        eq_h = app.handles.ic_equation;
+        if isprop(eq_h, 'HTMLSource')
+            eq_html = char(string(eq_h.HTMLSource));
+            checks.ic_equation_no_raw_tex = isempty(strfind(eq_html, '$$'));
+        elseif isprop(eq_h, 'ImageSource')
+            eq_img = char(string(eq_h.ImageSource));
+            checks.ic_equation_no_raw_tex = ~isempty(eq_img) && isfile(eq_img);
+        end
     end
-    checks.ic_equation_no_raw_tex = isempty(strfind(eq_html, '$$'));
 
     checks.ic_preview_visible = isfield(app.handles, 'ic_preview_axes') && ...
         isvalid(app.handles.ic_preview_axes) && strcmpi(app.handles.ic_preview_axes.Visible, 'on');
