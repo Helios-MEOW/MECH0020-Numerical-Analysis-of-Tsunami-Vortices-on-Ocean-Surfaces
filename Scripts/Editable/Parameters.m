@@ -69,7 +69,7 @@ function params = Parameters()
     % ---------------------------------------------------------------------
     params.mode = 'solve';
     params.create_animations = true;
-    params.animation_format = 'gif';
+    params.animation_format = 'mp4';
     params.animation_quality = 90;
     params.animation_codec = 'MPEG-4';
     params.animation_dir = fullfile('Figures', params.analysis_method, 'Animations');

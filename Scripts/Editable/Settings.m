@@ -40,7 +40,7 @@ function s = Settings()
     s.tile_snapshot_count = 9;      % For 3x3 tiled summary plots
     s.animation_frame_rate = 30;    % Frames per second for generated animation
     s.animation_frame_count = 100;  % Total sampled frames for animation timeline
-    s.animation_format = 'gif';
+    s.animation_format = 'mp4';
     s.animation_quality = 90;
     s.animation_codec = 'MPEG-4';
 
