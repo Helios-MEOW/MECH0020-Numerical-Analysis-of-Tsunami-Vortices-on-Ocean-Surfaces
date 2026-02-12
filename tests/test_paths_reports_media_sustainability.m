@@ -61,6 +61,27 @@ function test_paths_reports_media_sustainability()
     row_count = sum(strcmp(string(ledger_table.run_id), string(run_id)));
     assert(row_count == 1, 'Expected exactly one sustainability row for run_id %s, got %d', run_id, row_count);
 
+    % External collector adapter checks (must degrade gracefully when missing).
+    if exist('ExternalCollectorAdapters', 'class') == 8 || exist('ExternalCollectorAdapters', 'file') == 2
+        disabled_snap = ExternalCollectorAdapters.extract_snapshot('cpuz', false, '');
+        assert(strcmp(disabled_snap.status, 'disabled'), ...
+            'Disabled collector should report disabled status.');
+
+        missing_pref = fullfile(repo_root, 'Artifacts', '__missing__', 'hwinfo.exe');
+        hwinfo_snap = ExternalCollectorAdapters.extract_snapshot('hwinfo', true, missing_pref);
+        assert(isfield(hwinfo_snap, 'status') && isfield(hwinfo_snap, 'available') && isfield(hwinfo_snap, 'path'), ...
+            'Adapter snapshot must expose status/available/path fields.');
+        assert(any(strcmp(hwinfo_snap.status, {'connected', 'not_found', 'not_configured'})), ...
+            'Adapter must report connected/not_found/not_configured status.');
+
+        settings_probe = settings;
+        settings_probe.sustainability.external_collectors.cpuz = true;
+        settings_probe.sustainability.collector_paths.cpuz = fullfile(repo_root, 'Artifacts', '__missing__', 'cpuz.exe');
+        profile = SystemProfileCollector.collect(settings_probe);
+        assert(isfield(profile, 'collectors') && isfield(profile.collectors, 'cpuz_source'), ...
+            'System profile must expose collector source status.');
+    end
+
     % Plotting-mode canonical source lookup check.
     plot_run_id = ['plot_', run_id];
     rc_plot = Build_Run_Config('FD', 'Plotting', params.ic_type, ...

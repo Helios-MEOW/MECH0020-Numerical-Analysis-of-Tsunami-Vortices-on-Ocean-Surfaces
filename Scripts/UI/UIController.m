@@ -138,6 +138,7 @@ classdef UIController < handle
                     addpath(fullfile(scripts_dir, 'Methods'));
                     addpath(fullfile(scripts_dir, 'Modes'));
                     addpath(fullfile(scripts_dir, 'Modes', 'Convergence'));
+                    addpath(fullfile(scripts_dir, 'Sustainability'));
                 catch
                     % If path setup fails, IC preview will report a clear error
                 end
@@ -1480,6 +1481,15 @@ classdef UIController < handle
                 'cpuz', logical(cfg.collectors.cpuz), ...
                 'hwinfo', logical(cfg.collectors.hwinfo), ...
                 'icue', logical(cfg.collectors.icue));
+            settings.sustainability.collector_paths = struct('cpuz', '', 'hwinfo', '', 'icue', '');
+            if exist('ExternalCollectorAdapters', 'class') == 8 || exist('ExternalCollectorAdapters', 'file') == 2
+                cpuz_snapshot = ExternalCollectorAdapters.extract_snapshot('cpuz', logical(cfg.collectors.cpuz), '');
+                hwinfo_snapshot = ExternalCollectorAdapters.extract_snapshot('hwinfo', logical(cfg.collectors.hwinfo), '');
+                icue_snapshot = ExternalCollectorAdapters.extract_snapshot('icue', logical(cfg.collectors.icue), '');
+                settings.sustainability.collector_paths.cpuz = cpuz_snapshot.path;
+                settings.sustainability.collector_paths.hwinfo = hwinfo_snapshot.path;
+                settings.sustainability.collector_paths.icue = icue_snapshot.path;
+            end
 
             if strcmp(cfg.mode, 'convergence')
                 parameters.mesh_sizes = app.build_mesh_sizes(cfg.convergence_N_coarse, cfg.convergence_N_max);
@@ -2274,6 +2284,11 @@ classdef UIController < handle
                 connected = false;
                 return;
             end
+            if exist('ExternalCollectorAdapters', 'class') == 8 || exist('ExternalCollectorAdapters', 'file') == 2
+                [connected, ~, ~] = ExternalCollectorAdapters.probe(source, enabled, app.collector_probe_paths(source));
+                return;
+            end
+
             connected = false;
             paths = app.collector_probe_paths(source);
             for i = 1:numel(paths)
@@ -2285,6 +2300,10 @@ classdef UIController < handle
         end
 
         function paths = collector_probe_paths(~, source)
+            if exist('ExternalCollectorAdapters', 'class') == 8 || exist('ExternalCollectorAdapters', 'file') == 2
+                paths = ExternalCollectorAdapters.default_paths(source);
+                return;
+            end
             switch lower(char(string(source)))
                 case 'cpuz'
                     paths = {

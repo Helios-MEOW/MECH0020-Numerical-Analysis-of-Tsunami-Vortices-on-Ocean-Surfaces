@@ -79,9 +79,17 @@ classdef SystemProfileCollector
             collectors.cpuz_source = '';
             collectors.hwinfo_source = '';
             collectors.icue_source = '';
+            collectors.cpuz_path = '';
+            collectors.hwinfo_path = '';
+            collectors.icue_path = '';
 
             if ~isfield(Settings, 'sustainability') || ~isstruct(Settings.sustainability)
                 return;
+            end
+
+            collector_paths = struct('cpuz', '', 'hwinfo', '', 'icue', '');
+            if isfield(Settings.sustainability, 'collector_paths') && isstruct(Settings.sustainability.collector_paths)
+                collector_paths = Settings.sustainability.collector_paths;
             end
 
             if isfield(Settings.sustainability, 'external_collectors')
@@ -91,15 +99,29 @@ classdef SystemProfileCollector
                 if isfield(flags, 'icue'), collectors.icue = logical(flags.icue); end
             end
 
-            if isfield(Settings.sustainability, 'collector_paths')
-                paths = Settings.sustainability.collector_paths;
-                [collectors.cpuz, collectors.cpuz_source] = ...
-                    SystemProfileCollector.check_collector_path(paths, 'cpuz', collectors.cpuz);
-                [collectors.hwinfo, collectors.hwinfo_source] = ...
-                    SystemProfileCollector.check_collector_path(paths, 'hwinfo', collectors.hwinfo);
-                [collectors.icue, collectors.icue_source] = ...
-                    SystemProfileCollector.check_collector_path(paths, 'icue', collectors.icue);
+            if exist('ExternalCollectorAdapters', 'class') == 8 || exist('ExternalCollectorAdapters', 'file') == 2
+                cpuz = ExternalCollectorAdapters.extract_snapshot('cpuz', collectors.cpuz, collector_paths.cpuz);
+                hwinfo = ExternalCollectorAdapters.extract_snapshot('hwinfo', collectors.hwinfo, collector_paths.hwinfo);
+                icue = ExternalCollectorAdapters.extract_snapshot('icue', collectors.icue, collector_paths.icue);
+
+                collectors.cpuz = cpuz.available;
+                collectors.hwinfo = hwinfo.available;
+                collectors.icue = icue.available;
+                collectors.cpuz_source = cpuz.status;
+                collectors.hwinfo_source = hwinfo.status;
+                collectors.icue_source = icue.status;
+                collectors.cpuz_path = cpuz.path;
+                collectors.hwinfo_path = hwinfo.path;
+                collectors.icue_path = icue.path;
+                return;
             end
+
+            [collectors.cpuz, collectors.cpuz_source] = ...
+                SystemProfileCollector.check_collector_path(collector_paths, 'cpuz', collectors.cpuz);
+            [collectors.hwinfo, collectors.hwinfo_source] = ...
+                SystemProfileCollector.check_collector_path(collector_paths, 'hwinfo', collectors.hwinfo);
+            [collectors.icue, collectors.icue_source] = ...
+                SystemProfileCollector.check_collector_path(collector_paths, 'icue', collectors.icue);
         end
 
         function [enabled, source_path] = check_collector_path(path_struct, field_name, default_enabled)
