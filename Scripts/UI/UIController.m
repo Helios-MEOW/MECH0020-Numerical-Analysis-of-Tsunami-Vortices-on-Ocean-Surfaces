@@ -640,11 +640,11 @@ classdef UIController < handle
             checks_grid = uigridlayout(check_layout, [2 8]);
             checks_grid.Layout.Row = 1;
             checks_grid.Layout.Column = 1;
-            checks_grid.RowHeight = {20, 24};
+            checks_grid.RowHeight = {18, 20};
             checks_grid.ColumnWidth = {'1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x'};
             checks_grid.Padding = [0 0 0 0];
-            checks_grid.RowSpacing = 2;
-            checks_grid.ColumnSpacing = 6;
+            checks_grid.RowSpacing = 1;
+            checks_grid.ColumnSpacing = 4;
 
             app.handles.check_grid = uilabel(checks_grid, 'Text', '■', ...
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
@@ -662,57 +662,32 @@ classdef UIController < handle
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
             app.handles.check_conv.Layout.Row = 1; app.handles.check_conv.Layout.Column = 5;
             app.handles.check_monitor = uilabel(checks_grid, 'Text', '[ ]', ...
-                'HorizontalAlignment', 'center', 'FontSize', 11, 'FontColor', C.accent_red);
+                'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
             app.handles.check_monitor.Layout.Row = 1; app.handles.check_monitor.Layout.Column = 6;
             app.handles.check_collectors = uilabel(checks_grid, 'Text', '[ ]', ...
-                'HorizontalAlignment', 'center', 'FontSize', 11, 'FontColor', C.accent_red);
+                'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
             app.handles.check_collectors.Layout.Row = 1; app.handles.check_collectors.Layout.Column = 7;
             app.handles.check_outputs = uilabel(checks_grid, 'Text', '[ ]', ...
-                'HorizontalAlignment', 'center', 'FontSize', 11, 'FontColor', C.accent_red);
+                'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
             app.handles.check_outputs.Layout.Row = 1; app.handles.check_outputs.Layout.Column = 8;
             app.handles.check_grid.Text = '[ ]';
             app.handles.check_domain.Text = '[ ]';
             app.handles.check_time.Text = '[ ]';
             app.handles.check_ic.Text = '[ ]';
             app.handles.check_conv.Text = '[ ]';
-            app.handles.check_grid.FontSize = 11;
-            app.handles.check_domain.FontSize = 11;
-            app.handles.check_time.FontSize = 11;
-            app.handles.check_ic.FontSize = 11;
-            app.handles.check_conv.FontSize = 11;
-            app.handles.check_grid.Text = '[ ]';
-            app.handles.check_domain.Text = '[ ]';
-            app.handles.check_time.Text = '[ ]';
-            app.handles.check_ic.Text = '[ ]';
-            app.handles.check_conv.Text = '[ ]';
-            app.handles.check_grid.FontSize = 11;
-            app.handles.check_domain.FontSize = 11;
-            app.handles.check_time.FontSize = 11;
-            app.handles.check_ic.FontSize = 11;
-            app.handles.check_conv.FontSize = 11;
+            app.handles.check_grid.FontSize = 10;
+            app.handles.check_domain.FontSize = 10;
+            app.handles.check_time.FontSize = 10;
+            app.handles.check_ic.FontSize = 10;
+            app.handles.check_conv.FontSize = 10;
 
-            lbl = uilabel(checks_grid, 'Text', 'Grid', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 1;
-            lbl = uilabel(checks_grid, 'Text', 'Domain', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 2;
-            lbl = uilabel(checks_grid, 'Text', 'Time', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 3;
-            lbl = uilabel(checks_grid, 'Text', 'IC', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 4;
-            lbl = uilabel(checks_grid, 'Text', 'Convergence', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 5;
-            lbl = uilabel(checks_grid, 'Text', 'Monitor', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 6;
-            lbl = uilabel(checks_grid, 'Text', 'Collectors', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 7;
-            lbl = uilabel(checks_grid, 'Text', 'Outputs', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 8;
-            lbl = uilabel(checks_grid, 'Text', 'Monitor', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 6;
-            lbl = uilabel(checks_grid, 'Text', 'Collectors', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 7;
-            lbl = uilabel(checks_grid, 'Text', 'Outputs', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            lbl.Layout.Row = 2; lbl.Layout.Column = 8;
+            label_names = {'Grid', 'Domain', 'Time', 'IC', 'Conv', 'Mon', 'Coll', 'Out'};
+            for idx = 1:numel(label_names)
+                lbl = uilabel(checks_grid, 'Text', label_names{idx}, ...
+                    'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 9);
+                lbl.Layout.Row = 2;
+                lbl.Layout.Column = idx;
+            end
 
             info_lbl = uilabel(check_layout, ...
                 'Text', 'Legend: green = ready, red = needs input', ...
@@ -720,13 +695,8 @@ classdef UIController < handle
             info_lbl.Layout.Row = 2;
             info_lbl.Layout.Column = 1;
 
-            app.handles.run_status = uilabel(check_layout, 'Text', 'Idle', ...
-                'FontColor', C.fg_muted, 'HorizontalAlignment', 'center');
-            app.handles.run_status.Layout.Row = 3;
-            app.handles.run_status.Layout.Column = 1;
-
             buttons_row = uigridlayout(check_layout, [1 3]);
-            buttons_row.Layout.Row = 4;
+            buttons_row.Layout.Row = 3;
             buttons_row.Layout.Column = 1;
             buttons_row.ColumnWidth = {'1x', '1x', '1x'};
             buttons_row.RowHeight = {'1x'};
@@ -973,14 +943,20 @@ classdef UIController < handle
             uibutton(controls, 'Text', 'Clear', ...
                 'ButtonPushedFcn', @(~,~) app.clear_terminal_view());
 
+            app.handles.run_status = uilabel(side_layout, 'Text', 'Idle', ...
+                'FontColor', C.fg_muted, 'HorizontalAlignment', 'center', ...
+                'FontWeight', 'bold');
+            app.handles.run_status.Layout.Row = 2;
+            app.handles.run_status.Layout.Column = 1;
+
             app.handles.terminal_output = uihtml(side_layout, ...
                 'HTMLSource', app.render_terminal_html());
-            app.handles.terminal_output.Layout.Row = 2;
+            app.handles.terminal_output.Layout.Row = 3;
             app.handles.terminal_output.Layout.Column = 1;
 
             source_panel = uipanel(side_layout, 'Title', 'Sustainability Source Readiness', ...
                 'BackgroundColor', C.bg_panel_alt);
-            source_panel.Layout.Row = 3;
+            source_panel.Layout.Row = 4;
             source_panel.Layout.Column = 1;
             source_grid = uigridlayout(source_panel, [2 4]);
             source_grid.Padding = [4 4 4 4];

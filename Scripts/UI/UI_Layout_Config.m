@@ -103,11 +103,11 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.sus_grid.row_heights = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.sus_grid.padding = [6 6 6 6];
 
-    cfg.config_tab.check_grid.rows_cols = [4, 1];
+    cfg.config_tab.check_grid.rows_cols = [3, 1];
     cfg.config_tab.check_grid.col_widths = {'1x'};
-    cfg.config_tab.check_grid.row_heights = {76, 40, cfg.heights.form_row, cfg.heights.button};
+    cfg.config_tab.check_grid.row_heights = {64, 24, cfg.heights.button};
     cfg.config_tab.check_grid.padding = [6 6 6 6];
-    cfg.config_tab.check_grid.row_spacing = 6;
+    cfg.config_tab.check_grid.row_spacing = 4;
 
     cfg.config_tab.ic_grid.rows_cols = [8, 4];
     cfg.config_tab.ic_grid.col_widths = {'1x', '1x', '1x', '1x'};
@@ -135,8 +135,8 @@ function cfg = UI_Layout_Config()
     cfg.monitor_tab.left.row_spacing = 10;
     cfg.monitor_tab.left.col_spacing = 10;
 
-    cfg.monitor_tab.sidebar.rows_cols = [3, 1];
-    cfg.monitor_tab.sidebar.row_heights = {36, '1x', 'fit'};
+    cfg.monitor_tab.sidebar.rows_cols = [4, 1];
+    cfg.monitor_tab.sidebar.row_heights = {36, 24, '1x', 'fit'};
     cfg.monitor_tab.sidebar.padding = [8 8 8 8];
     cfg.monitor_tab.sidebar.row_spacing = 8;
 
