@@ -877,29 +877,30 @@ classdef UIController < handle
 
                 if tile_idx == cfg.numeric_tile_index
                     numeric_panel = uipanel(dash_grid, ...
-                        'Title', 'Ranked Numerical Metrics', ...
+                        'Title', 'Simulation Metrics (Categorized)', ...
                         'BackgroundColor', C.bg_panel_alt);
                     numeric_panel.Layout.Row = row_idx;
                     numeric_panel.Layout.Column = col_idx;
                     numeric_layout = uigridlayout(numeric_panel, [1 1]);
                     numeric_layout.Padding = [4 4 4 4];
                     app.handles.monitor_numeric_table = uitable(numeric_layout, ...
-                        'ColumnName', {'Metric', 'Value', 'Unit', 'Source'}, ...
-                        'ColumnEditable', [false false false false], ...
-                        'ColumnWidth', {170, 120, 70, 130}, ...
+                        'ColumnName', {'Metric Summary'}, ...
+                        'ColumnEditable', false, ...
+                        'ColumnWidth', {330}, ...
+                        'RowName', [], ...
                         'Data', {
-                            'Status', 'Waiting for run', '-', 'UI';
-                            'Grid', '--', '-', 'UI';
-                            'dt', '--', 's', 'UI';
-                            'Runtime', '--', 's', 'Dispatcher';
-                            'Max |omega|', '--', '-', 'Solver';
-                            'Convergence tol', '--', '-', 'Convergence';
-                            'Convergence metric', '--', '-', 'Convergence';
-                            'Suggested coarse N', '--', '-', 'Advisor';
-                            'CPU usage', '--', '%', 'MATLAB';
-                            'Memory', '--', 'MB', 'MATLAB';
-                            'Machine', '--', '-', 'SystemProfile';
-                            'Collectors', '--', '-', 'SystemProfile'
+                            '[Session] Status: Waiting for run';
+                            '[Iteration] Runtime: -- s';
+                            '[Iteration] Iteration: -- iter';
+                            '[Iteration] Iterations/s: -- iter/s';
+                            '[Solution] Max |omega|: --';
+                            '[Convergence] Tolerance: --';
+                            '[Convergence] Metric: --';
+                            '[Convergence] Suggested coarse N: --';
+                            '[Computer] CPU usage: -- %';
+                            '[Computer] Memory: -- MB';
+                            '[System] Machine: --';
+                            '[System] Collectors: --'
                         });
                     continue;
                 end
@@ -4572,27 +4573,27 @@ classdef UIController < handle
             end
 
             rows = {
-                'Status', status_text, '-', status_source;
-                'Runtime', app.if_nan_num(wall_time), 's', 'Dispatcher';
-                'Iteration', app.if_nan_num(iter_now), 'iter', 'Runtime';
-                'Iterations/s', app.if_nan_num(iter_rate_now), 'iter/s', 'Runtime';
-                'Max |omega|', app.if_nan_num(max_omega_val), '-', 'Solver';
-                'Memory', app.if_nan_num(mem_now), 'MB', 'MATLAB';
-                'CPU usage', app.if_nan_num(cpu_now), '%', 'MATLAB';
-                'Convergence tol', conv_tol_display, '-', 'Convergence';
-                'Convergence metric', conv_metric_display, '-', 'Convergence';
-                'Suggested coarse N', suggested_n_display, '-', 'Advisor';
-                'Grid', sprintf('%dx%d', cfg.Nx, cfg.Ny), '-', 'Parameters';
-                'dt', sprintf('%.3g', cfg.dt), 's', 'Parameters';
-                'Tfinal', sprintf('%.3g', cfg.Tfinal), 's', 'Parameters';
-                'Domain Lx', sprintf('%.3g', cfg.Lx), 'm', 'Parameters';
-                'Domain Ly', sprintf('%.3g', cfg.Ly), 'm', 'Parameters';
-                'Mode', app.humanize_token(run_mode), '-', 'UI';
-                'Method', app.humanize_token(cfg.method), '-', 'UI';
-                'Monitor profile', sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode)), '-', 'MetricCatalog';
-                'Run ID', app.if_empty(run_id, '--'), '-', 'Dispatcher';
-                'Machine', machine, '-', 'SystemProfile';
-                'Collectors', collectors, '-', 'SystemProfile'
+                app.monitor_metric_line('Session', 'Status', sprintf('%s [%s]', status_text, status_source), '');
+                app.monitor_metric_line('Iteration', 'Runtime', app.if_nan_num(wall_time), 's');
+                app.monitor_metric_line('Iteration', 'Iteration', app.if_nan_num(iter_now), 'iter');
+                app.monitor_metric_line('Iteration', 'Iterations/s', app.if_nan_num(iter_rate_now), 'iter/s');
+                app.monitor_metric_line('Solution', 'Max |omega|', app.if_nan_num(max_omega_val), '');
+                app.monitor_metric_line('Computer', 'CPU usage', app.if_nan_num(cpu_now), '%');
+                app.monitor_metric_line('Computer', 'Memory', app.if_nan_num(mem_now), 'MB');
+                app.monitor_metric_line('Convergence', 'Tolerance', conv_tol_display, '');
+                app.monitor_metric_line('Convergence', 'Metric', conv_metric_display, '');
+                app.monitor_metric_line('Convergence', 'Suggested coarse N', suggested_n_display, '');
+                app.monitor_metric_line('Grid', 'Mesh', sprintf('%dx%d', cfg.Nx, cfg.Ny), '');
+                app.monitor_metric_line('Grid', 'dt', sprintf('%.3g', cfg.dt), 's');
+                app.monitor_metric_line('Grid', 'Tfinal', sprintf('%.3g', cfg.Tfinal), 's');
+                app.monitor_metric_line('Grid', 'Domain Lx', sprintf('%.3g', cfg.Lx), 'm');
+                app.monitor_metric_line('Grid', 'Domain Ly', sprintf('%.3g', cfg.Ly), 'm');
+                app.monitor_metric_line('Session', 'Mode', app.humanize_token(run_mode), '');
+                app.monitor_metric_line('Session', 'Method', app.humanize_token(cfg.method), '');
+                app.monitor_metric_line('Session', 'Monitor profile', sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode)), '');
+                app.monitor_metric_line('Session', 'Run ID', app.if_empty(run_id, '--'), '');
+                app.monitor_metric_line('System', 'Machine', machine, '');
+                app.monitor_metric_line('System', 'Collectors', collectors, '')
             };
             app.handles.monitor_numeric_table.Data = rows;
         end
@@ -5014,6 +5015,17 @@ classdef UIController < handle
             else
                 out = '--';
             end
+        end
+
+        function line = monitor_metric_line(~, category, label, value, unit)
+            value_txt = char(string(value));
+            unit_txt = strtrim(char(string(unit)));
+            if isempty(unit_txt) || strcmp(unit_txt, '-') || strcmp(value_txt, '--') || strcmpi(value_txt, 'N/A')
+                value_with_unit = value_txt;
+            else
+                value_with_unit = sprintf('%s %s', value_txt, unit_txt);
+            end
+            line = sprintf('[%s] %s: %s', char(string(category)), char(string(label)), value_with_unit);
         end
 
         function out = if_empty(~, txt, fallback)

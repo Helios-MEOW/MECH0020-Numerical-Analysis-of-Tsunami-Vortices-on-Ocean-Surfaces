@@ -134,8 +134,9 @@ function checks = run_acceptance_checks(app)
             evo_titles = arrayfun(@(h) lower(char(string(h.Title.String))), app.handles.monitor_axes, 'UniformOutput', false);
             evo_no_na = ~any(cellfun(@(t) contains(t, '(n/a)'), evo_titles));
             evo_table = app.handles.monitor_numeric_table.Data;
-            conv_tol_idx = find(strcmp(evo_table(:, 1), 'Convergence tol'), 1, 'first');
-            evo_conv_na = ~isempty(conv_tol_idx) && strcmp(evo_table{conv_tol_idx, 2}, 'N/A');
+            evo_lines = lower(string(evo_table(:, 1)));
+            conv_tol_idx = find(contains(evo_lines, '[convergence] tolerance:'), 1, 'first');
+            evo_conv_na = ~isempty(conv_tol_idx) && contains(evo_lines(conv_tol_idx), 'n/a');
 
             cfg.mode = 'convergence';
             app.refresh_monitor_dashboard(summary_stub, cfg);
