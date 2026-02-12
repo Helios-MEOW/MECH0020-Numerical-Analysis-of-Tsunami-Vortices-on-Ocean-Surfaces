@@ -274,6 +274,9 @@ classdef UIController < handle
 
             parent = app.tabs.config;
             parent.BackgroundColor = C.bg_dark;
+            if isprop(parent, 'Scrollable')
+                parent.Scrollable = 'on';
+            end
 
             cfg_root = app.layout_cfg.config_tab.root;
             root = uigridlayout(parent, cfg_root.rows_cols);
@@ -284,14 +287,18 @@ classdef UIController < handle
             root.ColumnSpacing = cfg_root.col_spacing;
 
             left = uipanel(root, 'Title', 'Configuration', 'FontWeight', 'bold', ...
-                'BackgroundColor', C.bg_panel);
+                'BackgroundColor', C.bg_panel, ...
+                'Scrollable', 'on');
             left.Layout.Row = app.layout_cfg.coords.config.left(1);
             left.Layout.Column = app.layout_cfg.coords.config.left(2);
+            app.handles.config_left_panel = left;
 
             right = uipanel(root, 'Title', 'Initial Conditions and Preview', 'FontWeight', 'bold', ...
-                'BackgroundColor', C.bg_panel);
+                'BackgroundColor', C.bg_panel, ...
+                'Scrollable', 'on');
             right.Layout.Row = app.layout_cfg.coords.config.right(1);
             right.Layout.Column = app.layout_cfg.coords.config.right(2);
+            app.handles.config_right_panel = right;
 
             cfg_left = app.layout_cfg.config_tab.left;
             left_layout = uigridlayout(left, cfg_left.rows_cols);
