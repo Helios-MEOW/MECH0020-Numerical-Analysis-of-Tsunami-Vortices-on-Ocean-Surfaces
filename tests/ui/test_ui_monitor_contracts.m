@@ -100,6 +100,17 @@ function [passed, details] = test_ui_monitor_contracts()
         cfg_eval = app.config;
         cfg_eval.mode = 'evolution';
         cfg_eval.method = 'finite_difference';
+        line(app.handles.monitor_axes(1), [0 1], [1 2], 'Tag', 'stale_monitor_line_test');
+        app.handles.monitor_numeric_table.Data = {'Stale', '999', '-', 'Test'};
+        app.reset_live_monitor_history_for_run(cfg_eval);
+        assert(isempty(findobj(app.handles.monitor_axes(1), 'Tag', 'stale_monitor_line_test')), ...
+            'Run-start monitor reset must clear stale plot history.');
+        data_after_reset = app.handles.monitor_numeric_table.Data;
+        assert(~any(strcmp(data_after_reset(:, 1), 'Stale')), ...
+            'Run-start monitor reset must clear stale numeric table rows.');
+        status_after_reset = find(strcmp(data_after_reset(:, 1), 'Status'), 1, 'first');
+        assert(~isempty(status_after_reset) && contains(lower(string(data_after_reset{status_after_reset, 2})), 'running'), ...
+            'Run-start monitor reset must repopulate status from fresh runtime session state.');
         app.refresh_monitor_dashboard(summary_stub, cfg_eval);
         axis_titles = arrayfun(@(h) lower(char(string(h.Title.String))), app.handles.monitor_axes, 'UniformOutput', false);
         assert(~any(cellfun(@(t) contains(t, '(n/a)'), axis_titles)), ...

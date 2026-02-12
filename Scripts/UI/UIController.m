@@ -1315,7 +1315,7 @@ classdef UIController < handle
             end
 
             [run_config, parameters, settings] = app.build_runtime_inputs(cfg_override);
-            app.start_live_monitor_session(cfg_override);
+            app.reset_live_monitor_history_for_run(cfg_override);
             settings.ui_progress_callback = @(payload) app.handle_live_monitor_progress(payload, cfg_override);
             run_started = tic;
             [results, paths] = ModeDispatcher(run_config, parameters, settings);
@@ -1743,6 +1743,21 @@ classdef UIController < handle
                 'conv_residual', zeros(1, 0), ...
                 'total_iterations', NaN, ...
                 'status_text', sprintf('Running %s...', app.humanize_token(cfg.mode)));
+        end
+
+        function reset_live_monitor_history_for_run(app, cfg)
+            % Reset monitor plots/table to a clean per-run state while preserving files on disk.
+            if nargin < 2 || isempty(cfg)
+                cfg = app.config;
+            end
+
+            app.start_live_monitor_session(cfg);
+            if isfield(app.handles, 'monitor_axes') && ~isempty(app.handles.monitor_axes) && ...
+                    isfield(app.handles, 'monitor_numeric_table')
+                summary_seed = struct('results', struct(), 'monitor_series', app.handles.monitor_live_state);
+                app.refresh_monitor_dashboard(summary_seed, cfg);
+                drawnow limitrate;
+            end
         end
 
         function handle_live_monitor_progress(app, payload, cfg)
