@@ -689,11 +689,17 @@ classdef UIController < handle
                 lbl.Layout.Column = idx;
             end
 
+            defaults_summary = 'Defaults source: create_default_parameters.m -> Scripts/Editable/Parameters.m + Scripts/Editable/Settings.m';
+            if isfield(app.layout_cfg, 'defaults_source') && isstruct(app.layout_cfg.defaults_source) && ...
+                    isfield(app.layout_cfg.defaults_source, 'summary') && ~isempty(app.layout_cfg.defaults_source.summary)
+                defaults_summary = char(string(app.layout_cfg.defaults_source.summary));
+            end
             info_lbl = uilabel(check_layout, ...
-                'Text', 'Legend: green = ready, red = needs input', ...
-                'FontColor', C.fg_muted, 'HorizontalAlignment', 'center');
+                'Text', sprintf('Legend: green = ready, red = needs input\n%s', defaults_summary), ...
+                'FontColor', C.fg_muted, 'HorizontalAlignment', 'center', 'WordWrap', 'on');
             info_lbl.Layout.Row = 2;
             info_lbl.Layout.Column = 1;
+            app.handles.defaults_source_info = info_lbl;
 
             buttons_row = uigridlayout(check_layout, [1 3]);
             buttons_row.Layout.Row = 3;
@@ -2469,6 +2475,11 @@ classdef UIController < handle
                 'icue', app.handles.icue_enable.Value, ...
                 'strict', app.handles.collector_strict.Value, ...
                 'machine_tag', app.handles.machine_tag.Value);
+            if isfield(app.config, 'defaults_source') && isstruct(app.config.defaults_source)
+                config_export.defaults_source = app.config.defaults_source;
+            elseif isfield(app.layout_cfg, 'defaults_source')
+                config_export.defaults_source = app.layout_cfg.defaults_source;
+            end
             
             if endsWith(file, '.json')
                 json_str = jsonencode(config_export);
@@ -2682,6 +2693,18 @@ classdef UIController < handle
                 if isfield(c, 'icue'), app.handles.icue_enable.Value = logical(c.icue); end
                 if isfield(c, 'strict'), app.handles.collector_strict.Value = logical(c.strict); end
                 if isfield(c, 'machine_tag'), app.handles.machine_tag.Value = char(string(c.machine_tag)); end
+            end
+            if isfield(cfg, 'defaults_source') && isstruct(cfg.defaults_source)
+                app.config.defaults_source = cfg.defaults_source;
+            end
+            if app.has_valid_handle('defaults_source_info')
+                defaults_summary = 'Defaults source: create_default_parameters.m -> Scripts/Editable/Parameters.m + Scripts/Editable/Settings.m';
+                if isfield(app.config, 'defaults_source') && isstruct(app.config.defaults_source) && ...
+                        isfield(app.config.defaults_source, 'summary')
+                    defaults_summary = char(string(app.config.defaults_source.summary));
+                end
+                app.handles.defaults_source_info.Text = sprintf( ...
+                    'Legend: green = ready, red = needs input\n%s', defaults_summary);
             end
 
             app.on_method_changed();
@@ -3689,6 +3712,11 @@ classdef UIController < handle
                 'range_end', 2.0, ...
                 'num_points', 4);
             config.run_mode_internal = 'Evolution';
+            config.defaults_source = struct( ...
+                'summary', 'Loaded by create_default_parameters.m and editable via Scripts/Editable/Parameters.m + Scripts/Editable/Settings.m', ...
+                'loader', 'Scripts/Infrastructure/Initialisers/create_default_parameters.m', ...
+                'editable_parameters', 'Scripts/Editable/Parameters.m', ...
+                'editable_settings', 'Scripts/Editable/Settings.m');
         end
         
         % ===================================================================

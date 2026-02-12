@@ -8,6 +8,9 @@ function test_ui_layout_sandbox()
         'UI_Layout_Config must expose non-empty layout_manifest.');
     assert(isfield(cfg, 'text') && isfield(cfg.text, 'tabs') && isfield(cfg.text, 'monitor_panels'), ...
         'UI_Layout_Config must expose centralized text manifest.');
+    assert(isfield(cfg, 'defaults_source') && isfield(cfg.defaults_source, 'loader') && ...
+        contains(lower(string(cfg.defaults_source.loader)), 'create_default_parameters'), ...
+        'UI_Layout_Config must expose defaults provenance.');
 
     sandbox = UI_Layout_Sandbox('Visible', 'off');
     cleanup_obj = onCleanup(@() close_sandbox(sandbox));
