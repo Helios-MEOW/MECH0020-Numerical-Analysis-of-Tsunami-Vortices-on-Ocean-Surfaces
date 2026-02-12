@@ -39,8 +39,9 @@
     PathBuilder.ensure_directories(paths);
 
     % Save configuration
-    config_path = fullfile(paths.config, 'Config.mat');
+    config_path = fullfile(paths.config, sprintf('Config_%s.mat', Run_Config.run_id));
     save(config_path, 'Run_Config', 'Parameters', 'Settings');
+    save(fullfile(paths.config, 'Config.mat'), 'Run_Config', 'Parameters', 'Settings');
 
     % ===== METHOD DISPATCH =====
     % Resolve method callbacks (init, step, diagnostics)
@@ -160,9 +161,11 @@
 
     % ===== SAVE OUTPUTS =====
     if Settings.save_data
-        data_path = fullfile(paths.data, 'results.mat');
+        data_path = fullfile(paths.data, sprintf('results_%s.mat', Run_Config.run_id));
         State = sanitize_state_for_save(State); %#ok<NASGU>
         save(data_path, 'analysis', 'Results', 'State', '-v7.3');
+        save(fullfile(paths.data, 'results.mat'), 'analysis', 'Results', 'State', '-v7.3');
+        Results.data_path = data_path;
     end
 
     if Settings.save_figures

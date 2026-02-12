@@ -5,8 +5,8 @@ classdef RunIDGenerator
     %   Create run IDs that encode method, mode, IC, and key parameters
     %   Support "recreate from PNG" workflow via parseable format
     %
-    % Format: <timestamp>_<method>_<mode>_<IC>_<grid>_<dt>_<hash>
-    % Example: 20260206T153042Z_FD_Evolution_LambOseen_g256_dt1e-3_hA1B2
+    % Format: <timestamp>_<method>_<mode>_<IC>_<grid>_<dt>
+    % Example: 20260206T153042Z_FD_Evolution_LambOseen_g256_dt1e-3
     %
     % Usage:
     %   run_id = RunIDGenerator.generate(Run_Config, Parameters);
@@ -54,32 +54,28 @@ classdef RunIDGenerator
                 dt_str = 'dtUnknown';
             end
             
-            % Short hash of full config (for uniqueness)
-            config_str = char(RunIDGenerator.struct_to_string(Run_Config) + ...
-                              RunIDGenerator.struct_to_string(Parameters));
-            hash_val = mod(RunIDGenerator.hash_string(config_str), 65536);
-            hash_str = sprintf('h%04X', hash_val);
-            
             % Assemble run ID
-            run_id = sprintf('%s_%s_%s_%s_%s_%s_%s', ...
-                timestamp, method, mode, ic, grid_str, dt_str, hash_str);
+            run_id = sprintf('%s_%s_%s_%s_%s_%s', ...
+                timestamp, method, mode, ic, grid_str, dt_str);
         end
         
         function info = parse(run_id)
             % Parse run_id back into components
-            % Returns struct with: timestamp, method, mode, ic, grid, dt, hash
+            % Returns struct with: timestamp, method, mode, ic, grid, dt
             
             parts = strsplit(run_id, '_');
             info = struct();
             
-            if length(parts) >= 7
+            if length(parts) >= 6
                 info.timestamp = parts{1};
                 info.method = parts{2};
                 info.mode = parts{3};
                 info.ic_type = parts{4};
                 info.grid_str = parts{5};
                 info.dt_str = parts{6};
-                info.hash_str = parts{7};
+                if length(parts) >= 7
+                    info.hash_str = parts{7};  % Backward compatibility with legacy IDs.
+                end
                 
                 % Parse grid
                 grid_match = regexp(info.grid_str, 'g(\d+)x?(\d*)', 'tokens');
@@ -106,7 +102,7 @@ classdef RunIDGenerator
             % Create standardized figure filename
             % Format: <run_id>__<figure_type>__<variant>.png
             %
-            % Example: 20260206T153042Z_FD_Evolution_LambOseen_g256_dt1e-3_hA1B2__contour__t0.5.png
+            % Example: 20260206T153042Z_FD_Evolution_LambOseen_g256_dt1e-3__contour__t0.5.png
             
             if nargin < 3
                 variant = '';
@@ -158,19 +154,9 @@ classdef RunIDGenerator
             end
         end
         
-        function hash = hash_string(str)
-            % Simple hash function for string
-            if isstring(str)
-                str = char(strjoin(str, ""));
-            end
-            if isempty(str)
-                hash = 0;
-                return;
-            end
+        function hash = hash_string(str) %#ok<INUSD>
+            % Legacy no-op retained for compatibility with older call sites.
             hash = 0;
-            for i = 1:min(numel(str), 1000)  % Limit to avoid long strings
-                hash = mod(hash * 31 + double(str(i)), 2^32);
-            end
         end
     end
 end

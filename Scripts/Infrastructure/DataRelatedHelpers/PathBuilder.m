@@ -34,7 +34,13 @@ classdef PathBuilder
             method_token = PathBuilder.normalize_method_token(method);
             mode_token = PathBuilder.normalize_mode_token(mode);
 
-            base_path = fullfile(results_root, method_token, mode_token, identifier);
+            if strcmpi(mode_token, 'Evolution')
+                % Evolution runs are one-off executions stored under a shared mode root.
+                base_path = fullfile(results_root, method_token, mode_token);
+            else
+                % Study modes retain per-run/per-study subdirectories.
+                base_path = fullfile(results_root, method_token, mode_token, identifier);
+            end
 
             paths = struct();
             paths.repo_root = repo_root;

@@ -40,10 +40,15 @@ function test_paths_reports_media_sustainability()
     assert(isfield(results, 'run_id') && ~isempty(results.run_id), 'Missing results.run_id');
     run_id = char(string(results.run_id));
     fprintf('[HARDENING] Run id: %s\n', run_id);
+    assert(~contains(run_id, '_h'), 'Run ID must not include hash component: %s', run_id);
 
     expected_root = fullfile(repo_root, 'Results');
     assert(startsWith(paths.base, expected_root), ...
         'Run wrote outside canonical Results root: %s', paths.base);
+    assert(strcmp(paths.base, fullfile(repo_root, 'Results', 'FD', 'Evolution')), ...
+        'Evolution mode should use shared base directory, got: %s', paths.base);
+    assert(exist(fullfile(paths.data, sprintf('results_%s.mat', run_id)), 'file') == 2, ...
+        'Missing run-specific evolution data file in shared Evolution/Data directory.');
 
     manifest_path = fullfile(paths.config, 'run_manifest.json');
     payload_path = fullfile(paths.reports, 'report_payload.json');

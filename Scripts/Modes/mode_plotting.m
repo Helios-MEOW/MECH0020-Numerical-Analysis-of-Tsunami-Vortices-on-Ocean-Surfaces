@@ -108,6 +108,19 @@ function data_path = find_run_data(run_id, output_root)
                     data_path = candidate;
                 end
             end
+
+            % Evolution mode now stores run files under shared mode Data/.
+            if strcmp(modes{j}, 'Evolution')
+                shared_candidate = fullfile(results_root, methods{i}, modes{j}, 'Data', ...
+                    sprintf('results_%s.mat', run_id));
+                if exist(shared_candidate, 'file')
+                    file_info = dir(shared_candidate);
+                    if ~isempty(file_info) && file_info.datenum > newest_datenum
+                        newest_datenum = file_info.datenum;
+                        data_path = shared_candidate;
+                    end
+                end
+            end
         end
     end
 end
