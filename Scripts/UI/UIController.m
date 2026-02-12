@@ -1778,7 +1778,9 @@ classdef UIController < handle
                 mem_now = 1024;
             end
 
-            if isempty(state.iters) || iter > state.iters(end)
+            should_append = isempty(state.iters) || iter > state.iters(end) || ...
+                (~isempty(state.t) && sim_time > state.t(end) + eps);
+            if should_append
                 state.iters(end + 1) = iter; %#ok<AGROW>
                 state.t(end + 1) = sim_time; %#ok<AGROW>
                 state.max_omega(end + 1) = max_omega; %#ok<AGROW>
@@ -4346,15 +4348,15 @@ classdef UIController < handle
                 'id', {'iter_vs_time', 'iter_per_sec', 'runtime_vs_time', 'max_vorticity', ...
                        'energy_proxy', 'enstrophy_proxy', 'vorticity_decay_rate', 'cpu_proxy', ...
                        'memory_mb', 'iteration_completion', 'stability_proxy', 'convergence_residual'}, ...
-                'title', {'Iterations', 'Iterations/s', 'Runtime', 'Max $|\\omega|$', ...
+                'title', {'Iterations', 'Iterations/s', 'Runtime', 'Max $|\omega|$', ...
                           'Energy Proxy', 'Enstrophy Proxy', 'Decay Rate', 'CPU Usage', ...
                           'Memory Usage', 'Completion', 'Stability Proxy', 'Convergence Residual'}, ...
                 'xlabel', {'Physical time', 'Physical time', 'Physical time', 'Physical time', ...
                            'Physical time', 'Physical time', 'Physical time', 'Physical time', ...
                            'Physical time', 'Physical time', 'Physical time', 'Iteration'}, ...
-                'ylabel', {'iters', 'iters/s', 's', '$|\\omega|_{max}$', ...
-                           '$E^*$', '$Z^*$', '$-d|\\omega|/dt$', 'CPU \%', ...
-                           'MB', '\%', 'proxy', 'residual'}, ...
+                'ylabel', {'iters', 'iters/s', 's', '$|\omega|_{max}$', ...
+                           '$E^*$', '$Z^*$', '$-d|\omega|/dt$', 'CPU (%)', ...
+                           'MB', '%', 'proxy', 'residual'}, ...
                 'methods', {all_methods, all_methods, all_methods, all_methods, ...
                             all_methods, all_methods, all_methods, all_methods, ...
                             all_methods, all_methods, all_methods, all_methods}, ...
@@ -4402,12 +4404,10 @@ classdef UIController < handle
                 [x, y] = app.monitor_metric_series(metric.id, monitor_series);
                 [x, y] = app.normalize_metric_vectors(x, y);
                 plot(ax, x, y, 'LineWidth', 1.6, 'Color', app.layout_cfg.colors.accent_cyan);
-                title(ax, metric.title, 'Color', app.layout_cfg.colors.fg_text, 'FontSize', 10, 'Interpreter', 'latex');
-                xlabel(ax, metric.xlabel, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
-                ylabel(ax, metric.ylabel, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
-                grid(ax, 'on');
-                ax.PlotBoxAspectRatio = [1 1 1];
-                ax.PlotBoxAspectRatioMode = 'manual';
+                app.apply_monitor_plot_format(ax, metric);
+                if strcmp(metric.id, 'cpu_proxy')
+                    ytickformat(ax, '%.2f');
+                end
 
                 if strcmp(metric.id, 'convergence_residual') && isfinite(tol) && tol > 0
                     yline(ax, tol, '--', sprintf('tol=%.1e', tol), ...
@@ -4795,6 +4795,60 @@ classdef UIController < handle
             end
             x = x(1:n);
             y = y(1:n);
+        end
+
+        function apply_monitor_plot_format(app, ax, metric)
+            app.style_axes(ax);
+            ax.PlotBoxAspectRatio = [1 1 1];
+            ax.PlotBoxAspectRatioMode = 'manual';
+            grid(ax, 'on');
+
+            fig = ancestor(ax, 'figure');
+            if ~isempty(fig) && isprop(fig, 'CurrentAxes')
+                try
+                    fig.CurrentAxes = ax;
+                catch
+                end
+            end
+
+            if exist('Plot_Format', 'file') == 2
+                try
+                    axes(ax);
+                    Plot_Format(metric.xlabel, metric.ylabel, metric.title, 'Default', 1.2);
+                catch
+                    % Fallback to direct label styling below.
+                end
+            end
+
+            % Enforce per-axis labels directly so dynamic tile assignment remains deterministic.
+            title(ax, metric.title, 'Color', app.layout_cfg.colors.fg_text, 'FontSize', 10, 'Interpreter', 'latex');
+            xlabel(ax, metric.xlabel, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
+            y_interp = 'latex';
+            if strcmp(metric.id, 'cpu_proxy') || strcmp(metric.id, 'iteration_completion')
+                y_interp = 'none';
+            end
+            ylabel(ax, metric.ylabel, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', y_interp);
+            ax.Color = app.layout_cfg.colors.bg_dark;
+            ax.XColor = app.layout_cfg.colors.fg_text;
+            ax.YColor = app.layout_cfg.colors.fg_text;
+            ax.GridColor = app.layout_cfg.colors.accent_gray;
+
+            if exist('Legend_Format', 'file') == 2
+                try
+                    warn_snapshot = warning;
+                    warning('off', 'all');
+                    warning_state = warning('off', 'MATLAB:legend:IgnoringExtraEntries');
+                    Legend_Format({metric.title}, 8, 'vertical', 1, 1, true, 'on', 0.01);
+                    warning(warning_state.state, 'MATLAB:legend:IgnoringExtraEntries');
+                    warning(warn_snapshot);
+                catch
+                    warning('on', 'all');
+                    warning('on', 'MATLAB:legend:IgnoringExtraEntries');
+                    legend(ax, metric.title, 'Interpreter', 'latex', 'Location', 'best');
+                end
+            else
+                legend(ax, metric.title, 'Interpreter', 'latex', 'Location', 'best');
+            end
         end
 
         function value = last_finite_from_series(app, monitor_series, field_name)

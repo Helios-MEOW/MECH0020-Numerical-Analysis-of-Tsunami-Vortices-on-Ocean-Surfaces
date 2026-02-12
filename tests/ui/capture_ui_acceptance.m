@@ -144,6 +144,22 @@ function checks = run_acceptance_checks(app)
             checks.convergence_metric_mode_gated = false;
         end
     end
+    checks.cpu_axis_two_decimals = false;
+    if isfield(app.handles, 'monitor_axes') && numel(app.handles.monitor_axes) >= 1
+        try
+            cfg = app.config;
+            cfg.mode = 'evolution';
+            cfg.method = 'finite_difference';
+            app.refresh_monitor_dashboard(struct('results', struct()), cfg);
+            titles = arrayfun(@(h) lower(char(string(h.Title.String))), app.handles.monitor_axes, 'UniformOutput', false);
+            cpu_idx = find(contains(titles, 'cpu usage'), 1, 'first');
+            if ~isempty(cpu_idx)
+                checks.cpu_axis_two_decimals = strcmp(string(app.handles.monitor_axes(cpu_idx).YAxis.TickLabelFormat), "%.2f");
+            end
+        catch
+            checks.cpu_axis_two_decimals = false;
+        end
+    end
 
     checks.config_left_scrollable = isfield(app.handles, 'config_left_panel') && ...
         isvalid(app.handles.config_left_panel) && ...

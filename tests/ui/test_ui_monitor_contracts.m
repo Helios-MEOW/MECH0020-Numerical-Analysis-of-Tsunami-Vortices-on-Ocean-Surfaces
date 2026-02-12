@@ -151,6 +151,11 @@ function [passed, details] = test_ui_monitor_contracts()
         status_idx = find(strcmp(table_data(:, 1), 'Status'), 1, 'first');
         assert(~isempty(status_idx) && contains(lower(string(table_data{status_idx, 2})), 'running'), ...
             'Numeric monitor table status should reflect runtime progress payload.');
+        axis_titles = arrayfun(@(h) lower(char(string(h.Title.String))), app.handles.monitor_axes, 'UniformOutput', false);
+        cpu_axis_idx = find(contains(axis_titles, 'cpu usage'), 1, 'first');
+        assert(~isempty(cpu_axis_idx), 'CPU usage tile should be part of ranked monitor selection.');
+        assert(strcmp(string(app.handles.monitor_axes(cpu_axis_idx).YAxis.TickLabelFormat), "%.2f"), ...
+            'CPU usage axis must use 2-decimal tick precision.');
 
         passed = true;
         details = 'UI monitor/layout contracts passed.';
