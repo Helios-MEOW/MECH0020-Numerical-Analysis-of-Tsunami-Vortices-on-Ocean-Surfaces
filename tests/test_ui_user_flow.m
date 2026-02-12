@@ -8,6 +8,14 @@ function [passed, details] = test_ui_user_flow()
     app = [];
 
     try
+        if exist('ensure_ui_test_paths', 'file') ~= 2
+            this_dir = fileparts(mfilename('fullpath'));
+            ui_test_dir = fullfile(this_dir, 'ui');
+            if isfolder(ui_test_dir)
+                addpath(ui_test_dir, '-begin');
+            end
+        end
+        ensure_ui_test_paths();
         app = UIController('StartupMode', 'ui');
 
         assert(~isempty(app), 'UIController returned an empty app object.');

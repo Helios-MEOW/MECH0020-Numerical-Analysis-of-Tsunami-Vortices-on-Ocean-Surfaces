@@ -10,6 +10,7 @@ function artifacts = capture_ui_acceptance(varargin)
     parse(p, varargin{:});
 
     output_dir = char(string(p.Results.OutputDir));
+    ensure_ui_test_paths();
     artifacts = struct('config_shot', '', 'monitor_shot', '', 'timestamp', char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss')), ...
         'checks', struct(), 'report_json', '', 'report_md', '');
     app = [];
@@ -44,7 +45,8 @@ function artifacts = capture_ui_acceptance(varargin)
         [artifacts.report_json, artifacts.report_md] = write_acceptance_reports(artifacts, output_dir);
 
     catch ME
-        warning('capture_ui_acceptance:CaptureFailed', '%s', ME.message);
+        warning('capture_ui_acceptance:CaptureFailed', '%s\n%s', ...
+            ME.message, getReport(ME, 'basic', 'hyperlinks', 'off'));
     end
 
     try

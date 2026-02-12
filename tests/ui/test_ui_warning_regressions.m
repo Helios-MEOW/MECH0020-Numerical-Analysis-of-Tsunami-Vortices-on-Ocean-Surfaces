@@ -7,6 +7,7 @@ function [passed, details] = test_ui_warning_regressions()
     known_warn = '';
 
     try
+        ensure_ui_test_paths();
         app = UIController('StartupMode', 'ui');
 
         % 1) IC preview should not emit constant-Z contour warnings.

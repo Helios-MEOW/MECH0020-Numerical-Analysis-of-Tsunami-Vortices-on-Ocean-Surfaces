@@ -6,6 +6,7 @@ function [passed, details] = test_ui_monitor_contracts()
     app = [];
 
     try
+        ensure_ui_test_paths();
         app = UIController('StartupMode', 'ui');
 
         assert(isfield(app.handles, 'monitor_axes'), 'Missing monitor_axes handle.');

@@ -1053,6 +1053,8 @@ classdef UIController < handle
         % Action methods
         function launch_simulation(app)
             % Collect UI state and execute selected run path synchronously
+            % Start each launch with a fresh terminal pane to avoid stale logs.
+            app.clear_terminal_view();
             app.set_run_state('running', 'Collecting configuration...');
             try
                 app.collect_configuration_from_ui();
