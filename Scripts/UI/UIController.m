@@ -1065,6 +1065,7 @@ classdef UIController < handle
             app.set_run_state('running', 'Collecting configuration...');
             try
                 app.collect_configuration_from_ui();
+                app.log_launch_parameter_summary();
                 app.validate_launch_configuration();
 
                 app.tab_group.SelectedTab = app.tabs.monitoring;
@@ -1089,6 +1090,44 @@ classdef UIController < handle
                 if ~isempty(app.fig) && isvalid(app.fig)
                     uialert(app.fig, ME.message, 'Launch Error', 'Icon', 'error');
                 end
+            end
+        end
+
+        function log_launch_parameter_summary(app)
+            % Print selected launch parameters before any run-status lines.
+            cfg = app.config;
+            method_label = app.humanize_token(cfg.method);
+            mode_label = app.humanize_token(cfg.mode);
+            run_mode_label = app.humanize_token(cfg.run_mode_internal);
+            ic_label = cfg.ic_type;
+
+            lines = {
+                '=== Selected Run Parameters ==='
+                sprintf('Method: %s | Mode: %s | Dispatcher: %s', method_label, mode_label, run_mode_label)
+                sprintf('Grid: Nx=%d Ny=%d | Domain: Lx=%.4g Ly=%.4g', cfg.Nx, cfg.Ny, cfg.Lx, cfg.Ly)
+                sprintf('Time: dt=%.4g Tfinal=%.4g | Snapshots=%d', cfg.dt, cfg.Tfinal, cfg.num_snapshots)
+                sprintf('IC: %s | Scale=%.4g | Count=%d', ic_label, cfg.ic_scale, cfg.ic_count)
+                sprintf('Output: CSV=%s MAT=%s PNG=%s FIG=%s', ...
+                    app.on_off(cfg.save_csv), app.on_off(cfg.save_mat), ...
+                    app.on_off(cfg.figures_save_png), app.on_off(cfg.figures_save_fig))
+                sprintf('Sustainability: monitor=%s interval=%.4gs autolog=%s', ...
+                    app.on_off(cfg.enable_monitoring), cfg.sample_interval, app.on_off(cfg.sustainability_auto_log))
+                '================================'
+            };
+
+            if strcmp(cfg.mode, 'sweep')
+                lines{end + 1} = sprintf('Sweep: %s = [%s]', cfg.sweep_parameter, ...
+                    strjoin(arrayfun(@(v) sprintf('%.4g', v), cfg.sweep_values, 'UniformOutput', false), ', ')); %#ok<AGROW>
+            elseif strcmp(cfg.mode, 'experimentation')
+                lines{end + 1} = sprintf('Experimentation: %s in [%.4g, %.4g] (%d points)', ...
+                    cfg.experimentation.coeff_selector, ...
+                    cfg.experimentation.range_start, ...
+                    cfg.experimentation.range_end, ...
+                    cfg.experimentation.num_points); %#ok<AGROW>
+            end
+
+            for i = 1:numel(lines)
+                app.append_to_terminal(lines{i}, 'info');
             end
         end
 
@@ -4228,6 +4267,20 @@ classdef UIController < handle
             else
                 out = t;
             end
+        end
+
+        function out = humanize_token(~, value)
+            token = char(string(value));
+            token = strrep(token, '_', ' ');
+            token = strtrim(lower(token));
+            parts = strsplit(token, ' ');
+            for i = 1:numel(parts)
+                if isempty(parts{i})
+                    continue;
+                end
+                parts{i}(1) = upper(parts{i}(1));
+            end
+            out = strjoin(parts, ' ');
         end
         
         function validate_all_layouts(app)
