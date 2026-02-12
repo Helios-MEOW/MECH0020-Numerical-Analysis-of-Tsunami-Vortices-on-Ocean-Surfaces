@@ -119,6 +119,10 @@ function checks = run_acceptance_checks(app)
     checks.monitor_contract_8_plus_1 = isfield(app.handles, 'monitor_axes') && ...
         numel(app.handles.monitor_axes) == 8 && isfield(app.handles, 'monitor_numeric_table') && ...
         isvalid(app.handles.monitor_numeric_table);
+    checks.monitor_titles_latex = false;
+    if isfield(app.handles, 'monitor_axes') && numel(app.handles.monitor_axes) >= 1
+        checks.monitor_titles_latex = all(arrayfun(@(h) strcmpi(string(h.Title.Interpreter), "latex"), app.handles.monitor_axes));
+    end
     checks.convergence_metric_mode_gated = false;
     if isfield(app.handles, 'monitor_axes') && numel(app.handles.monitor_axes) >= 8
         try

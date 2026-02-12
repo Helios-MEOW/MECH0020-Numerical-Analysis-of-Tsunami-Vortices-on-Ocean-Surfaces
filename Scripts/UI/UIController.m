@@ -915,9 +915,9 @@ classdef UIController < handle
                 tile_layout.Padding = [4 4 4 4];
                 ax = uiaxes(tile_layout);
                 app.style_axes(ax);
-                title(ax, metric.title, 'Color', C.fg_text, 'FontSize', 10);
-                xlabel(ax, metric.xlabel, 'Color', C.fg_text);
-                ylabel(ax, metric.ylabel, 'Color', C.fg_text);
+                title(ax, metric.title, 'Color', C.fg_text, 'FontSize', 10, 'Interpreter', 'latex');
+                xlabel(ax, metric.xlabel, 'Color', C.fg_text, 'Interpreter', 'latex');
+                ylabel(ax, metric.ylabel, 'Color', C.fg_text, 'Interpreter', 'latex');
                 grid(ax, 'on');
                 ax.PlotBoxAspectRatio = [1 1 1];
                 ax.PlotBoxAspectRatioMode = 'manual';
@@ -3104,12 +3104,13 @@ classdef UIController < handle
                 colormap(ax, 'turbo');
                 cb = colorbar(ax);
                 cb.Color = app.layout_cfg.colors.fg_text;
-                title(ax, sprintf('Initial Vorticity w(x,y,0): %s', ic_display), ...
+                title(ax, sprintf('Initial Vorticity $\\omega(x,y,0)$: %s', ic_display), ...
                     'FontSize', 11, ...
                     'FontWeight', 'bold', ...
-                    'Color', app.layout_cfg.colors.fg_text);
-                xlabel(ax, 'x', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text);
-                ylabel(ax, 'y', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text);
+                    'Color', app.layout_cfg.colors.fg_text, ...
+                    'Interpreter', 'latex');
+                xlabel(ax, '$x$', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
+                ylabel(ax, '$y$', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
                 axis(ax, 'equal');
                 xlim(ax, [-Lx/2 Lx/2]);
                 ylim(ax, [-Ly/2 Ly/2]);
@@ -4885,9 +4886,10 @@ classdef UIController < handle
             text(ax, 0.5, 0.42, msg_2, 'HorizontalAlignment', 'center', ...
                 'Color', app.layout_cfg.colors.fg_muted, 'FontSize', 9);
 
-            title(ax, sprintf('%s (N/A)', metric.title), 'Color', app.layout_cfg.colors.fg_text, 'FontSize', 10);
-            xlabel(ax, '');
-            ylabel(ax, '');
+            title(ax, sprintf('%s (N/A)', metric.title), 'Color', app.layout_cfg.colors.fg_text, ...
+                'FontSize', 10, 'Interpreter', 'latex');
+            xlabel(ax, '', 'Interpreter', 'latex');
+            ylabel(ax, '', 'Interpreter', 'latex');
         end
 
         function cfg = normalize_monitor_cfg(app, cfg)
