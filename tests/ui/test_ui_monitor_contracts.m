@@ -87,24 +87,35 @@ function [passed, details] = test_ui_monitor_contracts()
         assert(strcmpi(string(app.handles.conv_N_coarse.Enable), "on"), ...
             'Convergence controls must unlock in manual convergence mode.');
 
-        % Metric applicability: convergence residual must be gated by mode.
+        % Metric applicability/ranking: evolution should avoid N/A tiles and
+        % convergence mode should include active convergence residual.
         summary_stub = struct('results', struct());
         cfg_eval = app.config;
         cfg_eval.mode = 'evolution';
         cfg_eval.method = 'finite_difference';
         app.refresh_monitor_dashboard(summary_stub, cfg_eval);
-        conv_title = lower(char(string(app.handles.monitor_axes(8).Title.String)));
-        assert(contains(conv_title, '(n/a)'), ...
-            'Convergence residual plot should be marked N/A outside convergence mode.');
+        axis_titles = arrayfun(@(h) lower(char(string(h.Title.String))), app.handles.monitor_axes, 'UniformOutput', false);
+        assert(~any(cellfun(@(t) contains(t, '(n/a)'), axis_titles)), ...
+            'Evolution monitor selection should avoid N/A tiles when applicable metrics exist.');
         data_eval = app.handles.monitor_numeric_table.Data;
+        runtime_idx = find(strcmp(data_eval(:, 1), 'Runtime'), 1, 'first');
+        method_idx = find(strcmp(data_eval(:, 1), 'Method'), 1, 'first');
+        iter_idx = find(strcmp(data_eval(:, 1), 'Iteration'), 1, 'first');
+        machine_idx = find(strcmp(data_eval(:, 1), 'Machine'), 1, 'first');
+        assert(~isempty(runtime_idx) && ~isempty(method_idx) && runtime_idx < method_idx, ...
+            'Runtime row should be ranked above method metadata.');
+        assert(~isempty(iter_idx) && ~isempty(machine_idx) && iter_idx < machine_idx, ...
+            'Iteration row should be ranked above machine metadata.');
         conv_tol_idx = find(strcmp(data_eval(:, 1), 'Convergence tol'), 1, 'first');
         assert(~isempty(conv_tol_idx) && strcmp(data_eval{conv_tol_idx, 2}, 'N/A'), ...
             'Convergence tolerance row should be N/A outside convergence mode.');
 
         cfg_eval.mode = 'convergence';
         app.refresh_monitor_dashboard(summary_stub, cfg_eval);
-        conv_title = lower(char(string(app.handles.monitor_axes(8).Title.String)));
-        assert(~contains(conv_title, '(n/a)'), ...
+        axis_titles = arrayfun(@(h) lower(char(string(h.Title.String))), app.handles.monitor_axes, 'UniformOutput', false);
+        conv_idx = find(contains(axis_titles, 'convergence residual'), 1, 'first');
+        assert(~isempty(conv_idx), 'Convergence mode should include convergence residual tile in ranked selection.');
+        assert(~contains(axis_titles{conv_idx}, '(n/a)'), ...
             'Convergence residual plot should be active in convergence mode.');
 
         app.handles.cpuz_enable.Value = true;

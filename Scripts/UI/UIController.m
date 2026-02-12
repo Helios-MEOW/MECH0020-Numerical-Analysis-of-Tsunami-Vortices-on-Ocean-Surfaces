@@ -1007,6 +1007,7 @@ classdef UIController < handle
             app.handles.btn_retry_icue.Layout.Row = 4; app.handles.btn_retry_icue.Layout.Column = 4;
 
             app.refresh_collector_probe_status('all');
+            app.refresh_monitor_dashboard(struct('results', struct()), app.config);
         end
         function create_terminal_tab(~)
             % Terminal tab removed (merged into monitoring tab)
@@ -1718,13 +1719,19 @@ classdef UIController < handle
             app.handles.monitor_live_state = struct( ...
                 't', zeros(1, 0), ...
                 'iters', zeros(1, 0), ...
+                'iter_rate', zeros(1, 0), ...
                 'max_omega', zeros(1, 0), ...
                 'energy_proxy', zeros(1, 0), ...
                 'enstrophy_proxy', zeros(1, 0), ...
                 'cpu_proxy', zeros(1, 0), ...
                 'memory_series', zeros(1, 0), ...
+                'elapsed_wall_time', zeros(1, 0), ...
+                'iter_completion_pct', zeros(1, 0), ...
+                'vorticity_decay_rate', zeros(1, 0), ...
+                'stability_proxy', zeros(1, 0), ...
                 'conv_x', zeros(1, 0), ...
                 'conv_residual', zeros(1, 0), ...
+                'total_iterations', NaN, ...
                 'status_text', sprintf('Running %s...', app.humanize_token(cfg.mode)));
         end
 
@@ -1749,6 +1756,7 @@ classdef UIController < handle
 
             total_iter = app.progress_field(payload, {'total_iterations', 'total'}, NaN);
             sim_time = app.progress_field(payload, {'time', 't'}, iter * max(cfg.dt, eps));
+            wall_time = app.progress_field(payload, {'wall_time', 'elapsed_seconds'}, NaN);
             max_omega = app.progress_field(payload, {'max_vorticity', 'max_omega'}, NaN);
             energy_proxy = app.progress_field(payload, {'kinetic_energy', 'energy_proxy'}, NaN);
             enstrophy_proxy = app.progress_field(payload, {'enstrophy', 'enstrophy_proxy'}, NaN);
@@ -1792,6 +1800,15 @@ classdef UIController < handle
                 cpu_index = idx;
             end
 
+            if ~isfinite(wall_time)
+                if numel(state.elapsed_wall_time) >= cpu_index && isfinite(state.elapsed_wall_time(cpu_index))
+                    wall_time = state.elapsed_wall_time(cpu_index);
+                else
+                    wall_time = max(sim_time, 0);
+                end
+            end
+            state.elapsed_wall_time(cpu_index) = wall_time;
+
             if numel(state.iters) >= 2
                 dt = max(state.t(end) - state.t(end - 1), eps);
                 di = max(state.iters(end) - state.iters(end - 1), 0);
@@ -1799,11 +1816,32 @@ classdef UIController < handle
             else
                 iter_rate_now = NaN;
             end
+            state.iter_rate(cpu_index) = iter_rate_now;
             if numel(state.cpu_proxy) < cpu_index
                 state.cpu_proxy(cpu_index) = app.live_cpu_proxy(iter_rate_now);
             else
                 state.cpu_proxy(cpu_index) = app.live_cpu_proxy(iter_rate_now);
             end
+
+            if isfinite(total_iter) && total_iter > 0
+                state.total_iterations = total_iter;
+                state.iter_completion_pct(cpu_index) = 100 * min(max(iter / total_iter, 0), 1);
+            else
+                denom = max(state.iters(end), 1);
+                state.iter_completion_pct(cpu_index) = 100 * min(max(iter / denom, 0), 1);
+            end
+
+            if cpu_index >= 2
+                dt_live = max(state.t(cpu_index) - state.t(cpu_index - 1), eps);
+                domega = abs(state.max_omega(cpu_index)) - abs(state.max_omega(cpu_index - 1));
+                state.vorticity_decay_rate(cpu_index) = max(0, -domega / dt_live);
+            else
+                state.vorticity_decay_rate(cpu_index) = NaN;
+            end
+            if ~isfinite(state.vorticity_decay_rate(cpu_index))
+                state.vorticity_decay_rate(cpu_index) = 0;
+            end
+            state.stability_proxy(cpu_index) = 1 / (1 + abs(state.vorticity_decay_rate(cpu_index)));
 
             if isfinite(total_iter) && total_iter > 0
                 progress_pct = 100 * min(max(iter / total_iter, 0), 1);
@@ -4299,25 +4337,31 @@ classdef UIController < handle
         end
 
         function catalog = build_monitor_metric_catalog(~)
-            % Ranked tiles for the 3x3 monitor (first 8 are plots).
+            % Ranked metric catalog for the 3x3 monitor (first 8 rendered as plots).
             all_methods = {'finite_difference', 'finite_volume', 'spectral'};
             all_modes = {'evolution', 'convergence', 'sweep', 'animation', 'experimentation'};
             conv_only = {'convergence'};
 
             catalog = struct( ...
-                'id', {'iter_vs_time', 'iter_per_sec', 'max_vorticity', 'energy_proxy', ...
-                       'enstrophy_proxy', 'cpu_proxy', 'memory_mb', 'convergence_residual'}, ...
-                'title', {'Iterations', 'Iterations/s', 'Max |omega|', 'Energy Proxy', ...
-                          'Enstrophy Proxy', 'CPU Load Proxy', 'Memory Usage', 'Convergence Residual'}, ...
+                'id', {'iter_vs_time', 'iter_per_sec', 'runtime_vs_time', 'max_vorticity', ...
+                       'energy_proxy', 'enstrophy_proxy', 'vorticity_decay_rate', 'cpu_proxy', ...
+                       'memory_mb', 'iteration_completion', 'stability_proxy', 'convergence_residual'}, ...
+                'title', {'Iterations', 'Iterations/s', 'Runtime', 'Max $|\\omega|$', ...
+                          'Energy Proxy', 'Enstrophy Proxy', 'Decay Rate', 'CPU Usage', ...
+                          'Memory Usage', 'Completion', 'Stability Proxy', 'Convergence Residual'}, ...
                 'xlabel', {'Physical time', 'Physical time', 'Physical time', 'Physical time', ...
+                           'Physical time', 'Physical time', 'Physical time', 'Physical time', ...
                            'Physical time', 'Physical time', 'Physical time', 'Iteration'}, ...
-                'ylabel', {'iters', 'iters/s', '|omega|_{max}', 'E*', ...
-                           'Z*', 'CPU %', 'MB', 'residual'}, ...
+                'ylabel', {'iters', 'iters/s', 's', '$|\\omega|_{max}$', ...
+                           '$E^*$', '$Z^*$', '$-d|\\omega|/dt$', 'CPU \%', ...
+                           'MB', '\%', 'proxy', 'residual'}, ...
                 'methods', {all_methods, all_methods, all_methods, all_methods, ...
+                            all_methods, all_methods, all_methods, all_methods, ...
                             all_methods, all_methods, all_methods, all_methods}, ...
                 'modes', {all_modes, all_modes, all_modes, all_modes, ...
+                          all_modes, all_modes, all_modes, all_modes, ...
                           all_modes, all_modes, all_modes, conv_only}, ...
-                'rank', num2cell(1:8));
+                'rank', num2cell([1, 2, 5, 3, 4, 6, 8, 9, 10, 11, 12, 7]));
         end
 
         function refresh_monitor_dashboard(app, summary, cfg)
@@ -4330,16 +4374,6 @@ classdef UIController < handle
             cfg = app.normalize_monitor_cfg(cfg);
 
             monitor_series = app.resolve_monitor_series(summary, cfg);
-            t = monitor_series.t;
-            iters = monitor_series.iters;
-            iter_rate = monitor_series.iter_rate;
-            max_omega = monitor_series.max_omega;
-            energy_proxy = monitor_series.energy_proxy;
-            enstrophy_proxy = monitor_series.enstrophy_proxy;
-            cpu_proxy = monitor_series.cpu_proxy;
-            memory_series = monitor_series.memory_series;
-            conv_x = monitor_series.conv_x;
-            conv_residual = monitor_series.conv_residual;
             mem_now = monitor_series.mem_now;
 
             tol = NaN;
@@ -4349,35 +4383,28 @@ classdef UIController < handle
                 tol = app.handles.conv_tolerance.Value;
             end
 
-            series = {
-                t, iters;
-                t, iter_rate;
-                t, max_omega;
-                t, energy_proxy;
-                t, enstrophy_proxy;
-                t, cpu_proxy;
-                t, memory_series;
-                conv_x, conv_residual
-            };
+            slot_count = min(numel(app.handles.monitor_axes), 8);
+            selected_metric_indices = app.select_monitor_metric_indices(cfg, slot_count);
+            app.handles.monitor_ranked_selection = selected_metric_indices;
 
-            for i = 1:min(numel(app.handles.monitor_axes), 8)
-                ax = app.handles.monitor_axes(i);
+            for slot = 1:slot_count
+                ax = app.handles.monitor_axes(slot);
                 if ~isvalid(ax)
                     continue;
                 end
-                metric = app.handles.monitor_metric_catalog(i);
+                metric = app.handles.monitor_metric_catalog(selected_metric_indices(slot));
                 if ~app.is_monitor_metric_applicable(metric, cfg)
                     app.render_monitor_metric_not_applicable(ax, metric, cfg);
                     continue;
                 end
 
                 cla(ax);
-                x = series{i, 1};
-                y = series{i, 2};
+                [x, y] = app.monitor_metric_series(metric.id, monitor_series);
+                [x, y] = app.normalize_metric_vectors(x, y);
                 plot(ax, x, y, 'LineWidth', 1.6, 'Color', app.layout_cfg.colors.accent_cyan);
-                title(ax, metric.title, 'Color', app.layout_cfg.colors.fg_text, 'FontSize', 10);
-                xlabel(ax, metric.xlabel, 'Color', app.layout_cfg.colors.fg_text);
-                ylabel(ax, metric.ylabel, 'Color', app.layout_cfg.colors.fg_text);
+                title(ax, metric.title, 'Color', app.layout_cfg.colors.fg_text, 'FontSize', 10, 'Interpreter', 'latex');
+                xlabel(ax, metric.xlabel, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
+                ylabel(ax, metric.ylabel, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
                 grid(ax, 'on');
                 ax.PlotBoxAspectRatio = [1 1 1];
                 ax.PlotBoxAspectRatioMode = 'manual';
@@ -4396,10 +4423,10 @@ classdef UIController < handle
             end
 
             conv_metric = monitor_series.conv_metric;
-            app.update_monitor_numeric_table(summary, cfg, mem_now, tol, conv_metric);
+            app.update_monitor_numeric_table(summary, cfg, monitor_series, mem_now, tol, conv_metric);
         end
 
-        function update_monitor_numeric_table(app, summary, cfg, mem_now, tol, conv_metric)
+        function update_monitor_numeric_table(app, summary, cfg, monitor_series, mem_now, tol, conv_metric)
             if ~app.has_valid_handle('monitor_numeric_table')
                 return;
             end
@@ -4502,24 +4529,33 @@ classdef UIController < handle
                 suggested_n_display = 'N/A';
             end
 
+            iter_now = app.last_finite_from_series(monitor_series, 'iters');
+            iter_rate_now = app.last_finite_from_series(monitor_series, 'iter_rate');
+            cpu_now = app.last_finite_from_series(monitor_series, 'cpu_proxy');
+            if ~isfinite(cpu_now)
+                cpu_now = NaN;
+            end
+
             rows = {
                 'Status', status_text, '-', status_source;
-                'Mode', app.humanize_token(run_mode), '-', 'UI';
-                'Run ID', app.if_empty(run_id, '--'), '-', 'Dispatcher';
-                'Method', app.humanize_token(cfg.method), '-', 'UI';
-                'Monitor profile', sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode)), '-', 'MetricCatalog';
-                'Grid', sprintf('%dx%d', cfg.Nx, cfg.Ny), '-', 'Parameters';
-                'Domain Lx', sprintf('%.3g', cfg.Lx), 'm', 'Parameters';
-                'Domain Ly', sprintf('%.3g', cfg.Ly), 'm', 'Parameters';
-                'dt', sprintf('%.3g', cfg.dt), 's', 'Parameters';
-                'Tfinal', sprintf('%.3g', cfg.Tfinal), 's', 'Parameters';
                 'Runtime', app.if_nan_num(wall_time), 's', 'Dispatcher';
+                'Iteration', app.if_nan_num(iter_now), 'iter', 'Runtime';
+                'Iterations/s', app.if_nan_num(iter_rate_now), 'iter/s', 'Runtime';
                 'Max |omega|', app.if_nan_num(max_omega_val), '-', 'Solver';
+                'Memory', app.if_nan_num(mem_now), 'MB', 'MATLAB';
+                'CPU usage', app.if_nan_num(cpu_now), '%', 'MATLAB';
                 'Convergence tol', conv_tol_display, '-', 'Convergence';
                 'Convergence metric', conv_metric_display, '-', 'Convergence';
                 'Suggested coarse N', suggested_n_display, '-', 'Advisor';
-                'CPU usage', '--', '%', 'MATLAB';
-                'Memory', app.if_nan_num(mem_now), 'MB', 'MATLAB';
+                'Grid', sprintf('%dx%d', cfg.Nx, cfg.Ny), '-', 'Parameters';
+                'dt', sprintf('%.3g', cfg.dt), 's', 'Parameters';
+                'Tfinal', sprintf('%.3g', cfg.Tfinal), 's', 'Parameters';
+                'Domain Lx', sprintf('%.3g', cfg.Lx), 'm', 'Parameters';
+                'Domain Ly', sprintf('%.3g', cfg.Ly), 'm', 'Parameters';
+                'Mode', app.humanize_token(run_mode), '-', 'UI';
+                'Method', app.humanize_token(cfg.method), '-', 'UI';
+                'Monitor profile', sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode)), '-', 'MetricCatalog';
+                'Run ID', app.if_empty(run_id, '--'), '-', 'Dispatcher';
                 'Machine', machine, '-', 'SystemProfile';
                 'Collectors', collectors, '-', 'SystemProfile'
             };
@@ -4625,6 +4661,27 @@ classdef UIController < handle
                 end
             end
 
+            elapsed_wall_time = app.rowvec(app.pick_field(live, {'elapsed_wall_time', 'runtime_series', 'wall_time_series'}, t));
+            if numel(elapsed_wall_time) ~= numel(t)
+                elapsed_wall_time = t;
+            end
+
+            iter_completion = app.rowvec(app.pick_field(live, {'iter_completion_pct', 'completion_pct'}, nan(size(t))));
+            if numel(iter_completion) ~= numel(t) || ~any(isfinite(iter_completion))
+                denom = max(max(iters), 1);
+                iter_completion = 100 * min(max(iters ./ denom, 0), 1);
+            end
+
+            vorticity_decay_rate = app.rowvec(app.pick_field(live, {'vorticity_decay_rate', 'decay_rate'}, nan(size(t))));
+            if numel(vorticity_decay_rate) ~= numel(t) || ~any(isfinite(vorticity_decay_rate))
+                vorticity_decay_rate = max(0, -gradient(abs(max_omega), t + eps));
+            end
+
+            stability_proxy = app.rowvec(app.pick_field(live, {'stability_proxy', 'cfl_proxy'}, nan(size(t))));
+            if numel(stability_proxy) ~= numel(t) || ~any(isfinite(stability_proxy))
+                stability_proxy = 1 ./ (1 + abs(vorticity_decay_rate));
+            end
+
             conv_metric = NaN;
             finite_conv = conv_residual(isfinite(conv_residual));
             if ~isempty(finite_conv)
@@ -4640,6 +4697,10 @@ classdef UIController < handle
                 'enstrophy_proxy', enstrophy_proxy, ...
                 'cpu_proxy', cpu_proxy, ...
                 'memory_series', memory_series, ...
+                'elapsed_wall_time', elapsed_wall_time, ...
+                'iter_completion_pct', iter_completion, ...
+                'vorticity_decay_rate', vorticity_decay_rate, ...
+                'stability_proxy', stability_proxy, ...
                 'conv_x', conv_x, ...
                 'conv_residual', conv_residual, ...
                 'mem_now', mem_now, ...
@@ -4663,6 +4724,89 @@ classdef UIController < handle
                 return;
             end
             v = reshape(double(value), 1, []);
+        end
+
+        function selected = select_monitor_metric_indices(app, cfg, slot_count)
+            if nargin < 4 || isempty(slot_count)
+                slot_count = 8;
+            end
+            catalog = app.handles.monitor_metric_catalog;
+            if isempty(catalog)
+                selected = 1:min(slot_count, 0);
+                return;
+            end
+
+            applicable = find(arrayfun(@(m) app.is_monitor_metric_applicable(m, cfg), catalog));
+            if isempty(applicable)
+                applicable = 1:numel(catalog);
+            end
+            [~, order] = sort([catalog(applicable).rank], 'ascend');
+            selected = applicable(order);
+
+            if numel(selected) < slot_count
+                remaining = setdiff(1:numel(catalog), selected, 'stable');
+                if ~isempty(remaining)
+                    [~, rem_order] = sort([catalog(remaining).rank], 'ascend');
+                    selected = [selected, remaining(rem_order)]; %#ok<AGROW>
+                end
+            end
+            selected = selected(1:min(slot_count, numel(selected)));
+        end
+
+        function [x, y] = monitor_metric_series(~, metric_id, monitor_series)
+            switch metric_id
+                case 'iter_vs_time'
+                    x = monitor_series.t; y = monitor_series.iters;
+                case 'iter_per_sec'
+                    x = monitor_series.t; y = monitor_series.iter_rate;
+                case 'runtime_vs_time'
+                    x = monitor_series.t; y = monitor_series.elapsed_wall_time;
+                case 'max_vorticity'
+                    x = monitor_series.t; y = monitor_series.max_omega;
+                case 'energy_proxy'
+                    x = monitor_series.t; y = monitor_series.energy_proxy;
+                case 'enstrophy_proxy'
+                    x = monitor_series.t; y = monitor_series.enstrophy_proxy;
+                case 'vorticity_decay_rate'
+                    x = monitor_series.t; y = monitor_series.vorticity_decay_rate;
+                case 'cpu_proxy'
+                    x = monitor_series.t; y = monitor_series.cpu_proxy;
+                case 'memory_mb'
+                    x = monitor_series.t; y = monitor_series.memory_series;
+                case 'iteration_completion'
+                    x = monitor_series.t; y = monitor_series.iter_completion_pct;
+                case 'stability_proxy'
+                    x = monitor_series.t; y = monitor_series.stability_proxy;
+                case 'convergence_residual'
+                    x = monitor_series.conv_x; y = monitor_series.conv_residual;
+                otherwise
+                    x = monitor_series.t; y = nan(size(monitor_series.t));
+            end
+        end
+
+        function [x, y] = normalize_metric_vectors(app, x_raw, y_raw)
+            x = app.rowvec(x_raw);
+            y = app.rowvec(y_raw);
+            n = min(numel(x), numel(y));
+            if n < 2
+                x = [0, 1];
+                y = [nan, nan];
+                return;
+            end
+            x = x(1:n);
+            y = y(1:n);
+        end
+
+        function value = last_finite_from_series(app, monitor_series, field_name)
+            value = NaN;
+            if ~isstruct(monitor_series) || ~isfield(monitor_series, field_name)
+                return;
+            end
+            vec = app.rowvec(monitor_series.(field_name));
+            finite_idx = find(isfinite(vec), 1, 'last');
+            if ~isempty(finite_idx)
+                value = vec(finite_idx);
+            end
         end
 
         function tf = is_monitor_metric_applicable(app, metric, cfg)

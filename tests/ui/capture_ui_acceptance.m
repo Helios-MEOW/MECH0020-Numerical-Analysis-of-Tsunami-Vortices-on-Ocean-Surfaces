@@ -127,8 +127,19 @@ function checks = run_acceptance_checks(app)
             cfg.mode = 'evolution';
             cfg.method = 'finite_difference';
             app.refresh_monitor_dashboard(summary_stub, cfg);
-            conv_title = lower(char(string(app.handles.monitor_axes(8).Title.String)));
-            checks.convergence_metric_mode_gated = contains(conv_title, '(n/a)');
+            evo_titles = arrayfun(@(h) lower(char(string(h.Title.String))), app.handles.monitor_axes, 'UniformOutput', false);
+            evo_no_na = ~any(cellfun(@(t) contains(t, '(n/a)'), evo_titles));
+            evo_table = app.handles.monitor_numeric_table.Data;
+            conv_tol_idx = find(strcmp(evo_table(:, 1), 'Convergence tol'), 1, 'first');
+            evo_conv_na = ~isempty(conv_tol_idx) && strcmp(evo_table{conv_tol_idx, 2}, 'N/A');
+
+            cfg.mode = 'convergence';
+            app.refresh_monitor_dashboard(summary_stub, cfg);
+            conv_titles = arrayfun(@(h) lower(char(string(h.Title.String))), app.handles.monitor_axes, 'UniformOutput', false);
+            conv_idx = find(contains(conv_titles, 'convergence residual'), 1, 'first');
+            conv_active = ~isempty(conv_idx) && ~contains(conv_titles{conv_idx}, '(n/a)');
+
+            checks.convergence_metric_mode_gated = evo_no_na && evo_conv_na && conv_active;
         catch
             checks.convergence_metric_mode_gated = false;
         end
