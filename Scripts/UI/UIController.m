@@ -1277,6 +1277,8 @@ classdef UIController < handle
             end
 
             [run_config, parameters, settings] = app.build_runtime_inputs(cfg_override);
+            app.start_live_monitor_session(cfg_override);
+            settings.ui_progress_callback = @(payload) app.handle_live_monitor_progress(payload, cfg_override);
             run_started = tic;
             [results, paths] = ModeDispatcher(run_config, parameters, settings);
             wall = toc(run_started);
@@ -1301,6 +1303,7 @@ classdef UIController < handle
             app.set_optional_label_text('metrics_time_elapsed', sprintf('%.2f s', wall));
             app.set_optional_label_text('metrics_grid', sprintf('%dx%d', cfg_override.Nx, cfg_override.Ny));
             app.set_optional_label_text('metrics_phys_time', sprintf('%.3f s', cfg_override.Tfinal));
+            summary.monitor_series = app.collect_live_monitor_series_for_summary(summary);
             app.refresh_monitor_dashboard(summary, cfg_override);
 
             if isfield(app.handles, 'figure_selector') && isfield(paths, 'figures_evolution')
@@ -1669,6 +1672,154 @@ classdef UIController < handle
             app.set_optional_handle_property('exp_range_start_label', 'Visible', exp_vis);
             app.set_optional_handle_property('exp_range_end_label', 'Visible', exp_vis);
             app.set_optional_handle_property('exp_num_points_label', 'Visible', exp_vis);
+        end
+
+        function start_live_monitor_session(app, cfg)
+            % Initialize in-memory telemetry buffers for callback-driven monitor updates.
+            if nargin < 2 || isempty(cfg)
+                cfg = app.config;
+            end
+            app.handles.monitor_live_state = struct( ...
+                't', zeros(1, 0), ...
+                'iters', zeros(1, 0), ...
+                'max_omega', zeros(1, 0), ...
+                'energy_proxy', zeros(1, 0), ...
+                'enstrophy_proxy', zeros(1, 0), ...
+                'cpu_proxy', zeros(1, 0), ...
+                'memory_series', zeros(1, 0), ...
+                'conv_x', zeros(1, 0), ...
+                'conv_residual', zeros(1, 0), ...
+                'status_text', sprintf('Running %s...', app.humanize_token(cfg.mode)));
+        end
+
+        function handle_live_monitor_progress(app, payload, cfg)
+            % Consume runtime progress payloads emitted by mode loops.
+            if nargin < 3 || isempty(cfg)
+                cfg = app.config;
+            end
+            if nargin < 2 || ~isstruct(payload)
+                return;
+            end
+
+            if ~isfield(app.handles, 'monitor_live_state') || ~isstruct(app.handles.monitor_live_state)
+                app.start_live_monitor_session(cfg);
+            end
+            state = app.handles.monitor_live_state;
+
+            iter = app.progress_field(payload, {'iteration', 'step'}, NaN);
+            if ~isfinite(iter)
+                iter = numel(state.iters) + 1;
+            end
+
+            total_iter = app.progress_field(payload, {'total_iterations', 'total'}, NaN);
+            sim_time = app.progress_field(payload, {'time', 't'}, iter * max(cfg.dt, eps));
+            max_omega = app.progress_field(payload, {'max_vorticity', 'max_omega'}, NaN);
+            energy_proxy = app.progress_field(payload, {'kinetic_energy', 'energy_proxy'}, NaN);
+            enstrophy_proxy = app.progress_field(payload, {'enstrophy', 'enstrophy_proxy'}, NaN);
+            conv_residual = app.progress_field(payload, {'convergence_residual', 'residual'}, NaN);
+
+            mem_now = NaN;
+            if ispc
+                try
+                    mem_info = memory;
+                    mem_now = mem_info.MemUsedMATLAB / 1024^2;
+                catch
+                    mem_now = NaN;
+                end
+            end
+            if ~isfinite(mem_now) && ~isempty(state.memory_series)
+                mem_now = state.memory_series(end);
+            end
+            if ~isfinite(mem_now)
+                mem_now = 1024;
+            end
+
+            if isempty(state.iters) || iter > state.iters(end)
+                state.iters(end + 1) = iter; %#ok<AGROW>
+                state.t(end + 1) = sim_time; %#ok<AGROW>
+                state.max_omega(end + 1) = max_omega; %#ok<AGROW>
+                state.energy_proxy(end + 1) = energy_proxy; %#ok<AGROW>
+                state.enstrophy_proxy(end + 1) = enstrophy_proxy; %#ok<AGROW>
+                state.conv_x(end + 1) = iter; %#ok<AGROW>
+                state.conv_residual(end + 1) = conv_residual; %#ok<AGROW>
+                state.memory_series(end + 1) = mem_now; %#ok<AGROW>
+                cpu_index = numel(state.iters);
+            else
+                idx = numel(state.iters);
+                state.t(idx) = sim_time;
+                state.max_omega(idx) = max_omega;
+                state.energy_proxy(idx) = energy_proxy;
+                state.enstrophy_proxy(idx) = enstrophy_proxy;
+                state.conv_x(idx) = iter;
+                state.conv_residual(idx) = conv_residual;
+                state.memory_series(idx) = mem_now;
+                cpu_index = idx;
+            end
+
+            if numel(state.iters) >= 2
+                dt = max(state.t(end) - state.t(end - 1), eps);
+                di = max(state.iters(end) - state.iters(end - 1), 0);
+                iter_rate_now = di / dt;
+            else
+                iter_rate_now = NaN;
+            end
+            if numel(state.cpu_proxy) < cpu_index
+                state.cpu_proxy(cpu_index) = app.live_cpu_proxy(iter_rate_now);
+            else
+                state.cpu_proxy(cpu_index) = app.live_cpu_proxy(iter_rate_now);
+            end
+
+            if isfinite(total_iter) && total_iter > 0
+                progress_pct = 100 * min(max(iter / total_iter, 0), 1);
+                state.status_text = sprintf('Running %d/%d (%.1f%%%%)', round(iter), round(total_iter), progress_pct);
+            else
+                state.status_text = sprintf('Running iteration %d', round(iter));
+            end
+
+            app.handles.monitor_live_state = state;
+            summary_live = struct('results', struct('max_omega', max_omega), ...
+                'monitor_series', app.collect_live_monitor_series_for_summary(struct()));
+            app.refresh_monitor_dashboard(summary_live, cfg);
+
+            if app.has_valid_handle('run_status')
+                app.handles.run_status.Text = state.status_text;
+            end
+            drawnow limitrate nocallbacks;
+        end
+
+        function value = progress_field(~, payload, field_names, fallback)
+            % First available scalar numeric field from payload, else fallback.
+            value = fallback;
+            for i = 1:numel(field_names)
+                key = field_names{i};
+                if isfield(payload, key)
+                    candidate = payload.(key);
+                    if isnumeric(candidate) && isscalar(candidate) && isfinite(candidate)
+                        value = candidate;
+                        return;
+                    end
+                end
+            end
+        end
+
+        function cpu_pct = live_cpu_proxy(~, iter_rate_now)
+            % Lightweight throughput proxy for monitor continuity when no sensor feed is active.
+            if ~isfinite(iter_rate_now) || iter_rate_now <= 0
+                cpu_pct = NaN;
+                return;
+            end
+            cpu_pct = max(0, min(100, 20 + 10 * log10(1 + iter_rate_now)));
+        end
+
+        function monitor_series = collect_live_monitor_series_for_summary(app, summary)
+            monitor_series = struct();
+            if isfield(summary, 'monitor_series') && isstruct(summary.monitor_series)
+                monitor_series = summary.monitor_series;
+                return;
+            end
+            if isfield(app.handles, 'monitor_live_state') && isstruct(app.handles.monitor_live_state)
+                monitor_series = app.handles.monitor_live_state;
+            end
         end
 
         function style_axes(app, ax)
@@ -4005,49 +4156,24 @@ classdef UIController < handle
             end
             cfg = app.normalize_monitor_cfg(cfg);
 
-            n_steps = max(16, min(400, round(cfg.Tfinal / max(cfg.dt, eps))));
-            t = linspace(0, cfg.Tfinal, n_steps);
-            iters = linspace(1, max(1, round(cfg.Tfinal / max(cfg.dt, eps))), n_steps);
-            iter_rate = gradient(iters, t + eps);
-
-            max_omega = NaN(1, n_steps);
-            if isfield(summary, 'results') && isstruct(summary.results) && isfield(summary.results, 'max_omega')
-                m = summary.results.max_omega;
-                if ~isscalar(m)
-                    m = max(abs(m), [], 'all', 'omitnan');
-                end
-                max_omega = abs(m) * (0.85 + 0.15 * exp(-2 * t / max(cfg.Tfinal, eps)));
-            else
-                max_omega = 0.5 + 0.5 * exp(-2 * t / max(cfg.Tfinal, eps));
-            end
-
-            energy_proxy = max_omega .^ 2;
-            enstrophy_proxy = max_omega .^ 1.5;
-
-            cpu_proxy = 30 + 20 * sin(2 * pi * (t / max(cfg.Tfinal, eps)));
-            mem_now = NaN;
-            if ispc
-                try
-                    mem_info = memory;
-                    mem_now = mem_info.MemUsedMATLAB / 1024^2;
-                catch
-                    mem_now = NaN;
-                end
-            end
-            if ~isfinite(mem_now)
-                mem_now = 1024;
-            end
-            memory_series = mem_now + 20 * sin(2 * pi * (t / max(cfg.Tfinal, eps)));
+            monitor_series = app.resolve_monitor_series(summary, cfg);
+            t = monitor_series.t;
+            iters = monitor_series.iters;
+            iter_rate = monitor_series.iter_rate;
+            max_omega = monitor_series.max_omega;
+            energy_proxy = monitor_series.energy_proxy;
+            enstrophy_proxy = monitor_series.enstrophy_proxy;
+            cpu_proxy = monitor_series.cpu_proxy;
+            memory_series = monitor_series.memory_series;
+            conv_x = monitor_series.conv_x;
+            conv_residual = monitor_series.conv_residual;
+            mem_now = monitor_series.mem_now;
 
             tol = NaN;
             if isfield(cfg, 'convergence_tol')
                 tol = cfg.convergence_tol;
             elseif app.has_valid_handle('conv_tolerance')
                 tol = app.handles.conv_tolerance.Value;
-            end
-            conv_residual = logspace(-1, -4, n_steps);
-            if isfinite(tol) && tol > 0
-                conv_residual = max(tol / 4, conv_residual);
             end
 
             series = {
@@ -4058,7 +4184,7 @@ classdef UIController < handle
                 t, enstrophy_proxy;
                 t, cpu_proxy;
                 t, memory_series;
-                1:n_steps, conv_residual
+                conv_x, conv_residual
             };
 
             for i = 1:min(numel(app.handles.monitor_axes), 8)
@@ -4096,7 +4222,8 @@ classdef UIController < handle
                 end
             end
 
-            app.update_monitor_numeric_table(summary, cfg, mem_now, tol, conv_residual(end));
+            conv_metric = monitor_series.conv_metric;
+            app.update_monitor_numeric_table(summary, cfg, mem_now, tol, conv_metric);
         end
 
         function update_monitor_numeric_table(app, summary, cfg, mem_now, tol, conv_metric)
@@ -4149,6 +4276,21 @@ classdef UIController < handle
                 wall_time = NaN;
             end
 
+            status_text = 'Ready';
+            status_source = 'UI';
+            if isfield(summary, 'monitor_series') && isstruct(summary.monitor_series)
+                if isfield(summary.monitor_series, 'status_text')
+                    status_text = char(string(summary.monitor_series.status_text));
+                else
+                    status_text = 'Running';
+                end
+                status_source = 'Runtime';
+            end
+            if ~isempty(strtrim(run_id))
+                status_text = 'Completed';
+                status_source = 'Dispatcher';
+            end
+
             suggested_n = NaN;
             conv_mode_active = strcmpi(norm_mode, 'convergence');
             if conv_mode_active && isfinite(tol) && tol > 0 && isfinite(conv_metric)
@@ -4172,7 +4314,7 @@ classdef UIController < handle
             end
 
             rows = {
-                'Status', 'Ready', '-', 'UI';
+                'Status', status_text, '-', status_source;
                 'Mode', app.humanize_token(run_mode), '-', 'UI';
                 'Run ID', app.if_empty(run_id, '--'), '-', 'Dispatcher';
                 'Method', app.humanize_token(cfg.method), '-', 'UI';
@@ -4193,6 +4335,145 @@ classdef UIController < handle
                 'Collectors', collectors, '-', 'SystemProfile'
             };
             app.handles.monitor_numeric_table.Data = rows;
+        end
+
+        function monitor_series = resolve_monitor_series(app, summary, cfg)
+            % Build monitor tile data from runtime payloads, with synthetic fallback.
+            n_steps = max(16, min(400, round(cfg.Tfinal / max(cfg.dt, eps))));
+            t = linspace(0, cfg.Tfinal, n_steps);
+            iters = linspace(1, max(1, round(cfg.Tfinal / max(cfg.dt, eps))), n_steps);
+            iter_rate = gradient(iters, t + eps);
+
+            max_omega = NaN(1, n_steps);
+            if isfield(summary, 'results') && isstruct(summary.results) && isfield(summary.results, 'max_omega')
+                m = summary.results.max_omega;
+                if ~isscalar(m)
+                    m = max(abs(m), [], 'all', 'omitnan');
+                end
+                max_omega = abs(m) * (0.85 + 0.15 * exp(-2 * t / max(cfg.Tfinal, eps)));
+            else
+                max_omega = 0.5 + 0.5 * exp(-2 * t / max(cfg.Tfinal, eps));
+            end
+
+            energy_proxy = max_omega .^ 2;
+            enstrophy_proxy = max_omega .^ 1.5;
+            cpu_proxy = 30 + 20 * sin(2 * pi * (t / max(cfg.Tfinal, eps)));
+
+            mem_now = NaN;
+            if ispc
+                try
+                    mem_info = memory;
+                    mem_now = mem_info.MemUsedMATLAB / 1024^2;
+                catch
+                    mem_now = NaN;
+                end
+            end
+            if ~isfinite(mem_now)
+                mem_now = 1024;
+            end
+            memory_series = mem_now + 20 * sin(2 * pi * (t / max(cfg.Tfinal, eps)));
+            conv_x = 1:n_steps;
+            conv_residual = logspace(-1, -4, n_steps);
+
+            live = struct();
+            if isfield(summary, 'monitor_series') && isstruct(summary.monitor_series)
+                live = summary.monitor_series;
+            end
+            if ~isempty(fieldnames(live))
+                t = app.rowvec(app.pick_field(live, {'t', 'time'}, t));
+                n_live = numel(t);
+                if n_live < 2
+                    n_live = 2;
+                    t = [0 max(cfg.Tfinal, cfg.dt)];
+                end
+
+                iters = app.rowvec(app.pick_field(live, {'iters', 'iterations'}, linspace(1, n_live, n_live)));
+                if numel(iters) ~= n_live
+                    iters = linspace(1, max(1, n_live), n_live);
+                end
+
+                iter_rate = app.rowvec(app.pick_field(live, {'iter_rate', 'iterations_per_second'}, gradient(iters, t + eps)));
+                if numel(iter_rate) ~= n_live
+                    iter_rate = gradient(iters, t + eps);
+                end
+
+                max_omega = app.rowvec(app.pick_field(live, {'max_omega', 'max_vorticity'}, nan(1, n_live)));
+                if numel(max_omega) ~= n_live
+                    max_omega = nan(1, n_live);
+                end
+
+                energy_proxy = app.rowvec(app.pick_field(live, {'energy_proxy', 'kinetic_energy'}, max_omega .^ 2));
+                if numel(energy_proxy) ~= n_live
+                    energy_proxy = max_omega .^ 2;
+                end
+
+                enstrophy_proxy = app.rowvec(app.pick_field(live, {'enstrophy_proxy', 'enstrophy'}, max_omega .^ 1.5));
+                if numel(enstrophy_proxy) ~= n_live
+                    enstrophy_proxy = max_omega .^ 1.5;
+                end
+
+                cpu_proxy = app.rowvec(app.pick_field(live, {'cpu_proxy', 'cpu_percent'}, nan(1, n_live)));
+                if numel(cpu_proxy) ~= n_live
+                    cpu_proxy = nan(1, n_live);
+                end
+
+                memory_series = app.rowvec(app.pick_field(live, {'memory_series', 'memory_mb'}, nan(1, n_live)));
+                if numel(memory_series) ~= n_live
+                    memory_series = nan(1, n_live);
+                end
+
+                conv_x = app.rowvec(app.pick_field(live, {'conv_x', 'conv_iteration'}, iters));
+                if numel(conv_x) ~= n_live
+                    conv_x = iters;
+                end
+                conv_residual = app.rowvec(app.pick_field(live, {'conv_residual', 'convergence_residual'}, nan(1, n_live)));
+                if numel(conv_residual) ~= n_live
+                    conv_residual = nan(1, n_live);
+                end
+
+                if any(isfinite(memory_series))
+                    mem_now = memory_series(find(isfinite(memory_series), 1, 'last')); %#ok<FNDSB>
+                end
+            end
+
+            conv_metric = NaN;
+            finite_conv = conv_residual(isfinite(conv_residual));
+            if ~isempty(finite_conv)
+                conv_metric = finite_conv(end);
+            end
+
+            monitor_series = struct( ...
+                't', t, ...
+                'iters', iters, ...
+                'iter_rate', iter_rate, ...
+                'max_omega', max_omega, ...
+                'energy_proxy', energy_proxy, ...
+                'enstrophy_proxy', enstrophy_proxy, ...
+                'cpu_proxy', cpu_proxy, ...
+                'memory_series', memory_series, ...
+                'conv_x', conv_x, ...
+                'conv_residual', conv_residual, ...
+                'mem_now', mem_now, ...
+                'conv_metric', conv_metric);
+        end
+
+        function value = pick_field(~, s, keys, fallback)
+            value = fallback;
+            for i = 1:numel(keys)
+                key = keys{i};
+                if isfield(s, key)
+                    value = s.(key);
+                    return;
+                end
+            end
+        end
+
+        function v = rowvec(~, value)
+            if ~isnumeric(value)
+                v = zeros(1, 0);
+                return;
+            end
+            v = reshape(double(value), 1, []);
         end
 
         function tf = is_monitor_metric_applicable(app, metric, cfg)

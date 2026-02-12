@@ -55,6 +55,8 @@
 
     % ===== SIMULATION LOOP =====
     tic;
+    run_timer = tic;
+    progress_callback = resolve_progress_callback(Settings);
 
     % Initialize method-specific state
     cfg = prepare_cfg(Run_Config, Parameters);
@@ -98,6 +100,8 @@
     kinetic_energy(1) = Metrics.kinetic_energy;
     enstrophy(1) = Metrics.enstrophy;
     max_vorticity(1) = Metrics.max_vorticity;
+    progress_callback = emit_progress_payload(progress_callback, Run_Config, ...
+        0, Nt, State.t, Metrics, toc(run_timer), NaN);
 
     % Main time integration loop
     for n = 1:Nt
@@ -125,6 +129,9 @@
         if mod(n, progress_stride) == 0 || n == 1 || n == Nt
             fprintf('[Evolution] %6.2f%% | t = %.3f / %.3f | Method = %s | max|Ï‰| = %.3e\n', ...
                 100 * n / Nt, State.t, Tfinal, Run_Config.method, Metrics.max_vorticity);
+
+            progress_callback = emit_progress_payload(progress_callback, Run_Config, ...
+                n, Nt, State.t, Metrics, toc(run_timer), NaN);
         end
     end
 
@@ -320,6 +327,42 @@ function output_root = resolve_output_root(Settings)
     output_root = 'Results';
     if isfield(Settings, 'output_root') && ~isempty(Settings.output_root)
         output_root = char(string(Settings.output_root));
+    end
+end
+
+function progress_callback = resolve_progress_callback(Settings)
+    progress_callback = [];
+    if isfield(Settings, 'ui_progress_callback') && isa(Settings.ui_progress_callback, 'function_handle')
+        progress_callback = Settings.ui_progress_callback;
+    end
+end
+
+function progress_callback = emit_progress_payload(progress_callback, Run_Config, iteration, total_iterations, sim_time, Metrics, elapsed_wall, conv_residual)
+    if isempty(progress_callback)
+        return;
+    end
+
+    payload = struct();
+    payload.phase = 'evolution';
+    payload.method = Run_Config.method;
+    payload.mode = 'evolution';
+    payload.iteration = iteration;
+    payload.total_iterations = total_iterations;
+    payload.time = sim_time;
+    payload.max_vorticity = Metrics.max_vorticity;
+    payload.kinetic_energy = Metrics.kinetic_energy;
+    payload.enstrophy = Metrics.enstrophy;
+    payload.elapsed_wall = elapsed_wall;
+    payload.convergence_residual = conv_residual;
+    if isfield(Run_Config, 'run_id')
+        payload.run_id = Run_Config.run_id;
+    end
+
+    try
+        progress_callback(payload);
+    catch
+        % Disable noisy callback failures after first error.
+        progress_callback = [];
     end
 end
 
