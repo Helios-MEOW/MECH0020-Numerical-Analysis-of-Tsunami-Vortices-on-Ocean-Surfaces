@@ -3976,6 +3976,10 @@ classdef UIController < handle
 
         function catalog = build_monitor_metric_catalog(~)
             % Ranked tiles for the 3x3 monitor (first 8 are plots).
+            all_methods = {'finite_difference', 'finite_volume', 'spectral'};
+            all_modes = {'evolution', 'convergence', 'sweep', 'animation', 'experimentation'};
+            conv_only = {'convergence'};
+
             catalog = struct( ...
                 'id', {'iter_vs_time', 'iter_per_sec', 'max_vorticity', 'energy_proxy', ...
                        'enstrophy_proxy', 'cpu_proxy', 'memory_mb', 'convergence_residual'}, ...
@@ -3985,6 +3989,10 @@ classdef UIController < handle
                            'Physical time', 'Physical time', 'Physical time', 'Iteration'}, ...
                 'ylabel', {'iters', 'iters/s', '|omega|_{max}', 'E*', ...
                            'Z*', 'CPU %', 'MB', 'residual'}, ...
+                'methods', {all_methods, all_methods, all_methods, all_methods, ...
+                            all_methods, all_methods, all_methods, all_methods}, ...
+                'modes', {all_modes, all_modes, all_modes, all_modes, ...
+                          all_modes, all_modes, all_modes, conv_only}, ...
                 'rank', num2cell(1:8));
         end
 
@@ -4058,11 +4066,16 @@ classdef UIController < handle
                 if ~isvalid(ax)
                     continue;
                 end
+                metric = app.handles.monitor_metric_catalog(i);
+                if ~app.is_monitor_metric_applicable(metric, cfg)
+                    app.render_monitor_metric_not_applicable(ax, metric, cfg);
+                    continue;
+                end
+
                 cla(ax);
                 x = series{i, 1};
                 y = series{i, 2};
                 plot(ax, x, y, 'LineWidth', 1.6, 'Color', app.layout_cfg.colors.accent_cyan);
-                metric = app.handles.monitor_metric_catalog(i);
                 title(ax, metric.title, 'Color', app.layout_cfg.colors.fg_text, 'FontSize', 10);
                 xlabel(ax, metric.xlabel, 'Color', app.layout_cfg.colors.fg_text);
                 ylabel(ax, metric.ylabel, 'Color', app.layout_cfg.colors.fg_text);
@@ -4111,6 +4124,7 @@ classdef UIController < handle
             collectors = char(string(collectors));
 
             run_mode = char(string(cfg.mode));
+            norm_mode = app.normalize_mode_token(run_mode);
             run_id = '';
             max_omega_val = NaN;
             wall_time = NaN;
@@ -4136,7 +4150,8 @@ classdef UIController < handle
             end
 
             suggested_n = NaN;
-            if strcmpi(run_mode, 'convergence') && isfinite(tol) && tol > 0 && isfinite(conv_metric)
+            conv_mode_active = strcmpi(norm_mode, 'convergence');
+            if conv_mode_active && isfinite(tol) && tol > 0 && isfinite(conv_metric)
                 if conv_metric <= 1.15 * tol
                     if isfield(cfg, 'convergence_N_max') && isfinite(cfg.convergence_N_max)
                         suggested_n = max(8, round(0.8 * cfg.convergence_N_max));
@@ -4146,11 +4161,22 @@ classdef UIController < handle
                 end
             end
 
+            if conv_mode_active
+                conv_tol_display = app.if_nan_num(tol);
+                conv_metric_display = app.if_nan_num(conv_metric);
+                suggested_n_display = app.if_nan_num(suggested_n);
+            else
+                conv_tol_display = 'N/A';
+                conv_metric_display = 'N/A';
+                suggested_n_display = 'N/A';
+            end
+
             rows = {
                 'Status', 'Ready', '-', 'UI';
-                'Mode', run_mode, '-', 'UI';
+                'Mode', app.humanize_token(run_mode), '-', 'UI';
                 'Run ID', app.if_empty(run_id, '--'), '-', 'Dispatcher';
-                'Method', char(string(cfg.method)), '-', 'UI';
+                'Method', app.humanize_token(cfg.method), '-', 'UI';
+                'Monitor profile', sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode)), '-', 'MetricCatalog';
                 'Grid', sprintf('%dx%d', cfg.Nx, cfg.Ny), '-', 'Parameters';
                 'Domain Lx', sprintf('%.3g', cfg.Lx), 'm', 'Parameters';
                 'Domain Ly', sprintf('%.3g', cfg.Ly), 'm', 'Parameters';
@@ -4158,15 +4184,42 @@ classdef UIController < handle
                 'Tfinal', sprintf('%.3g', cfg.Tfinal), 's', 'Parameters';
                 'Runtime', app.if_nan_num(wall_time), 's', 'Dispatcher';
                 'Max |omega|', app.if_nan_num(max_omega_val), '-', 'Solver';
-                'Convergence tol', app.if_nan_num(tol), '-', 'Convergence';
-                'Convergence metric', app.if_nan_num(conv_metric), '-', 'Convergence';
-                'Suggested coarse N', app.if_nan_num(suggested_n), '-', 'Advisor';
+                'Convergence tol', conv_tol_display, '-', 'Convergence';
+                'Convergence metric', conv_metric_display, '-', 'Convergence';
+                'Suggested coarse N', suggested_n_display, '-', 'Advisor';
                 'CPU usage', '--', '%', 'MATLAB';
                 'Memory', app.if_nan_num(mem_now), 'MB', 'MATLAB';
                 'Machine', machine, '-', 'SystemProfile';
                 'Collectors', collectors, '-', 'SystemProfile'
             };
             app.handles.monitor_numeric_table.Data = rows;
+        end
+
+        function tf = is_monitor_metric_applicable(app, metric, cfg)
+            method_token = app.normalize_method_token(cfg.method);
+            mode_token = app.normalize_mode_token(cfg.mode);
+            tf = any(strcmpi(metric.methods, method_token)) && any(strcmpi(metric.modes, mode_token));
+        end
+
+        function render_monitor_metric_not_applicable(app, ax, metric, cfg)
+            cla(ax);
+            xlim(ax, [0 1]);
+            ylim(ax, [0 1]);
+            ax.XTick = [];
+            ax.YTick = [];
+            ax.Box = 'on';
+            grid(ax, 'off');
+
+            msg_1 = 'Metric not applicable';
+            msg_2 = sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(cfg.mode));
+            text(ax, 0.5, 0.58, msg_1, 'HorizontalAlignment', 'center', ...
+                'Color', app.layout_cfg.colors.accent_yellow, 'FontSize', 11, 'FontWeight', 'bold');
+            text(ax, 0.5, 0.42, msg_2, 'HorizontalAlignment', 'center', ...
+                'Color', app.layout_cfg.colors.fg_muted, 'FontSize', 9);
+
+            title(ax, sprintf('%s (N/A)', metric.title), 'Color', app.layout_cfg.colors.fg_text, 'FontSize', 10);
+            xlabel(ax, '');
+            ylabel(ax, '');
         end
 
         function cfg = normalize_monitor_cfg(app, cfg)
@@ -4222,6 +4275,32 @@ classdef UIController < handle
             end
             if ~isfield(cfg, 'convergence_tol') && app.has_valid_handle('conv_tolerance')
                 cfg.convergence_tol = app.handles.conv_tolerance.Value;
+            end
+        end
+
+        function token = normalize_method_token(~, method_value)
+            token = lower(char(string(method_value)));
+            token = strtrim(token);
+            token = strrep(token, '-', '_');
+            token = strrep(token, ' ', '_');
+            switch token
+                case {'fd', 'finite_difference'}
+                    token = 'finite_difference';
+                case {'fv', 'finite_volume'}
+                    token = 'finite_volume';
+                case {'spectral', 'spectral_method'}
+                    token = 'spectral';
+            end
+        end
+
+        function token = normalize_mode_token(~, mode_value)
+            token = lower(char(string(mode_value)));
+            token = strtrim(token);
+            token = strrep(token, '-', '_');
+            token = strrep(token, ' ', '_');
+            switch token
+                case {'parametersweep', 'parameter_sweep'}
+                    token = 'sweep';
             end
         end
 

@@ -72,6 +72,26 @@ function [passed, details] = test_ui_monitor_contracts()
         assert(strcmpi(string(app.handles.conv_N_coarse.Enable), "on"), ...
             'Convergence controls must unlock in manual convergence mode.');
 
+        % Metric applicability: convergence residual must be gated by mode.
+        summary_stub = struct('results', struct());
+        cfg_eval = app.config;
+        cfg_eval.mode = 'evolution';
+        cfg_eval.method = 'finite_difference';
+        app.refresh_monitor_dashboard(summary_stub, cfg_eval);
+        conv_title = lower(char(string(app.handles.monitor_axes(8).Title.String)));
+        assert(contains(conv_title, '(n/a)'), ...
+            'Convergence residual plot should be marked N/A outside convergence mode.');
+        data_eval = app.handles.monitor_numeric_table.Data;
+        conv_tol_idx = find(strcmp(data_eval(:, 1), 'Convergence tol'), 1, 'first');
+        assert(~isempty(conv_tol_idx) && strcmp(data_eval{conv_tol_idx, 2}, 'N/A'), ...
+            'Convergence tolerance row should be N/A outside convergence mode.');
+
+        cfg_eval.mode = 'convergence';
+        app.refresh_monitor_dashboard(summary_stub, cfg_eval);
+        conv_title = lower(char(string(app.handles.monitor_axes(8).Title.String)));
+        assert(~contains(conv_title, '(n/a)'), ...
+            'Convergence residual plot should be active in convergence mode.');
+
         passed = true;
         details = 'UI monitor/layout contracts passed.';
     catch ME
