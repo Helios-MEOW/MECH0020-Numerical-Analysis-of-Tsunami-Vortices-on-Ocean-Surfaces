@@ -166,7 +166,10 @@
     end
 
     if Settings.save_figures
-        generate_evolution_figures(analysis, Parameters, Run_Config, paths, Settings);
+        fig_meta = generate_evolution_figures(analysis, Parameters, Run_Config, paths, Settings);
+        Results.figure_layout_rows = fig_meta.nrows;
+        Results.figure_layout_cols = fig_meta.ncols;
+        Results.figure_snapshot_count = fig_meta.snapshot_count;
     end
 
     if Settings.save_reports
@@ -294,7 +297,7 @@ function cfg = prepare_cfg(Run_Config, Parameters)
     end
 end
 
-function generate_evolution_figures(analysis, ~, Run_Config, paths, ~)
+function fig_meta = generate_evolution_figures(analysis, Parameters, Run_Config, paths, ~)
     % Generate evolution figures (contours, vectors, etc.)
     % Reuse existing visualization utilities
 
@@ -302,13 +305,21 @@ function generate_evolution_figures(analysis, ~, Run_Config, paths, ~)
     fig = figure('Position', [100, 100, 1200, 800]);
 
     Nsnap = size(analysis.omega_snaps, 3);
-    ncols = min(4, Nsnap);
+    ncols = max(1, ceil(sqrt(Nsnap)));
     nrows = ceil(Nsnap / ncols);
+    if isfield(Parameters, 'Lx') && isfield(Parameters, 'Ly') && isfield(Parameters, 'Nx') && isfield(Parameters, 'Ny')
+        x = linspace(-Parameters.Lx / 2, Parameters.Lx / 2, Parameters.Nx);
+        y = linspace(-Parameters.Ly / 2, Parameters.Ly / 2, Parameters.Ny);
+    else
+        x = 1:size(analysis.omega_snaps, 2);
+        y = 1:size(analysis.omega_snaps, 1);
+    end
 
     for k = 1:Nsnap
         subplot(nrows, ncols, k);
-        imagesc(analysis.omega_snaps(:, :, k));
+        imagesc(x, y, analysis.omega_snaps(:, :, k));
         axis equal tight;
+        set(gca, 'YDir', 'normal');
         colormap(turbo);
         colorbar;
         title(sprintf('t = %.3f', analysis.time_vec(k)));
@@ -321,6 +332,12 @@ function generate_evolution_figures(analysis, ~, Run_Config, paths, ~)
     fig_path = fullfile(paths.figures_evolution, fig_name);
     saveas(fig, fig_path);
     close(fig);
+
+    fig_meta = struct();
+    fig_meta.nrows = nrows;
+    fig_meta.ncols = ncols;
+    fig_meta.snapshot_count = Nsnap;
+    fig_meta.path = fig_path;
 end
 
 function output_root = resolve_output_root(Settings)
