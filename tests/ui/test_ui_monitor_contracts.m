@@ -47,6 +47,12 @@ function [passed, details] = test_ui_monitor_contracts()
         status_tab = ancestor(app.handles.run_status, 'matlab.ui.container.Tab');
         assert(~isempty(status_tab) && isequal(status_tab, app.tabs.monitoring), ...
             'run_status must live in Live Monitor tab.');
+        assert(isfield(app.handles, 'btn_retry_cpuz') && isvalid(app.handles.btn_retry_cpuz) && ...
+            isfield(app.handles, 'btn_retry_hwinfo') && isvalid(app.handles.btn_retry_hwinfo) && ...
+            isfield(app.handles, 'btn_retry_icue') && isvalid(app.handles.btn_retry_icue), ...
+            'Collector retry buttons must be present in Live Monitor panel.');
+        assert(isfield(app.handles, 'collector_probe_status') && isvalid(app.handles.collector_probe_status), ...
+            'collector_probe_status label is missing.');
 
         app.collect_configuration_from_ui();
         assert(isfield(app.config, 'sweep_parameter') && ~isempty(app.config.sweep_parameter), ...
@@ -91,6 +97,14 @@ function [passed, details] = test_ui_monitor_contracts()
         conv_title = lower(char(string(app.handles.monitor_axes(8).Title.String)));
         assert(~contains(conv_title, '(n/a)'), ...
             'Convergence residual plot should be active in convergence mode.');
+
+        app.handles.cpuz_enable.Value = true;
+        app.retry_collector_connection('cpuz');
+        cpuz_state = lower(char(string(app.handles.metrics_source_cpuz.Text)));
+        assert(any(strcmp(cpuz_state, {'connected', 'not found'})), ...
+            'CPU-Z retry probe should update source status to connected/not found.');
+        app.handles.cpuz_enable.Value = false;
+        app.update_checklist();
 
         % Runtime payload path: supplied monitor series should drive tile/table values.
         cfg_eval.mode = 'evolution';

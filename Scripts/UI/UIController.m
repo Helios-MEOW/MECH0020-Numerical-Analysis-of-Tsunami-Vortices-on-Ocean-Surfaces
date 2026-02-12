@@ -954,23 +954,53 @@ classdef UIController < handle
             app.handles.terminal_output.Layout.Row = 3;
             app.handles.terminal_output.Layout.Column = 1;
 
-            source_panel = uipanel(side_layout, 'Title', 'Sustainability Source Readiness', ...
+            source_panel = uipanel(side_layout, 'Title', 'Collector Probe and Runtime Signals', ...
                 'BackgroundColor', C.bg_panel_alt);
             source_panel.Layout.Row = 4;
             source_panel.Layout.Column = 1;
-            source_grid = uigridlayout(source_panel, [2 4]);
+            source_grid = uigridlayout(source_panel, [4 4]);
             source_grid.Padding = [4 4 4 4];
-            source_grid.RowHeight = {18, 18};
+            source_grid.RowHeight = {18, 18, 18, 24};
             source_grid.ColumnWidth = {'1x', '1x', '1x', '1x'};
 
-            uilabel(source_grid, 'Text', 'MATLAB', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            uilabel(source_grid, 'Text', 'CPU-Z', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            uilabel(source_grid, 'Text', 'HWiNFO', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
-            uilabel(source_grid, 'Text', 'iCUE', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text);
+            app.handles.collector_probe_status = uilabel(source_grid, ...
+                'Text', 'Probe status: waiting for first scan', ...
+                'HorizontalAlignment', 'center', 'FontColor', C.fg_muted, 'FontSize', 10);
+            app.handles.collector_probe_status.Layout.Row = 1;
+            app.handles.collector_probe_status.Layout.Column = [1 4];
+
+            lbl = uilabel(source_grid, 'Text', 'MATLAB', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            lbl = uilabel(source_grid, 'Text', 'CPU-Z', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 2;
+            lbl = uilabel(source_grid, 'Text', 'HWiNFO', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 3;
+            lbl = uilabel(source_grid, 'Text', 'iCUE', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
+            lbl.Layout.Row = 2; lbl.Layout.Column = 4;
+
             app.handles.metrics_source_matlab = uilabel(source_grid, 'Text', 'ready', 'HorizontalAlignment', 'center', 'FontColor', C.accent_green);
-            app.handles.metrics_source_cpuz = uilabel(source_grid, 'Text', 'not found', 'HorizontalAlignment', 'center', 'FontColor', C.accent_yellow);
-            app.handles.metrics_source_hwinfo = uilabel(source_grid, 'Text', 'not found', 'HorizontalAlignment', 'center', 'FontColor', C.accent_yellow);
-            app.handles.metrics_source_icue = uilabel(source_grid, 'Text', 'not found', 'HorizontalAlignment', 'center', 'FontColor', C.accent_yellow);
+            app.handles.metrics_source_matlab.Layout.Row = 3; app.handles.metrics_source_matlab.Layout.Column = 1;
+            app.handles.metrics_source_cpuz = uilabel(source_grid, 'Text', 'off', 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
+            app.handles.metrics_source_cpuz.Layout.Row = 3; app.handles.metrics_source_cpuz.Layout.Column = 2;
+            app.handles.metrics_source_hwinfo = uilabel(source_grid, 'Text', 'off', 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
+            app.handles.metrics_source_hwinfo.Layout.Row = 3; app.handles.metrics_source_hwinfo.Layout.Column = 3;
+            app.handles.metrics_source_icue = uilabel(source_grid, 'Text', 'off', 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
+            app.handles.metrics_source_icue.Layout.Row = 3; app.handles.metrics_source_icue.Layout.Column = 4;
+
+            app.handles.btn_retry_all_collectors = uibutton(source_grid, 'Text', 'Probe All', ...
+                'ButtonPushedFcn', @(~,~) app.retry_collector_connection('all'));
+            app.handles.btn_retry_all_collectors.Layout.Row = 4; app.handles.btn_retry_all_collectors.Layout.Column = 1;
+            app.handles.btn_retry_cpuz = uibutton(source_grid, 'Text', 'Retry CPU-Z', ...
+                'ButtonPushedFcn', @(~,~) app.retry_collector_connection('cpuz'));
+            app.handles.btn_retry_cpuz.Layout.Row = 4; app.handles.btn_retry_cpuz.Layout.Column = 2;
+            app.handles.btn_retry_hwinfo = uibutton(source_grid, 'Text', 'Retry HWiNFO', ...
+                'ButtonPushedFcn', @(~,~) app.retry_collector_connection('hwinfo'));
+            app.handles.btn_retry_hwinfo.Layout.Row = 4; app.handles.btn_retry_hwinfo.Layout.Column = 3;
+            app.handles.btn_retry_icue = uibutton(source_grid, 'Text', 'Retry iCUE', ...
+                'ButtonPushedFcn', @(~,~) app.retry_collector_connection('icue'));
+            app.handles.btn_retry_icue.Layout.Row = 4; app.handles.btn_retry_icue.Layout.Column = 4;
+
+            app.refresh_collector_probe_status('all');
         end
         function create_terminal_tab(~)
             % Terminal tab removed (merged into monitoring tab)
@@ -2053,10 +2083,10 @@ classdef UIController < handle
             monitor_ok = app.handles.enable_monitoring.Value && app.handles.sample_interval.Value > 0;
             outputs_ok = app.handles.save_csv.Value || app.handles.save_mat.Value || ...
                 app.handles.figures_save_png.Value || app.handles.figures_save_fig.Value;
+            collector_probe = app.refresh_collector_probe_status();
             collectors_ok = true;
             if app.handles.collector_strict.Value
-                collectors_ok = app.handles.cpuz_enable.Value || ...
-                    app.handles.hwinfo_enable.Value || app.handles.icue_enable.Value;
+                collectors_ok = collector_probe.connected_external_count >= 1;
             end
 
             if app.has_valid_handle('check_monitor')
@@ -2070,10 +2100,8 @@ classdef UIController < handle
             end
 
             if app.has_valid_handle('collector_status')
-                collector_msg = "Collector readiness: MATLAB baseline active";
-                if app.handles.cpuz_enable.Value || app.handles.hwinfo_enable.Value || app.handles.icue_enable.Value
-                    collector_msg = "Collector readiness: external collectors configured";
-                end
+                collector_msg = sprintf('Collector readiness: %d/%d external connected', ...
+                    collector_probe.connected_external_count, collector_probe.enabled_external_count);
                 if app.handles.collector_strict.Value && ~collectors_ok
                     collector_msg = "Collector readiness: strict mode requires at least one external collector";
                     app.handles.collector_status.FontColor = app.layout_cfg.colors.accent_yellow;
@@ -2081,23 +2109,6 @@ classdef UIController < handle
                     app.handles.collector_status.FontColor = app.layout_cfg.colors.fg_muted;
                 end
                 app.handles.collector_status.Text = char(collector_msg);
-            end
-
-            if app.has_valid_handle('metrics_source_matlab')
-                app.handles.metrics_source_matlab.Text = 'ready';
-                app.handles.metrics_source_matlab.FontColor = app.layout_cfg.colors.accent_green;
-            end
-            if app.has_valid_handle('metrics_source_cpuz')
-                app.handles.metrics_source_cpuz.Text = app.on_off_label(app.handles.cpuz_enable.Value);
-                app.handles.metrics_source_cpuz.FontColor = app.bool_to_color(app.handles.cpuz_enable.Value);
-            end
-            if app.has_valid_handle('metrics_source_hwinfo')
-                app.handles.metrics_source_hwinfo.Text = app.on_off_label(app.handles.hwinfo_enable.Value);
-                app.handles.metrics_source_hwinfo.FontColor = app.bool_to_color(app.handles.hwinfo_enable.Value);
-            end
-            if app.has_valid_handle('metrics_source_icue')
-                app.handles.metrics_source_icue.Text = app.on_off_label(app.handles.icue_enable.Value);
-                app.handles.metrics_source_icue.FontColor = app.bool_to_color(app.handles.icue_enable.Value);
             end
         end
 
@@ -2132,6 +2143,140 @@ classdef UIController < handle
                 color = [0.25 0.78 0.35];
             else
                 color = [0.90 0.35 0.35];
+            end
+        end
+
+        function retry_collector_connection(app, source)
+            % Re-probe one or all external collectors and refresh status lights.
+            if nargin < 2 || isempty(source)
+                source = 'all';
+            end
+            probe = app.refresh_collector_probe_status(source);
+            if app.has_valid_handle('collector_probe_status')
+                app.handles.collector_probe_status.Text = sprintf( ...
+                    'Probe @ %s: %d/%d external connected', ...
+                    char(datetime('now', 'Format', 'HH:mm:ss')), ...
+                    probe.connected_external_count, probe.enabled_external_count);
+            end
+            app.update_checklist();
+        end
+
+        function probe = refresh_collector_probe_status(app, source)
+            % Update collector connection indicators from lightweight installation probes.
+            if nargin < 2 || isempty(source)
+                source = 'all';
+            end
+            source = lower(char(string(source)));
+
+            enabled = struct( ...
+                'cpuz', app.has_valid_handle('cpuz_enable') && app.handles.cpuz_enable.Value, ...
+                'hwinfo', app.has_valid_handle('hwinfo_enable') && app.handles.hwinfo_enable.Value, ...
+                'icue', app.has_valid_handle('icue_enable') && app.handles.icue_enable.Value);
+
+            if isfield(app.handles, 'collector_probe_state') && isstruct(app.handles.collector_probe_state)
+                state = app.handles.collector_probe_state;
+            else
+                state = struct('cpuz', false, 'hwinfo', false, 'icue', false);
+            end
+
+            refresh_all = strcmp(source, 'all');
+            if refresh_all || strcmp(source, 'cpuz')
+                state.cpuz = app.probe_external_collector('cpuz', enabled.cpuz);
+            end
+            if refresh_all || strcmp(source, 'hwinfo')
+                state.hwinfo = app.probe_external_collector('hwinfo', enabled.hwinfo);
+            end
+            if refresh_all || strcmp(source, 'icue')
+                state.icue = app.probe_external_collector('icue', enabled.icue);
+            end
+            app.handles.collector_probe_state = state;
+
+            if app.has_valid_handle('metrics_source_matlab')
+                app.handles.metrics_source_matlab.Text = 'connected';
+                app.handles.metrics_source_matlab.FontColor = app.layout_cfg.colors.accent_green;
+            end
+            app.set_collector_light('metrics_source_cpuz', enabled.cpuz, state.cpuz);
+            app.set_collector_light('metrics_source_hwinfo', enabled.hwinfo, state.hwinfo);
+            app.set_collector_light('metrics_source_icue', enabled.icue, state.icue);
+
+            enabled_external_count = double(enabled.cpuz) + double(enabled.hwinfo) + double(enabled.icue);
+            connected_external_count = double(enabled.cpuz && state.cpuz) + ...
+                double(enabled.hwinfo && state.hwinfo) + ...
+                double(enabled.icue && state.icue);
+
+            probe = struct();
+            probe.enabled_external_count = enabled_external_count;
+            probe.connected_external_count = connected_external_count;
+
+            if app.has_valid_handle('collector_probe_status')
+                app.handles.collector_probe_status.Text = sprintf( ...
+                    'Probe @ %s: %d/%d external connected', ...
+                    char(datetime('now', 'Format', 'HH:mm:ss')), ...
+                    connected_external_count, enabled_external_count);
+                if connected_external_count == enabled_external_count && enabled_external_count > 0
+                    app.handles.collector_probe_status.FontColor = app.layout_cfg.colors.accent_green;
+                elseif enabled_external_count == 0
+                    app.handles.collector_probe_status.FontColor = app.layout_cfg.colors.fg_muted;
+                else
+                    app.handles.collector_probe_status.FontColor = app.layout_cfg.colors.accent_yellow;
+                end
+            end
+        end
+
+        function connected = probe_external_collector(app, source, enabled)
+            if ~enabled
+                connected = false;
+                return;
+            end
+            connected = false;
+            paths = app.collector_probe_paths(source);
+            for i = 1:numel(paths)
+                if exist(paths{i}, 'file') == 2
+                    connected = true;
+                    return;
+                end
+            end
+        end
+
+        function paths = collector_probe_paths(~, source)
+            switch lower(char(string(source)))
+                case 'cpuz'
+                    paths = {
+                        'C:\Program Files\CPUID\CPU-Z\cpuz.exe', ...
+                        'C:\Program Files (x86)\CPUID\CPU-Z\cpuz.exe'
+                    };
+                case 'hwinfo'
+                    paths = {
+                        'C:\Program Files\HWiNFO64\HWiNFO64.exe', ...
+                        'C:\Program Files\HWiNFO32\HWiNFO32.exe', ...
+                        'C:\Program Files\HWiNFO\HWiNFO.exe'
+                    };
+                case 'icue'
+                    paths = {
+                        'C:\Program Files\CORSAIR\CORSAIR iCUE 4 Software\iCUE.exe', ...
+                        'C:\Program Files\Corsair\CORSAIR iCUE 3 Software\iCUE.exe', ...
+                        'C:\Program Files\Corsair\CORSAIR iCUE Software\iCUE.exe'
+                    };
+                otherwise
+                    paths = {};
+            end
+        end
+
+        function set_collector_light(app, handle_name, enabled, connected)
+            if ~app.has_valid_handle(handle_name)
+                return;
+            end
+            if ~enabled
+                app.handles.(handle_name).Text = 'off';
+                app.handles.(handle_name).FontColor = app.layout_cfg.colors.fg_muted;
+                return;
+            end
+            if connected
+                app.handles.(handle_name).Text = 'connected';
+                app.handles.(handle_name).FontColor = app.layout_cfg.colors.accent_green;
+            else
+                app.handles.(handle_name).Text = 'not found';
+                app.handles.(handle_name).FontColor = app.layout_cfg.colors.accent_yellow;
             end
         end
 
@@ -4239,14 +4384,30 @@ classdef UIController < handle
                 machine = 'unknown_machine';
             end
             collectors = 'MATLAB';
+            probe_state = struct('cpuz', false, 'hwinfo', false, 'icue', false);
+            if isfield(app.handles, 'collector_probe_state') && isstruct(app.handles.collector_probe_state)
+                probe_state = app.handles.collector_probe_state;
+            end
             if app.has_valid_handle('cpuz_enable') && app.handles.cpuz_enable.Value
-                collectors = collectors + "+CPU-Z";
+                if probe_state.cpuz
+                    collectors = collectors + "+CPU-Z(connected)";
+                else
+                    collectors = collectors + "+CPU-Z(missing)";
+                end
             end
             if app.has_valid_handle('hwinfo_enable') && app.handles.hwinfo_enable.Value
-                collectors = collectors + "+HWiNFO";
+                if probe_state.hwinfo
+                    collectors = collectors + "+HWiNFO(connected)";
+                else
+                    collectors = collectors + "+HWiNFO(missing)";
+                end
             end
             if app.has_valid_handle('icue_enable') && app.handles.icue_enable.Value
-                collectors = collectors + "+iCUE";
+                if probe_state.icue
+                    collectors = collectors + "+iCUE(connected)";
+                else
+                    collectors = collectors + "+iCUE(missing)";
+                end
             end
             collectors = char(string(collectors));
 
