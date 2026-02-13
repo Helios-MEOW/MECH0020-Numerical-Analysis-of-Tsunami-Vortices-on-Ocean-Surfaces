@@ -248,19 +248,75 @@ classdef UIController < handle
         end
         
         function create_all_tabs(app)
-            % Create streamlined UI tabs (consolidated from 9 to 5)
-            % All tabs styled with dark mode colors
-            app.tabs.config = uitab(app.tab_group, 'Title', 'Configuration', ...
-                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
-            app.create_config_tab();
-            
-            app.tabs.monitoring = uitab(app.tab_group, 'Title', 'Live Monitor', ...
-                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
-            app.create_monitoring_tab();
-            
-            app.tabs.results = uitab(app.tab_group, 'Title', 'Results and Figures', ...
-                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
-            app.create_results_tab();
+            % Create tabs from configurable tab order while preserving required handles.
+            app.tabs = struct();
+            tab_order = {'config', 'monitoring', 'results'};
+            if isfield(app.layout_cfg, 'tab_group') && isfield(app.layout_cfg.tab_group, 'order') && ...
+                    ~isempty(app.layout_cfg.tab_group.order)
+                tab_order = cellstr(string(app.layout_cfg.tab_group.order));
+            end
+
+            for i = 1:numel(tab_order)
+                key = lower(strtrim(tab_order{i}));
+                switch key
+                    case 'config'
+                        if ~isfield(app.tabs, 'config')
+                            app.tabs.config = uitab(app.tab_group, ...
+                                'Title', app.tab_title_from_layout('config', 'Configuration'), ...
+                                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
+                            app.create_config_tab();
+                        end
+                    case {'monitor', 'monitoring', 'live_monitor'}
+                        if ~isfield(app.tabs, 'monitoring')
+                            app.tabs.monitoring = uitab(app.tab_group, ...
+                                'Title', app.tab_title_from_layout('monitoring', 'Live Monitor'), ...
+                                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
+                            app.create_monitoring_tab();
+                        end
+                    case {'results', 'results_and_figures'}
+                        if ~isfield(app.tabs, 'results')
+                            app.tabs.results = uitab(app.tab_group, ...
+                                'Title', app.tab_title_from_layout('results', 'Results and Figures'), ...
+                                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
+                            app.create_results_tab();
+                        end
+                end
+            end
+
+            % Defensive fallback: always create required tabs if omitted in tab_order.
+            if ~isfield(app.tabs, 'config')
+                app.tabs.config = uitab(app.tab_group, ...
+                    'Title', app.tab_title_from_layout('config', 'Configuration'), ...
+                    'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
+                app.create_config_tab();
+            end
+            if ~isfield(app.tabs, 'monitoring')
+                app.tabs.monitoring = uitab(app.tab_group, ...
+                    'Title', app.tab_title_from_layout('monitoring', 'Live Monitor'), ...
+                    'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
+                app.create_monitoring_tab();
+            end
+            if ~isfield(app.tabs, 'results')
+                app.tabs.results = uitab(app.tab_group, ...
+                    'Title', app.tab_title_from_layout('results', 'Results and Figures'), ...
+                    'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
+                app.create_results_tab();
+            end
+        end
+
+        function title_txt = tab_title_from_layout(app, key, fallback)
+            title_txt = fallback;
+            if isfield(app.layout_cfg, 'tab_layout') && isfield(app.layout_cfg.tab_layout, key)
+                block = app.layout_cfg.tab_layout.(key);
+                if isstruct(block) && isfield(block, 'tab_name') && ~isempty(block.tab_name)
+                    title_txt = char(string(block.tab_name));
+                    return;
+                end
+            end
+            if isfield(app.layout_cfg, 'text') && isfield(app.layout_cfg.text, 'tabs') && ...
+                    isfield(app.layout_cfg.text.tabs, key)
+                title_txt = char(string(app.layout_cfg.text.tabs.(key)));
+            end
         end
         
         function create_control_buttons(~)
@@ -854,7 +910,7 @@ classdef UIController < handle
             root.ColumnSpacing = cfg.root.col_spacing;
 
             dashboard_panel = uipanel(root, ...
-                'Title', 'Live Monitor Dashboard (3x3: 8 plots + 1 numeric tile)', ...
+                'Title', app.layout_cfg.text.monitor_panels.dashboard, ...
                 'BackgroundColor', C.bg_panel_alt);
             dashboard_panel.Layout.Row = app.layout_cfg.coords.monitor.left_panel(1);
             dashboard_panel.Layout.Column = app.layout_cfg.coords.monitor.left_panel(2);
@@ -877,7 +933,7 @@ classdef UIController < handle
 
                 if tile_idx == cfg.numeric_tile_index
                     numeric_panel = uipanel(dash_grid, ...
-                        'Title', 'Simulation Metrics (Categorized)', ...
+                        'Title', app.layout_cfg.text.monitor_panels.numeric_tile, ...
                         'BackgroundColor', C.bg_panel_alt);
                     numeric_panel.Layout.Row = row_idx;
                     numeric_panel.Layout.Column = col_idx;
@@ -1743,6 +1799,8 @@ classdef UIController < handle
                 'conv_x', zeros(1, 0), ...
                 'conv_residual', zeros(1, 0), ...
                 'total_iterations', NaN, ...
+                'update_counter', 0, ...
+                'last_refresh_tic', tic, ...
                 'status_text', sprintf('Running %s...', app.humanize_token(cfg.mode)));
         end
 
@@ -1773,6 +1831,7 @@ classdef UIController < handle
             if ~isfield(app.handles, 'monitor_live_state') || ~isstruct(app.handles.monitor_live_state)
                 app.start_live_monitor_session(cfg);
             end
+            update_policy = app.resolve_monitor_update_policy(cfg);
             state = app.handles.monitor_live_state;
 
             iter = app.progress_field(payload, {'iteration', 'step'}, NaN);
@@ -1878,15 +1937,36 @@ classdef UIController < handle
                 state.status_text = sprintf('Running iteration %d', round(iter));
             end
 
+            state = app.trim_live_monitor_history(state, update_policy.max_history_points);
+            state.update_counter = state.update_counter + 1;
+            if ~isfield(state, 'last_refresh_tic') || isempty(state.last_refresh_tic)
+                state.last_refresh_tic = tic;
+            end
+
+            is_final_step = false;
+            if isfinite(total_iter) && total_iter > 0
+                is_final_step = iter >= total_iter;
+            end
+            elapsed_since_refresh = toc(state.last_refresh_tic);
+            stride_hit = mod(state.update_counter, max(1, update_policy.refresh_stride)) == 0;
+            cadence_hit = mod(state.update_counter, max(1, update_policy.force_refresh_every)) == 0;
+            time_hit = elapsed_since_refresh >= max(update_policy.min_refresh_seconds, 0);
+            should_refresh = stride_hit || cadence_hit || time_hit || is_final_step;
+
             app.handles.monitor_live_state = state;
-            summary_live = struct('results', struct('max_omega', max_omega), ...
-                'monitor_series', app.collect_live_monitor_series_for_summary(struct()));
-            app.refresh_monitor_dashboard(summary_live, cfg);
+            if should_refresh
+                summary_live = struct('results', struct('max_omega', max_omega), ...
+                    'monitor_series', app.collect_live_monitor_series_for_summary(struct()));
+                app.refresh_monitor_dashboard(summary_live, cfg);
+                app.handles.monitor_live_state.last_refresh_tic = tic;
+            end
 
             if app.has_valid_handle('run_status')
                 app.handles.run_status.Text = state.status_text;
             end
-            drawnow limitrate nocallbacks;
+            if should_refresh
+                drawnow limitrate nocallbacks;
+            end
         end
 
         function value = progress_field(~, payload, field_names, fallback)
@@ -1911,6 +1991,66 @@ classdef UIController < handle
                 return;
             end
             cpu_pct = max(0, min(100, 20 + 10 * log10(1 + iter_rate_now)));
+        end
+
+        function policy = resolve_monitor_update_policy(app, cfg)
+            % Resolve live-monitor redraw policy from layout config with safe defaults.
+            policy = struct( ...
+                'refresh_stride', 2, ...
+                'min_refresh_seconds', 0.12, ...
+                'force_refresh_every', 25, ...
+                'max_history_points', 500);
+
+            if isfield(app.layout_cfg, 'monitor_tab') && isfield(app.layout_cfg.monitor_tab, 'live_update')
+                user_policy = app.layout_cfg.monitor_tab.live_update;
+                if isstruct(user_policy)
+                    if isfield(user_policy, 'refresh_stride') && isnumeric(user_policy.refresh_stride)
+                        policy.refresh_stride = max(1, round(double(user_policy.refresh_stride)));
+                    end
+                    if isfield(user_policy, 'min_refresh_seconds') && isnumeric(user_policy.min_refresh_seconds)
+                        policy.min_refresh_seconds = max(0, double(user_policy.min_refresh_seconds));
+                    end
+                    if isfield(user_policy, 'force_refresh_every') && isnumeric(user_policy.force_refresh_every)
+                        policy.force_refresh_every = max(1, round(double(user_policy.force_refresh_every)));
+                    end
+                    if isfield(user_policy, 'max_history_points') && isnumeric(user_policy.max_history_points)
+                        policy.max_history_points = max(50, round(double(user_policy.max_history_points)));
+                    end
+                end
+            end
+
+            if nargin >= 2 && isstruct(cfg) && isfield(cfg, 'enable_monitoring') && ~logical(cfg.enable_monitoring)
+                % Keep responsive redraw cadence when monitor toggles are off.
+                policy.refresh_stride = 1;
+                policy.min_refresh_seconds = 0;
+            end
+        end
+
+        function state = trim_live_monitor_history(~, state, max_points)
+            % Keep only tail samples to avoid progressively slower redraws.
+            if nargin < 3 || ~isfinite(max_points) || max_points < 1
+                return;
+            end
+            if ~isfield(state, 't') || numel(state.t) <= max_points
+                return;
+            end
+
+            keep_idx = (numel(state.t) - max_points + 1):numel(state.t);
+            vec_fields = {'t', 'iters', 'iter_rate', 'max_omega', 'energy_proxy', ...
+                'enstrophy_proxy', 'cpu_proxy', 'memory_series', 'elapsed_wall_time', ...
+                'iter_completion_pct', 'vorticity_decay_rate', 'stability_proxy', ...
+                'conv_x', 'conv_residual'};
+            for i = 1:numel(vec_fields)
+                key = vec_fields{i};
+                if isfield(state, key) && isnumeric(state.(key)) && ~isempty(state.(key))
+                    vec = state.(key);
+                    if numel(vec) >= keep_idx(end)
+                        state.(key) = vec(keep_idx);
+                    elseif numel(vec) > max_points
+                        state.(key) = vec(end - max_points + 1:end);
+                    end
+                end
+            end
         end
 
         function monitor_series = collect_live_monitor_series_for_summary(app, summary)

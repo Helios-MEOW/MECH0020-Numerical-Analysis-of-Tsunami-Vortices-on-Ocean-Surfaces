@@ -57,9 +57,37 @@ function sandbox = UI_Layout_Sandbox(varargin)
     tab_group.Layout.Column = 1;
 
     handles = struct();
-    handles.config = build_config_tab(tab_group, cfg, C);
-    handles.monitor = build_monitor_tab(tab_group, cfg, C);
-    handles.results = build_results_tab(tab_group, cfg, C);
+    tab_order = {'config', 'monitoring', 'results'};
+    if isfield(cfg, 'tab_group') && isfield(cfg.tab_group, 'order') && ~isempty(cfg.tab_group.order)
+        tab_order = cellstr(string(cfg.tab_group.order));
+    end
+    for i = 1:numel(tab_order)
+        key = lower(strtrim(tab_order{i}));
+        switch key
+            case 'config'
+                if ~isfield(handles, 'config')
+                    handles.config = build_config_tab(tab_group, cfg, C);
+                end
+            case {'monitor', 'monitoring', 'live_monitor'}
+                if ~isfield(handles, 'monitor')
+                    handles.monitor = build_monitor_tab(tab_group, cfg, C);
+                end
+            case {'results', 'results_and_figures'}
+                if ~isfield(handles, 'results')
+                    handles.results = build_results_tab(tab_group, cfg, C);
+                end
+        end
+    end
+
+    if ~isfield(handles, 'config')
+        handles.config = build_config_tab(tab_group, cfg, C);
+    end
+    if ~isfield(handles, 'monitor')
+        handles.monitor = build_monitor_tab(tab_group, cfg, C);
+    end
+    if ~isfield(handles, 'results')
+        handles.results = build_results_tab(tab_group, cfg, C);
+    end
 
     fig.Visible = char(string(p.Results.Visible));
 
@@ -71,7 +99,7 @@ end
 
 function out = build_config_tab(tab_group, cfg, C)
     out = struct();
-    tab = uitab(tab_group, 'Title', cfg.text.tabs.config, 'BackgroundColor', C.bg_panel_alt);
+    tab = uitab(tab_group, 'Title', resolve_tab_title(cfg, 'config', cfg.text.tabs.config), 'BackgroundColor', C.bg_panel_alt);
     root = uigridlayout(tab, cfg.config_tab.root.rows_cols);
     root.RowHeight = cfg.config_tab.root.row_heights;
     root.ColumnWidth = cfg.config_tab.root.col_widths;
@@ -122,7 +150,7 @@ end
 
 function out = build_monitor_tab(tab_group, cfg, C)
     out = struct();
-    tab = uitab(tab_group, 'Title', cfg.text.tabs.monitoring, 'BackgroundColor', C.bg_panel_alt);
+    tab = uitab(tab_group, 'Title', resolve_tab_title(cfg, 'monitoring', cfg.text.tabs.monitoring), 'BackgroundColor', C.bg_panel_alt);
     root = uigridlayout(tab, cfg.monitor_tab.root.rows_cols);
     root.RowHeight = cfg.monitor_tab.root.row_heights;
     root.ColumnWidth = cfg.monitor_tab.root.col_widths;
@@ -146,8 +174,8 @@ function out = build_monitor_tab(tab_group, cfg, C)
             tile.Layout.Column = tile_col;
             tgrid = uigridlayout(tile, [1 1]);
             tgrid.Padding = [4 4 4 4];
-            uitable(tgrid, 'ColumnName', {'Metric', 'Value', 'Unit', 'Source'}, ...
-                'Data', {'Status', cfg.text.placeholder.value, '-', 'Sandbox'});
+            uitable(tgrid, 'ColumnName', {'Metric Summary'}, ...
+                'Data', {sprintf('[Session] Status: %s', cfg.text.placeholder.value)});
         else
             tile = uipanel(dash_grid, 'Title', sprintf('Plot Tile %d', i), 'BackgroundColor', C.bg_panel_alt);
             tile.Layout.Row = tile_row;
@@ -195,7 +223,7 @@ end
 
 function out = build_results_tab(tab_group, cfg, C)
     out = struct();
-    tab = uitab(tab_group, 'Title', cfg.text.tabs.results, 'BackgroundColor', C.bg_panel_alt);
+    tab = uitab(tab_group, 'Title', resolve_tab_title(cfg, 'results', cfg.text.tabs.results), 'BackgroundColor', C.bg_panel_alt);
     root = uigridlayout(tab, cfg.results_tab.root.rows_cols);
     root.RowHeight = cfg.results_tab.root.row_heights;
     root.Padding = cfg.results_tab.root.padding;
@@ -237,4 +265,14 @@ function add_panel_placeholder(panel, subtitle, value_txt, C)
         'FontColor', C.accent_cyan, ...
         'HorizontalAlignment', 'center', ...
         'FontWeight', 'bold');
+end
+
+function title_txt = resolve_tab_title(cfg, key, fallback)
+    title_txt = fallback;
+    if isfield(cfg, 'tab_layout') && isfield(cfg.tab_layout, key)
+        block = cfg.tab_layout.(key);
+        if isstruct(block) && isfield(block, 'tab_name') && ~isempty(block.tab_name)
+            title_txt = char(string(block.tab_name));
+        end
+    end
 end
