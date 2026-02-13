@@ -79,6 +79,8 @@ classdef UIController < handle
         color_error            % Errors: red
         color_info             % Info messages: cyan
         color_debug            % Debug messages: light gray
+        time_video_timer       % Timer driving in-app triplet playback
+        time_video_state       % Cached media streams and playback cursors
     end
     
     methods
@@ -102,6 +104,8 @@ classdef UIController < handle
             app.dev_mode_enabled = false;  % Developer Mode off by default
             app.selected_component = [];
             app.dev_original_callbacks = [];  % Will be containers.Map when dev mode enabled
+            app.time_video_timer = [];
+            app.time_video_state = struct();
             
             % Load centralized layout configuration
             app.layout_cfg = UI_Layout_Config();
@@ -362,12 +366,53 @@ classdef UIController < handle
             left_layout.RowHeight = cfg_left.row_heights;
             left_layout.Padding = cfg_left.padding;
             left_layout.RowSpacing = cfg_left.row_spacing;
+            if isfield(cfg_left, 'col_widths')
+                left_layout.ColumnWidth = cfg_left.col_widths;
+            end
+
+            % Left column now uses explicit subtabs for each configuration cluster.
+            left_subtabs_cfg = app.layout_cfg.config_tab.left_subtabs;
+            left_subtab_group = uitabgroup(left_layout);
+            left_subtab_group.Layout.Row = 1;
+            left_subtab_group.Layout.Column = 1;
+            app.handles.config_left_subtab_group = left_subtab_group;
+
+            subtabs = struct();
+            subtab_hosts = struct();
+            for idx = 1:numel(left_subtabs_cfg.order)
+                key = char(lower(string(left_subtabs_cfg.order{idx})));
+                if isfield(left_subtabs_cfg.titles, key)
+                    title_txt = char(string(left_subtabs_cfg.titles.(key)));
+                else
+                    title_txt = app.humanize_token(key);
+                end
+                subtabs.(key) = uitab(left_subtab_group, 'Title', title_txt);
+
+                host_cfg = left_subtabs_cfg.root;
+                host = uigridlayout(subtabs.(key), host_cfg.rows_cols);
+                row_heights = host_cfg.row_heights;
+                if ischar(row_heights) || isstring(row_heights)
+                    row_heights = {char(string(row_heights))};
+                end
+                col_widths = host_cfg.col_widths;
+                if ischar(col_widths) || isstring(col_widths)
+                    col_widths = {char(string(col_widths))};
+                end
+                host.RowHeight = row_heights;
+                host.ColumnWidth = col_widths;
+                host.Padding = host_cfg.padding;
+                host.RowSpacing = host_cfg.row_spacing;
+                host.ColumnSpacing = host_cfg.col_spacing;
+                subtab_hosts.(key) = host;
+            end
+            app.handles.config_subtabs = subtabs;
+            app.handles.config_subtab_hosts = subtab_hosts;
 
             % Method and mode panel
-            panel_method = uipanel(left_layout, 'Title', 'Method and Mode', ...
+            panel_method = uipanel(subtab_hosts.method, 'Title', 'Method and Mode', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_method.Layout.Row = app.layout_cfg.coords.config.panel_method(1);
-            panel_method.Layout.Column = app.layout_cfg.coords.config.panel_method(2);
+            panel_method.Layout.Row = 1;
+            panel_method.Layout.Column = 1;
             cfg_method = app.layout_cfg.config_tab.method_grid;
             method_grid = uigridlayout(panel_method, cfg_method.rows_cols);
             method_grid.ColumnWidth = cfg_method.col_widths;
@@ -447,30 +492,34 @@ classdef UIController < handle
             app.handles.physics_status.Layout.Column = [1 4];
 
             % Grid and domain panel
-            panel_grid = uipanel(left_layout, 'Title', 'Grid and Domain', ...
+            panel_grid = uipanel(subtab_hosts.grid, 'Title', 'Grid and Domain', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_grid.Layout.Row = app.layout_cfg.coords.config.panel_grid(1);
-            panel_grid.Layout.Column = app.layout_cfg.coords.config.panel_grid(2);
+            panel_grid.Layout.Row = 1;
+            panel_grid.Layout.Column = 1;
             cfg_grid = app.layout_cfg.config_tab.grid_grid;
             grid_layout = uigridlayout(panel_grid, cfg_grid.rows_cols);
             grid_layout.ColumnWidth = cfg_grid.col_widths;
             grid_layout.RowHeight = cfg_grid.row_heights;
             grid_layout.Padding = cfg_grid.padding;
 
-            lbl = uilabel(grid_layout, 'Text', 'Nx', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
+            app.handles.label_Nx = app.create_math_label(grid_layout, 'N_x', 'Nx', 'FontColor', C.fg_text);
+            app.handles.label_Nx.Layout.Row = 1; app.handles.label_Nx.Layout.Column = 1;
             app.handles.Nx = uieditfield(grid_layout, 'numeric', 'Value', 128, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.Nx.Layout.Row = 1; app.handles.Nx.Layout.Column = 2;
-            lbl = uilabel(grid_layout, 'Text', 'Ny', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
+            app.handles.label_Ny = app.create_math_label(grid_layout, 'N_y', 'Ny', 'FontColor', C.fg_text);
+            app.handles.label_Ny.Layout.Row = 1; app.handles.label_Ny.Layout.Column = 3;
             app.handles.Ny = uieditfield(grid_layout, 'numeric', 'Value', 128, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.Ny.Layout.Row = 1; app.handles.Ny.Layout.Column = 4;
 
-            lbl = uilabel(grid_layout, 'Text', 'Lx', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            app.handles.label_Lx = app.create_math_label(grid_layout, 'L_x', 'Lx', 'FontColor', C.fg_text);
+            app.handles.label_Lx.Layout.Row = 2; app.handles.label_Lx.Layout.Column = 1;
             app.handles.Lx = uieditfield(grid_layout, 'numeric', 'Value', 10.0, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.Lx.Layout.Row = 2; app.handles.Lx.Layout.Column = 2;
-            lbl = uilabel(grid_layout, 'Text', 'Ly', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
+            app.handles.label_Ly = app.create_math_label(grid_layout, 'L_y', 'Ly', 'FontColor', C.fg_text);
+            app.handles.label_Ly.Layout.Row = 2; app.handles.label_Ly.Layout.Column = 3;
             app.handles.Ly = uieditfield(grid_layout, 'numeric', 'Value', 10.0, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.Ly.Layout.Row = 2; app.handles.Ly.Layout.Column = 4;
@@ -485,25 +534,37 @@ classdef UIController < handle
             app.handles.grid_points.Layout.Row = 3; app.handles.grid_points.Layout.Column = 4;
 
             % Time and physics panel
-            panel_time = uipanel(left_layout, 'Title', 'Time and Physics', ...
+            panel_time = uipanel(subtab_hosts.time, 'Title', 'Time and Physics', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_time.Layout.Row = app.layout_cfg.coords.config.panel_time(1);
-            panel_time.Layout.Column = app.layout_cfg.coords.config.panel_time(2);
+            panel_time.Layout.Row = 1;
+            panel_time.Layout.Column = 1;
             cfg_time = app.layout_cfg.config_tab.time_grid;
-            time_layout = uigridlayout(panel_time, cfg_time.rows_cols);
+            cfg_time_video = app.layout_cfg.config_tab.time_video;
+            time_root = uigridlayout(panel_time, cfg_time_video.panel_rows_cols);
+            time_root.RowHeight = cfg_time_video.panel_row_heights;
+            time_root.ColumnWidth = {'1x'};
+            time_root.Padding = [6 6 6 6];
+            time_root.RowSpacing = 6;
+
+            time_layout = uigridlayout(time_root, cfg_time.rows_cols);
             time_layout.ColumnWidth = cfg_time.col_widths;
             time_layout.RowHeight = cfg_time.row_heights;
             time_layout.Padding = cfg_time.padding;
+            time_layout.Layout.Row = 1;
+            time_layout.Layout.Column = 1;
 
-            lbl = uilabel(time_layout, 'Text', 'dt', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
+            app.handles.label_dt = app.create_math_label(time_layout, 'Delta_t', 'dt', 'FontColor', C.fg_text);
+            app.handles.label_dt.Layout.Row = 1; app.handles.label_dt.Layout.Column = 1;
             app.handles.dt = uieditfield(time_layout, 'numeric', 'Value', 0.001, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.dt.Layout.Row = 1; app.handles.dt.Layout.Column = 2;
-            lbl = uilabel(time_layout, 'Text', 'Tfinal', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
+            app.handles.label_Tfinal = app.create_math_label(time_layout, 'T_final', 'Tfinal', 'FontColor', C.fg_text);
+            app.handles.label_Tfinal.Layout.Row = 1; app.handles.label_Tfinal.Layout.Column = 3;
             app.handles.t_final = uieditfield(time_layout, 'numeric', 'Value', 10.0, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.t_final.Layout.Row = 1; app.handles.t_final.Layout.Column = 4;
-            lbl = uilabel(time_layout, 'Text', 'nu', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            app.handles.label_nu = app.create_math_label(time_layout, 'nu', 'nu', 'FontColor', C.fg_text);
+            app.handles.label_nu.Layout.Row = 2; app.handles.label_nu.Layout.Column = 1;
             app.handles.nu = uieditfield(time_layout, 'numeric', 'Value', 1e-4, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.nu.Layout.Row = 2; app.handles.nu.Layout.Column = 2;
@@ -511,11 +572,114 @@ classdef UIController < handle
             app.handles.num_snapshots = uieditfield(time_layout, 'numeric', 'Value', 9);
             app.handles.num_snapshots.Layout.Row = 2; app.handles.num_snapshots.Layout.Column = 4;
 
+            % Time/Physics animation triplet preview (MP4/AVI/GIF).
+            video_panel = uipanel(time_root, ...
+                'Title', 'Build Time/Physics Animation Preview (MP4 | AVI | GIF)', ...
+                'BackgroundColor', C.bg_panel);
+            video_panel.Layout.Row = 2;
+            video_panel.Layout.Column = 1;
+
+            video_panel_grid = uigridlayout(video_panel, [2, 1]);
+            video_panel_grid.RowHeight = {'1x', 'fit'};
+            video_panel_grid.ColumnWidth = {'1x'};
+            video_panel_grid.Padding = [4 4 4 4];
+            video_panel_grid.RowSpacing = 6;
+
+            preview_grid = uigridlayout(video_panel_grid, cfg_time_video.preview_rows_cols);
+            preview_grid.Layout.Row = 1;
+            preview_grid.Layout.Column = 1;
+            preview_grid.ColumnWidth = cfg_time_video.preview_col_widths;
+            preview_grid.RowHeight = {'1x'};
+            preview_grid.Padding = cfg_time_video.preview_padding;
+            preview_grid.ColumnSpacing = cfg_time_video.preview_col_spacing;
+
+            app.handles.time_video_axes_map = struct();
+            app.handles.time_video_image_map = struct();
+            app.handles.time_video_status_map = struct();
+            app.handles.time_video_codec_map = struct();
+            for fmt_idx = 1:numel(cfg_time_video.formats)
+                fmt = char(lower(string(cfg_time_video.formats{fmt_idx})));
+                fmt_title = upper(fmt);
+                card = uipanel(preview_grid, 'Title', fmt_title, 'BackgroundColor', C.bg_panel_alt);
+                card.Layout.Row = 1;
+                card.Layout.Column = fmt_idx;
+
+                card_grid = uigridlayout(card, cfg_time_video.card_rows_cols);
+                card_grid.RowHeight = cfg_time_video.card_row_heights;
+                card_grid.ColumnWidth = {'1x'};
+                card_grid.Padding = [4 4 4 4];
+                card_grid.RowSpacing = 2;
+
+                ax = uiaxes(card_grid);
+                ax.Layout.Row = 1;
+                ax.Layout.Column = 1;
+                app.style_axes(ax);
+                axis(ax, 'image');
+                axis(ax, 'off');
+                h_img = image(ax, uint8(zeros(2, 2, 3)));
+                h_img.Visible = 'off';
+
+                status_label = uilabel(card_grid, ...
+                    'Text', sprintf('%s: pending', fmt_title), ...
+                    'FontColor', C.fg_muted, ...
+                    'FontSize', 10, ...
+                    'HorizontalAlignment', 'center');
+                status_label.Layout.Row = 2;
+                status_label.Layout.Column = 1;
+
+                codec_label = uilabel(card_grid, ...
+                    'Text', 'Codec: --', ...
+                    'FontColor', C.fg_muted, ...
+                    'FontSize', 10, ...
+                    'HorizontalAlignment', 'center');
+                codec_label.Layout.Row = 3;
+                codec_label.Layout.Column = 1;
+
+                app.handles.time_video_axes_map.(fmt) = ax;
+                app.handles.time_video_image_map.(fmt) = h_img;
+                app.handles.time_video_status_map.(fmt) = status_label;
+                app.handles.time_video_codec_map.(fmt) = codec_label;
+            end
+
+            controls_grid = uigridlayout(video_panel_grid, cfg_time_video.controls_rows_cols);
+            controls_grid.Layout.Row = 2;
+            controls_grid.Layout.Column = 1;
+            controls_grid.ColumnWidth = cfg_time_video.controls_col_widths;
+            controls_grid.RowHeight = {'fit'};
+            controls_grid.Padding = cfg_time_video.controls_padding;
+            controls_grid.ColumnSpacing = 6;
+
+            app.handles.btn_time_video_play = uibutton(controls_grid, 'Text', 'Play', ...
+                'ButtonPushedFcn', @(~,~) app.play_time_video_triplet());
+            app.handles.btn_time_video_play.Layout.Row = 1; app.handles.btn_time_video_play.Layout.Column = 1;
+
+            app.handles.btn_time_video_pause = uibutton(controls_grid, 'Text', 'Pause', ...
+                'ButtonPushedFcn', @(~,~) app.pause_time_video_triplet());
+            app.handles.btn_time_video_pause.Layout.Row = 1; app.handles.btn_time_video_pause.Layout.Column = 2;
+
+            app.handles.btn_time_video_restart = uibutton(controls_grid, 'Text', 'Restart', ...
+                'ButtonPushedFcn', @(~,~) app.restart_time_video_triplet());
+            app.handles.btn_time_video_restart.Layout.Row = 1; app.handles.btn_time_video_restart.Layout.Column = 3;
+
+            app.handles.btn_time_video_load = uibutton(controls_grid, 'Text', 'Load Latest', ...
+                'ButtonPushedFcn', @(~,~) app.load_time_video_triplet('AutoGenerate', true));
+            app.handles.btn_time_video_load.Layout.Row = 1; app.handles.btn_time_video_load.Layout.Column = 4;
+
+            app.handles.time_video_status = uilabel(controls_grid, ...
+                'Text', 'Triplet status: idle', ...
+                'FontColor', C.fg_muted, ...
+                'HorizontalAlignment', 'left', ...
+                'WordWrap', 'on');
+            app.handles.time_video_status.Layout.Row = 1;
+            app.handles.time_video_status.Layout.Column = 5;
+
+            app.initialize_time_video_state();
+
             % Simulation settings panel
-            panel_sim = uipanel(left_layout, 'Title', 'Simulation Settings', ...
+            panel_sim = uipanel(subtab_hosts.simulation, 'Title', 'Simulation Settings', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_sim.Layout.Row = app.layout_cfg.coords.config.panel_sim(1);
-            panel_sim.Layout.Column = app.layout_cfg.coords.config.panel_sim(2);
+            panel_sim.Layout.Row = 1;
+            panel_sim.Layout.Column = 1;
             cfg_sim = app.layout_cfg.config_tab.sim_grid;
             sim_layout = uigridlayout(panel_sim, cfg_sim.rows_cols);
             sim_layout.ColumnWidth = cfg_sim.col_widths;
@@ -549,10 +713,10 @@ classdef UIController < handle
             app.handles.animation_num_frames.Layout.Row = 3; app.handles.animation_num_frames.Layout.Column = 4;
 
             % Convergence panel
-            panel_conv = uipanel(left_layout, 'Title', 'Convergence Study', ...
+            panel_conv = uipanel(subtab_hosts.convergence, 'Title', 'Convergence Study', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_conv.Layout.Row = app.layout_cfg.coords.config.panel_conv(1);
-            panel_conv.Layout.Column = app.layout_cfg.coords.config.panel_conv(2);
+            panel_conv.Layout.Row = 1;
+            panel_conv.Layout.Column = 1;
             cfg_conv = app.layout_cfg.config_tab.conv_grid;
             conv_layout = uigridlayout(panel_conv, cfg_conv.rows_cols);
             conv_layout.ColumnWidth = cfg_conv.col_widths;
@@ -622,10 +786,10 @@ classdef UIController < handle
             app.handles.converged_mesh_status.Layout.Column = [3 4];
 
             % Sustainability panel
-            panel_sus = uipanel(left_layout, 'Title', 'Sustainability', ...
+            panel_sus = uipanel(subtab_hosts.sustainability, 'Title', 'Sustainability', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_sus.Layout.Row = app.layout_cfg.coords.config.panel_sus(1);
-            panel_sus.Layout.Column = app.layout_cfg.coords.config.panel_sus(2);
+            panel_sus.Layout.Row = 1;
+            panel_sus.Layout.Column = 1;
             cfg_sus = app.layout_cfg.config_tab.sus_grid;
             sus_layout = uigridlayout(panel_sus, cfg_sus.rows_cols);
             sus_layout.ColumnWidth = cfg_sus.col_widths;
@@ -894,6 +1058,7 @@ classdef UIController < handle
             app.update_convergence_control_state();
             app.update_ic_preview();
             app.update_checklist();
+            app.load_time_video_triplet('AutoGenerate', false);
         end
         function create_monitoring_tab(app)
             % 3x3 dashboard contract: 8 ranked plots + 1 numeric table tile.
@@ -1159,7 +1324,7 @@ classdef UIController < handle
                 app.append_to_terminal(sprintf('Launch failed: %s', ME.message), 'error');
                 app.set_run_state('idle', 'Failed');
                 if ~isempty(app.fig) && isvalid(app.fig)
-                    uialert(app.fig, ME.message, 'Launch Error', 'Icon', 'error');
+                    app.show_alert_latex(ME.message, 'Launch Error', 'Icon', 'error');
                 end
             end
         end
@@ -1904,11 +2069,7 @@ classdef UIController < handle
                 iter_rate_now = NaN;
             end
             state.iter_rate(cpu_index) = iter_rate_now;
-            if numel(state.cpu_proxy) < cpu_index
-                state.cpu_proxy(cpu_index) = app.live_cpu_proxy(iter_rate_now);
-            else
-                state.cpu_proxy(cpu_index) = app.live_cpu_proxy(iter_rate_now);
-            end
+            state.cpu_proxy(cpu_index) = app.live_cpu_proxy(iter_rate_now);
 
             if isfinite(total_iter) && total_iter > 0
                 state.total_iterations = total_iter;
@@ -2078,7 +2239,7 @@ classdef UIController < handle
             
             % Check UI components exist
             if ~isfield(app.handles, 'Nx') || ~ishghandle(app.handles.Nx)
-                uialert(app.fig, 'UI components not ready', 'Error', 'icon', 'error');
+                app.show_alert_latex('UI components not ready', 'Error', 'Icon', 'error');
                 return;
             end
             
@@ -2125,12 +2286,12 @@ classdef UIController < handle
                 msg = sprintf('All parameters valid!\n\nGrid: %d × %d\ndt = %.4f, T = %.2f\nν = %.4f', ...
                     round(app.handles.Nx.Value), round(app.handles.Ny.Value), ...
                     app.handles.dt.Value, app.handles.t_final.Value, app.handles.nu.Value);
-                uialert(app.fig, msg, 'Validation Passed', 'icon', 'success');
+                app.show_alert_latex(msg, 'Validation Passed', 'Icon', 'success');
                 app.append_to_terminal('✓ All parameters validated successfully', 'success');
             else
                 msg = sprintf('Found %d validation error(s):\n\n• %s', ...
                     length(errors), strjoin(errors, '\n• '));
-                uialert(app.fig, msg, 'Validation Errors', 'icon', 'error');
+                app.show_alert_latex(msg, 'Validation Errors', 'Icon', 'error');
                 app.append_to_terminal(sprintf('✗ Validation errors: %s', strjoin(errors, ', ')), 'error');
             end
 
@@ -2322,6 +2483,9 @@ classdef UIController < handle
                 end
                 app.handles.collector_status.Text = char(collector_msg);
             end
+
+            method_ok = ~isempty(app.handles.method_dropdown.Value) && ~isempty(app.handles.mode_dropdown.Value);
+            app.update_config_subtab_titles(method_ok, grid_ok && domain_ok, time_ok, outputs_ok, conv_ok, monitor_ok && collectors_ok);
         end
 
         function update_convergence_display(app)
@@ -3198,6 +3362,7 @@ classdef UIController < handle
             % Cleanup when UI closes
             try
                 app.safe_stop_timer('diary_timer');
+                app.safe_stop_timer('time_video_timer');
                 diary off;
                 if ~isempty(app.fig) && isvalid(app.fig)
                     if isprop(app.fig, 'CloseRequestFcn')
@@ -3213,6 +3378,7 @@ classdef UIController < handle
             % Defensive destructor: ensure background timer is never leaked
             try
                 app.safe_stop_timer('diary_timer');
+                app.safe_stop_timer('time_video_timer');
             catch
             end
             try
@@ -4453,6 +4619,574 @@ classdef UIController < handle
             end
         end
 
+        function tf = is_live_handle(~, h)
+            % True when handle-like object is valid.
+            tf = false;
+            if isempty(h)
+                return;
+            end
+            try
+                tf = isvalid(h);
+            catch
+                try
+                    tf = ishghandle(h);
+                catch
+                    tf = false;
+                end
+            end
+        end
+
+        function token = resolve_math_token(app, token_key, fallback)
+            % Resolve canonical math token text from UI_Layout_Config.
+            token = fallback;
+            if ~isfield(app.layout_cfg, 'math_tokens') || ~isstruct(app.layout_cfg.math_tokens)
+                return;
+            end
+            key = char(string(token_key));
+            if isfield(app.layout_cfg.math_tokens, key)
+                candidate = char(string(app.layout_cfg.math_tokens.(key)));
+                if ~isempty(candidate)
+                    token = candidate;
+                end
+            end
+        end
+
+        function lbl = create_math_label(app, parent, token_key, fallback, varargin)
+            % Create label using LaTeX interpreter; fall back to plain text if unsupported.
+            tex = app.resolve_math_token(token_key, fallback);
+            try
+                lbl = uilabel(parent, 'Text', tex, 'Interpreter', 'latex', varargin{:});
+            catch
+                lbl = uilabel(parent, 'Text', fallback, varargin{:});
+            end
+        end
+
+        function info = show_alert_latex(app, message, title_txt, varargin)
+            % Centralized alert helper with LaTeX-first interpreter policy.
+            emit = true;
+            clean_args = {};
+            idx = 1;
+            while idx <= numel(varargin)
+                if idx < numel(varargin) && (ischar(varargin{idx}) || isstring(varargin{idx}))
+                    key = lower(char(string(varargin{idx})));
+                    if strcmp(key, 'emit')
+                        emit = logical(varargin{idx + 1});
+                        idx = idx + 2;
+                        continue;
+                    end
+                end
+                clean_args{end + 1} = varargin{idx}; %#ok<AGROW>
+                if idx < numel(varargin)
+                    clean_args{end + 1} = varargin{idx + 1}; %#ok<AGROW>
+                end
+                idx = idx + 2;
+            end
+
+            info = struct('interpreter', 'latex', 'message', char(string(message)), 'title', char(string(title_txt)));
+            if ~emit
+                return;
+            end
+            try
+                uialert(app.fig, message, title_txt, 'Interpreter', 'latex', clean_args{:});
+            catch
+                info.interpreter = 'none';
+                uialert(app.fig, char(string(message)), char(string(title_txt)), clean_args{:});
+            end
+        end
+
+        function choice = show_confirm_latex(app, message, title_txt, options, default_option, cancel_option, varargin)
+            % Centralized confirm helper with LaTeX-first interpreter policy.
+            if nargin < 5 || isempty(default_option)
+                default_option = 'OK';
+            end
+            if nargin < 6 || isempty(cancel_option)
+                cancel_option = default_option;
+            end
+            if nargin < 4 || isempty(options)
+                options = {default_option};
+            end
+            emit = true;
+            clean_args = {};
+            idx = 1;
+            while idx <= numel(varargin)
+                if idx < numel(varargin) && (ischar(varargin{idx}) || isstring(varargin{idx}))
+                    key = lower(char(string(varargin{idx})));
+                    if strcmp(key, 'emit')
+                        emit = logical(varargin{idx + 1});
+                        idx = idx + 2;
+                        continue;
+                    end
+                end
+                clean_args{end + 1} = varargin{idx}; %#ok<AGROW>
+                if idx < numel(varargin)
+                    clean_args{end + 1} = varargin{idx + 1}; %#ok<AGROW>
+                end
+                idx = idx + 2;
+            end
+
+            choice = char(string(default_option));
+            if ~emit
+                return;
+            end
+            try
+                choice = uiconfirm(app.fig, message, title_txt, ...
+                    'Options', options, ...
+                    'DefaultOption', default_option, ...
+                    'CancelOption', cancel_option, ...
+                    'Interpreter', 'latex', clean_args{:});
+            catch
+                choice = uiconfirm(app.fig, char(string(message)), char(string(title_txt)), ...
+                    'Options', options, ...
+                    'DefaultOption', default_option, ...
+                    'CancelOption', cancel_option, clean_args{:});
+            end
+        end
+
+        function update_config_subtab_titles(app, method_ok, grid_ok, time_ok, simulation_ok, convergence_ok, sustainability_ok)
+            % Reflect readiness state directly in left configuration subtab titles.
+            if ~isfield(app.handles, 'config_subtabs') || ~isstruct(app.handles.config_subtabs)
+                return;
+            end
+
+            status_map = struct( ...
+                'method', logical(method_ok), ...
+                'grid', logical(grid_ok), ...
+                'time', logical(time_ok), ...
+                'simulation', logical(simulation_ok), ...
+                'convergence', logical(convergence_ok), ...
+                'sustainability', logical(sustainability_ok));
+
+            title_map = struct();
+            if isfield(app.layout_cfg, 'config_tab') && isfield(app.layout_cfg.config_tab, 'left_subtabs') && ...
+                    isfield(app.layout_cfg.config_tab.left_subtabs, 'titles')
+                title_map = app.layout_cfg.config_tab.left_subtabs.titles;
+            end
+
+            keys = fieldnames(status_map);
+            for idx = 1:numel(keys)
+                key = keys{idx};
+                if ~isfield(app.handles.config_subtabs, key)
+                    continue;
+                end
+                tab_h = app.handles.config_subtabs.(key);
+                if ~isvalid(tab_h)
+                    continue;
+                end
+
+                if isfield(title_map, key)
+                    base_title = char(string(title_map.(key)));
+                else
+                    base_title = app.humanize_token(key);
+                end
+                base_title = regexprep(base_title, '^\[[^\]]+\]\s*', '');
+                if status_map.(key)
+                    prefix = '[x]';
+                else
+                    prefix = '[ ]';
+                end
+                tab_h.Title = sprintf('%s %s', prefix, base_title);
+            end
+        end
+
+        function initialize_time_video_state(app)
+            % Initialize or reset in-memory triplet playback state.
+            cfg = app.layout_cfg.config_tab.time_video;
+            formats = cellstr(string(cfg.formats));
+            streams = repmat(app.empty_time_video_stream('none'), 1, numel(formats));
+            for idx = 1:numel(formats)
+                fmt = char(lower(string(formats{idx})));
+                streams(idx) = app.empty_time_video_stream(fmt);
+                if isfield(app.handles, 'time_video_axes_map') && isstruct(app.handles.time_video_axes_map) && ...
+                        isfield(app.handles.time_video_axes_map, fmt)
+                    streams(idx).axes_handle = app.handles.time_video_axes_map.(fmt);
+                end
+                if isfield(app.handles, 'time_video_image_map') && isstruct(app.handles.time_video_image_map) && ...
+                        isfield(app.handles.time_video_image_map, fmt)
+                    streams(idx).image_handle = app.handles.time_video_image_map.(fmt);
+                end
+                if isfield(app.handles, 'time_video_status_map') && isstruct(app.handles.time_video_status_map) && ...
+                        isfield(app.handles.time_video_status_map, fmt)
+                    streams(idx).status_handle = app.handles.time_video_status_map.(fmt);
+                end
+                if isfield(app.handles, 'time_video_codec_map') && isstruct(app.handles.time_video_codec_map) && ...
+                        isfield(app.handles.time_video_codec_map, fmt)
+                    streams(idx).codec_handle = app.handles.time_video_codec_map.(fmt);
+                end
+            end
+
+            app.time_video_state = struct( ...
+                'streams', streams, ...
+                'target_fps', max(1, cfg.default_fps), ...
+                'is_playing', false, ...
+                'last_loaded', char(datetime('now')));
+        end
+
+        function load_time_video_triplet(app, varargin)
+            % Resolve latest MP4/AVI/GIF artifacts (or generate fallback) and load all panes.
+            p = inputParser;
+            addParameter(p, 'AutoGenerate', true, @(x) islogical(x) || isnumeric(x));
+            parse(p, varargin{:});
+            auto_generate = logical(p.Results.AutoGenerate);
+
+            app.pause_time_video_triplet();
+            app.initialize_time_video_state();
+            paths = app.resolve_time_video_media_paths();
+            if (isempty(paths.mp4) || isempty(paths.avi) || isempty(paths.gif)) && auto_generate
+                generated_paths = app.generate_time_video_triplet_samples();
+                if isempty(paths.mp4), paths.mp4 = generated_paths.mp4; end
+                if isempty(paths.avi), paths.avi = generated_paths.avi; end
+                if isempty(paths.gif), paths.gif = generated_paths.gif; end
+            end
+
+            state = app.time_video_state;
+            available_count = 0;
+            peak_fps = 1;
+            for idx = 1:numel(state.streams)
+                fmt = state.streams(idx).format;
+                file_path = '';
+                if isfield(paths, fmt)
+                    file_path = paths.(fmt);
+                end
+                stream = app.read_time_video_stream(fmt, file_path);
+                stream.axes_handle = state.streams(idx).axes_handle;
+                stream.image_handle = state.streams(idx).image_handle;
+                stream.status_handle = state.streams(idx).status_handle;
+                stream.codec_handle = state.streams(idx).codec_handle;
+                if stream.available
+                    available_count = available_count + 1;
+                    peak_fps = max(peak_fps, stream.fps);
+                    stream = app.render_time_video_frame(stream, 1);
+                end
+                if app.is_live_handle(stream.status_handle)
+                    stream.status_handle.Text = stream.status_text;
+                end
+                if app.is_live_handle(stream.codec_handle)
+                    stream.codec_handle.Text = stream.codec_text;
+                end
+                state.streams(idx) = stream;
+            end
+
+            state.target_fps = max(1, min(60, peak_fps));
+            state.is_playing = false;
+            state.last_loaded = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
+            app.time_video_state = state;
+            app.update_time_video_status_label(sprintf('Triplet status: %d/3 formats ready', available_count));
+        end
+
+        function play_time_video_triplet(app)
+            % Start synchronized playback timer for all available streams.
+            if ~isstruct(app.time_video_state) || ~isfield(app.time_video_state, 'streams')
+                return;
+            end
+            available = arrayfun(@(s) s.available, app.time_video_state.streams);
+            if ~any(available)
+                app.update_time_video_status_label('Triplet status: no playable formats loaded');
+                return;
+            end
+
+            app.safe_stop_timer('time_video_timer');
+            target_fps = app.time_video_state.target_fps;
+            if ~isfinite(target_fps) || target_fps <= 0
+                target_fps = 24;
+            end
+            target_fps = min(60, max(1, target_fps));
+            period = round(max(0.001, 1 / target_fps), 3);
+            app.time_video_timer = timer( ...
+                'ExecutionMode', 'fixedSpacing', ...
+                'Period', period, ...
+                'BusyMode', 'drop', ...
+                'TimerFcn', @(~,~) app.on_time_video_timer_tick());
+            start(app.time_video_timer);
+            app.time_video_state.is_playing = true;
+            app.update_time_video_status_label('Triplet status: playing');
+        end
+
+        function pause_time_video_triplet(app)
+            % Pause playback without dropping loaded media frames.
+            app.safe_stop_timer('time_video_timer');
+            if isstruct(app.time_video_state)
+                app.time_video_state.is_playing = false;
+            end
+            app.update_time_video_status_label('Triplet status: paused');
+        end
+
+        function restart_time_video_triplet(app)
+            % Restart all loaded streams from frame 1.
+            if ~isstruct(app.time_video_state) || ~isfield(app.time_video_state, 'streams')
+                return;
+            end
+            was_playing = false;
+            if isfield(app.time_video_state, 'is_playing')
+                was_playing = app.time_video_state.is_playing;
+            end
+            app.pause_time_video_triplet();
+            state = app.time_video_state;
+            for idx = 1:numel(state.streams)
+                if ~state.streams(idx).available
+                    continue;
+                end
+                state.streams(idx).frame_index = 1;
+                state.streams(idx).phase = 0;
+                state.streams(idx) = app.render_time_video_frame(state.streams(idx), 1);
+            end
+            app.time_video_state = state;
+            app.update_time_video_status_label('Triplet status: restarted');
+            if was_playing
+                app.play_time_video_triplet();
+            end
+        end
+
+        function on_time_video_timer_tick(app)
+            % Timer callback: advance each stream at its own FPS on a shared clock.
+            if ~isstruct(app.time_video_state) || ~isfield(app.time_video_state, 'streams')
+                return;
+            end
+            target_fps = max(1, app.time_video_state.target_fps);
+            state = app.time_video_state;
+            for idx = 1:numel(state.streams)
+                stream = state.streams(idx);
+                if ~stream.available || stream.frame_count < 2
+                    continue;
+                end
+                stream.phase = stream.phase + stream.fps / target_fps;
+                advance = floor(stream.phase);
+                if advance < 1
+                    state.streams(idx) = stream;
+                    continue;
+                end
+                stream.phase = stream.phase - advance;
+                stream.frame_index = mod(stream.frame_index - 1 + advance, stream.frame_count) + 1;
+                stream = app.render_time_video_frame(stream, stream.frame_index);
+                state.streams(idx) = stream;
+            end
+            app.time_video_state = state;
+            drawnow limitrate nocallbacks;
+        end
+
+        function stream = render_time_video_frame(app, stream, frame_index)
+            % Push selected frame to corresponding uiaxes image handle.
+            if ~stream.available || isempty(stream.frames)
+                return;
+            end
+            frame_index = max(1, min(frame_index, stream.frame_count));
+            frame = stream.frames{frame_index};
+            if isempty(frame)
+                return;
+            end
+
+            if app.is_live_handle(stream.image_handle)
+                stream.image_handle.CData = frame;
+                stream.image_handle.Visible = 'on';
+            elseif app.is_live_handle(stream.axes_handle)
+                h_img = image(stream.axes_handle, frame);
+                h_img.Visible = 'on';
+                stream.image_handle = h_img;
+            else
+                return;
+            end
+
+            axis(stream.axes_handle, 'image');
+            axis(stream.axes_handle, 'off');
+            stream.frame_index = frame_index;
+            if app.is_live_handle(stream.status_handle)
+                stream.status_handle.Text = sprintf('%s: frame %d/%d', upper(stream.format), stream.frame_index, stream.frame_count);
+            end
+        end
+
+        function latest = find_latest_file_by_ext(~, roots, ext)
+            % Return newest file path for extension across root directories.
+            latest = '';
+            latest_datenum = -inf;
+            pattern = ['*.', char(lower(string(ext)))];
+            for ridx = 1:numel(roots)
+                root = char(string(roots{ridx}));
+                if ~isfolder(root)
+                    continue;
+                end
+                try
+                    listing = dir(fullfile(root, '**', pattern));
+                catch
+                    listing = dir(fullfile(root, pattern));
+                end
+                for fidx = 1:numel(listing)
+                    if listing(fidx).isdir
+                        continue;
+                    end
+                    if isfield(listing, 'folder')
+                        candidate = fullfile(listing(fidx).folder, listing(fidx).name);
+                    else
+                        candidate = fullfile(root, listing(fidx).name);
+                    end
+                    if listing(fidx).datenum > latest_datenum
+                        latest_datenum = listing(fidx).datenum;
+                        latest = candidate;
+                    end
+                end
+            end
+        end
+
+        function paths = resolve_time_video_media_paths(app)
+            % Locate latest media artifacts for MP4/AVI/GIF.
+            roots = { ...
+                fullfile(pwd, 'Artifacts'), ...
+                fullfile(pwd, 'Output'), ...
+                fullfile(pwd, 'Outputs'), ...
+                pwd};
+            paths = struct( ...
+                'mp4', app.find_latest_file_by_ext(roots, 'mp4'), ...
+                'avi', app.find_latest_file_by_ext(roots, 'avi'), ...
+                'gif', app.find_latest_file_by_ext(roots, 'gif'));
+        end
+
+        function paths = generate_time_video_triplet_samples(app)
+            % Fallback generation when latest run artifacts are unavailable.
+            paths = struct('mp4', '', 'avi', '', 'gif', '');
+            output_dir = fullfile(pwd, 'Artifacts', 'UI', 'TimePhysicsPreview', char(datetime('now', 'Format', 'yyyyMMdd_HHmmss')));
+            if ~exist(output_dir, 'dir')
+                mkdir(output_dir);
+            end
+            try
+                summary = AnimationFormatMWE('OutputDir', output_dir, 'Formats', {'mp4', 'avi', 'gif'}, ...
+                    'FrameRate', app.layout_cfg.config_tab.time_video.default_fps);
+                for idx = 1:numel(summary.results)
+                    entry = summary.results(idx);
+                    fmt = char(lower(string(entry.format)));
+                    if entry.success && isfield(paths, fmt) && isfile(entry.file_path)
+                        paths.(fmt) = entry.file_path;
+                    end
+                end
+            catch ME
+                app.append_to_terminal(sprintf('Triplet fallback generation failed: %s', ME.message), 'warning');
+            end
+        end
+
+        function stream = read_time_video_stream(app, fmt, file_path)
+            % Decode a media stream to frame cache with graceful failure semantics.
+            stream = app.empty_time_video_stream(fmt);
+            if isempty(file_path) || ~isfile(file_path)
+                stream.status_text = sprintf('%s: missing', upper(fmt));
+                stream.codec_text = 'Codec: file not found';
+                return;
+            end
+
+            cfg = app.layout_cfg.config_tab.time_video;
+            max_frames = max(10, cfg.max_cached_frames);
+            try
+                switch lower(fmt)
+                    case {'mp4', 'avi'}
+                        vr = VideoReader(file_path);
+                        src_fps = max(1, vr.FrameRate);
+                        est_count = max(1, floor(vr.Duration * src_fps));
+                        stride = max(1, ceil(est_count / max_frames));
+                        frames = {};
+                        src_idx = 0;
+                        while hasFrame(vr)
+                            frame = readFrame(vr);
+                            src_idx = src_idx + 1;
+                            if mod(src_idx - 1, stride) ~= 0
+                                continue;
+                            end
+                            if ndims(frame) == 2
+                                frame = repmat(frame, 1, 1, 3);
+                            end
+                            frames{end + 1} = frame; %#ok<AGROW>
+                            if numel(frames) >= max_frames
+                                break;
+                            end
+                        end
+                        stream.frames = frames;
+                        stream.fps = max(1, src_fps / stride);
+                        stream.codec_text = sprintf('Codec: VideoReader @ %.1f fps', stream.fps);
+
+                    case 'gif'
+                        info = imfinfo(file_path);
+                        total = numel(info);
+                        stride = max(1, ceil(total / max_frames));
+                        frames = {};
+                        delays = zeros(1, 0);
+                        for frame_idx = 1:stride:total
+                            [A, map] = imread(file_path, frame_idx, 'Info', info);
+                            if ndims(A) == 2
+                                if ~isempty(map)
+                                    rgb = ind2rgb(A, map);
+                                    frame = uint8(255 * rgb);
+                                else
+                                    frame = repmat(uint8(A), 1, 1, 3);
+                                end
+                            else
+                                frame = A;
+                            end
+                            frames{end + 1} = frame; %#ok<AGROW>
+                            if isfield(info(frame_idx), 'DelayTime')
+                                delays(end + 1) = info(frame_idx).DelayTime; %#ok<AGROW>
+                            end
+                        end
+                        stream.frames = frames;
+                        if isempty(delays) || ~any(delays > 0)
+                            stream.fps = max(1, cfg.default_fps);
+                        else
+                            stream.fps = max(1, 1 / median(delays(delays > 0)));
+                        end
+                        stream.codec_text = sprintf('Codec: GIF @ %.1f fps', stream.fps);
+                end
+            catch ME
+                stream.status_text = sprintf('%s: load failed', upper(fmt));
+                stream.codec_text = sprintf('Codec: %s', ME.message);
+                stream.available = false;
+                stream.frames = {};
+                stream.frame_count = 0;
+                return;
+            end
+
+            stream.file_path = file_path;
+            stream.frame_count = numel(stream.frames);
+            stream.frame_index = 1;
+            stream.phase = 0;
+            stream.available = stream.frame_count > 0;
+            if stream.available
+                stream.status_text = sprintf('%s: loaded %d frame(s)', upper(fmt), stream.frame_count);
+            else
+                stream.status_text = sprintf('%s: empty stream', upper(fmt));
+                stream.codec_text = 'Codec: no frames decoded';
+            end
+        end
+
+        function stream = empty_time_video_stream(app, fmt)
+            % Construct a default stream struct.
+            default_fps = 24;
+            if isfield(app.layout_cfg, 'config_tab') && isfield(app.layout_cfg.config_tab, 'time_video') && ...
+                    isfield(app.layout_cfg.config_tab.time_video, 'default_fps')
+                default_fps = max(1, app.layout_cfg.config_tab.time_video.default_fps);
+            end
+            stream = struct( ...
+                'format', char(fmt), ...
+                'available', false, ...
+                'file_path', '', ...
+                'frames', {{}}, ...
+                'frame_count', 0, ...
+                'frame_index', 1, ...
+                'fps', default_fps, ...
+                'phase', 0, ...
+                'axes_handle', [], ...
+                'image_handle', [], ...
+                'status_handle', [], ...
+                'codec_handle', [], ...
+                'status_text', sprintf('%s: pending', upper(string(fmt))), ...
+                'codec_text', 'Codec: --');
+        end
+
+        function update_time_video_status_label(app, txt)
+            % Update shared playback status label if present.
+            if app.has_valid_handle('time_video_status')
+                app.handles.time_video_status.Text = char(string(txt));
+            end
+        end
+
+        function snapshot = get_time_video_state_snapshot(app)
+            % Public read-only snapshot for tests.
+            snapshot = app.time_video_state;
+        end
+
         function clear_terminal_view(app)
             app.terminal_log = {};
             app.terminal_type_log = {};
@@ -5340,13 +6074,3 @@ function ic_type = map_ic_display_to_type(display_name)
             ic_type = lower(display_name);
     end
 end
-
-
-
-
-
-
-
-
-
-
