@@ -81,6 +81,7 @@ classdef UIController < handle
         color_debug            % Debug messages: light gray
         time_video_timer       % Timer driving in-app triplet playback
         time_video_state       % Cached media streams and playback cursors
+        report_html_cache = '' % Cached HTML string for Report tab export
     end
     
     methods
@@ -284,6 +285,13 @@ classdef UIController < handle
                                 'Title', app.tab_title_from_layout('results', 'Figure Viewer'), ...
                                 'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
                             app.create_results_tab();
+                        end
+                    case 'report'
+                        if ~isfield(app.tabs, 'report')
+                            app.tabs.report = uitab(app.tab_group, ...
+                                'Title', app.tab_title_from_layout('report', 'Report'), ...
+                                'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
+                            app.create_report_tab();
                         end
                 end
             end
@@ -1336,6 +1344,41 @@ classdef UIController < handle
                 'BackgroundColor', C.bg_input, ...
                 'FontColor', C.fg_text);
         end
+
+        function create_report_tab(app)
+            % Report tab — displays simulation report via embedded HTML
+            C = app.layout_cfg.colors;
+            parent = app.tabs.report;
+            parent.BackgroundColor = C.bg_dark;
+
+            root = uigridlayout(parent, [2 1]);
+            root.RowHeight = {32, '1x'};
+            root.Padding  = [10 10 10 10];
+            root.RowSpacing = 6;
+            root.BackgroundColor = C.bg_dark;
+
+            % ── toolbar row ──
+            toolbar = uigridlayout(root, [1 3]);
+            toolbar.ColumnWidth = {120, 120, '1x'};
+            toolbar.Padding = [0 0 0 0];
+            toolbar.ColumnSpacing = 8;
+            toolbar.BackgroundColor = C.bg_dark;
+            toolbar.Layout.Row = 1;
+
+            app.handles.report_generate_btn = uibutton(toolbar, ...
+                'Text', 'Generate Report', ...
+                'ButtonPushedFcn', @(~,~) app.generate_report_to_tab());
+            app.handles.report_export_btn = uibutton(toolbar, ...
+                'Text', 'Export HTML', ...
+                'Enable', 'off', ...
+                'ButtonPushedFcn', @(~,~) app.export_report_html());
+
+            % ── HTML viewer ──
+            app.handles.report_html = uihtml(root);
+            app.handles.report_html.Layout.Row = 2;
+            app.handles.report_html.HTMLSource = app.render_report_placeholder_html();
+        end
+
         % Action methods
         function launch_simulation(app)
             % Collect UI state and execute selected run path synchronously
@@ -1368,6 +1411,10 @@ classdef UIController < handle
                 app.update_results_summary(summary);
                 app.append_to_terminal('Run completed successfully.', 'success');
                 app.set_run_state('idle', 'Completed');
+
+                % Auto-generate simulation report
+                app.generate_report_to_tab();
+
                 if isfield(app.tabs, 'results') && isvalid(app.tabs.results)
                     app.tab_group.SelectedTab = app.tabs.results;
                 end
@@ -4133,6 +4180,147 @@ classdef UIController < handle
                 "font-family:Consolas,Monaco,monospace;font-size:12px;color:#f2f2f2;'>" + eq_text + ...
                 "</div></div>";
             html = char(string(html));
+        end
+
+        function html = render_report_placeholder_html(~)
+            % Empty-state HTML for the Report tab before any run completes.
+            html = ['<html><body style="margin:0;padding:40px;background:#1c1c1c;' ...
+                'color:#aaa;font-family:Segoe UI,Arial,sans-serif;text-align:center;">' ...
+                '<h2 style="color:#ccc;">No Report Available</h2>' ...
+                '<p>Run a simulation or click <b>Generate Report</b> to create one.</p>' ...
+                '</body></html>'];
+        end
+
+        function generate_report_to_tab(app)
+            % Build report HTML from current config/results and display it.
+            if ~app.has_valid_handle('report_html')
+                return;
+            end
+            try
+                payload = app.build_report_payload();
+                html   = app.build_report_html(payload);
+                app.handles.report_html.HTMLSource = html;
+                app.report_html_cache = html;
+                if app.has_valid_handle('report_export_btn')
+                    app.handles.report_export_btn.Enable = 'on';
+                end
+                app.append_to_terminal('Report generated.', 'info');
+            catch ex
+                app.append_to_terminal(['Report generation failed: ' ex.message], 'error');
+            end
+        end
+
+        function export_report_html(app)
+            % Save the cached report HTML to a user-chosen file.
+            if isempty(app.report_html_cache)
+                app.append_to_terminal('No report to export. Generate one first.', 'warning');
+                return;
+            end
+            [file, path] = uiputfile({'*.html', 'HTML files'}, 'Save Report');
+            if isequal(file, 0); return; end
+            fid = fopen(fullfile(path, file), 'w', 'n', 'UTF-8');
+            if fid == -1
+                app.append_to_terminal('Failed to write report file.', 'error');
+                return;
+            end
+            fwrite(fid, app.report_html_cache, 'char');
+            fclose(fid);
+            app.append_to_terminal(['Report exported to ' fullfile(path, file)], 'info');
+        end
+
+        function payload = build_report_payload(app)
+            % Assemble a struct mirroring RunReportPipeline payload shape.
+            payload = struct();
+            payload.title = 'Tsunami Vortex Simulation Report';
+            payload.generated_at = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss'));
+
+            % Summary section
+            cfg = struct();
+            if isprop(app, 'config') && ~isempty(app.config)
+                fn = fieldnames(app.config);
+                for k = 1:numel(fn)
+                    v = app.config.(fn{k});
+                    if isnumeric(v) || islogical(v) || ischar(v) || isstring(v)
+                        cfg.(fn{k}) = v;
+                    end
+                end
+            end
+            payload.configuration = cfg;
+
+            % Metrics — pull from monitor numeric labels if available
+            met = struct();
+            if isfield(app.handles, 'monitor_metric_labels')
+                labels = app.handles.monitor_metric_labels;
+                for m = 1:2:numel(labels)
+                    try
+                        key = matlab.lang.makeValidName(labels(m).Text);
+                        met.(key) = labels(m+1).Text;
+                    catch; end
+                end
+            end
+            payload.metrics = met;
+            payload.solver  = '';
+            if isprop(app, 'config') && isfield(app.config, 'solver_method')
+                payload.solver = app.config.solver_method;
+            end
+        end
+
+        function html = build_report_html(~, payload)
+            % Produce self-contained dark-themed HTML from a payload struct.
+            s = "";
+            s = s + "<!DOCTYPE html><html><head><meta charset='utf-8'>";
+            s = s + "<style>";
+            s = s + "body{margin:0;padding:24px;background:#1c1c1c;color:#dcdcdc;font-family:Segoe UI,Arial,sans-serif;font-size:13px;}";
+            s = s + "h1{color:#80c7ff;font-size:20px;margin-bottom:4px;}";
+            s = s + "h2{color:#80c7ff;font-size:15px;margin-top:20px;border-bottom:1px solid #444;padding-bottom:4px;}";
+            s = s + "table{width:100%;border-collapse:collapse;margin-top:8px;}";
+            s = s + "th,td{text-align:left;padding:5px 10px;border-bottom:1px solid #333;}";
+            s = s + "th{color:#aaa;width:40%;}";
+            s = s + "td{color:#f2f2f2;}";
+            s = s + ".timestamp{color:#888;font-size:11px;}";
+            s = s + "</style></head><body>";
+
+            s = s + "<h1>" + string(payload.title) + "</h1>";
+            s = s + "<div class='timestamp'>Generated: " + string(payload.generated_at) + "</div>";
+
+            if ~isempty(payload.solver)
+                s = s + "<h2>Solver</h2><p>" + string(payload.solver) + "</p>";
+            end
+
+            % Configuration table
+            s = s + "<h2>Configuration</h2><table>";
+            fn = fieldnames(payload.configuration);
+            for k = 1:numel(fn)
+                v = payload.configuration.(fn{k});
+                if isnumeric(v)
+                    vs = num2str(v);
+                else
+                    vs = char(string(v));
+                end
+                s = s + "<tr><th>" + string(fn{k}) + "</th><td>" + string(vs) + "</td></tr>";
+            end
+            s = s + "</table>";
+
+            % Metrics table
+            s = s + "<h2>Metrics</h2><table>";
+            fn = fieldnames(payload.metrics);
+            if isempty(fn)
+                s = s + "<tr><td colspan='2'>No metrics recorded yet.</td></tr>";
+            else
+                for k = 1:numel(fn)
+                    v = payload.metrics.(fn{k});
+                    if isnumeric(v)
+                        vs = num2str(v);
+                    else
+                        vs = char(string(v));
+                    end
+                    s = s + "<tr><th>" + strrep(string(fn{k}), '_', ' ') + "</th><td>" + string(vs) + "</td></tr>";
+                end
+            end
+            s = s + "</table>";
+
+            s = s + "</body></html>";
+            html = char(s);
         end
 
         function eq_plain = equation_tex_to_plain(~, eq_tex)
