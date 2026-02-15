@@ -598,17 +598,15 @@ classdef UIController < handle
             app.handles.grid_domain_axes = uiaxes(domain_ax_layout);
             app.style_axes(app.handles.grid_domain_axes);
 
-            % === Bottom-right quadrant: Placeholder plot ===
-            placeholder_panel = uipanel(quad_layout, 'Title', 'Resolution Preview', ...
+            % === Bottom-right quadrant: FD Stencil / Resolution Preview ===
+            placeholder_panel = uipanel(quad_layout, 'Title', 'Method Visualization', ...
                 'BackgroundColor', C.bg_panel);
             placeholder_panel.Layout.Row = 2; placeholder_panel.Layout.Column = 2;
             ph_ax_layout = uigridlayout(placeholder_panel, [1 1]);
             ph_ax_layout.Padding = [4 4 4 4];
             app.handles.grid_placeholder_axes = uiaxes(ph_ax_layout);
+            app.handles.grid_method_viz_panel = placeholder_panel; % Store panel handle for title updates
             app.style_axes(app.handles.grid_placeholder_axes);
-            text(app.handles.grid_placeholder_axes, 0.5, 0.5, 'Reserved', ...
-                'HorizontalAlignment', 'center', 'FontSize', 14, ...
-                'Color', C.fg_muted, 'Units', 'normalized');
 
             % === Combined Simulation Settings subtab ===
             % Reconfigure simulation subtab host to hold time/physics + sim + sustainability
@@ -2614,32 +2612,121 @@ classdef UIController < handle
                 axis(ax, 'equal'); grid(ax, 'off');
             end
 
-            % --- Resolution preview (bottom-right) ---
-            % Uses delta from the Grid Parameters panel on the same page.
+            % --- FD Stencil / Resolution preview (bottom-right) ---
+            % Show FD computational stencil when Finite Difference method selected,
+            % otherwise show resolution preview with dx, dy, delta.
             if app.has_valid_handle('grid_placeholder_axes')
                 ax = app.handles.grid_placeholder_axes;
-                cla(ax);
-                dx = Lx / Nx; dy = Ly / Ny;
-                delta_val = app.handles.delta.Value;
-                n_prev = min(16, min(Nx, Ny));
-                x_prev = linspace(-Lx/2, -Lx/2 + n_prev*dx, n_prev+1);
-                y_prev = linspace(-Ly/2, -Ly/2 + n_prev*dy, n_prev+1);
-                hold(ax, 'on');
-                for i = 1:numel(x_prev)
-                    plot(ax, [x_prev(i) x_prev(i)], [y_prev(1) y_prev(end)], '-', ...
-                        'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
+
+                % Check current method selection
+                is_fd = false;
+                if app.has_valid_handle('method_dropdown')
+                    method_val = app.handles.method_dropdown.Value;
+                    is_fd = strcmp(method_val, 'Finite Difference');
                 end
-                for j = 1:numel(y_prev)
-                    plot(ax, [x_prev(1) x_prev(end)], [y_prev(j) y_prev(j)], '-', ...
-                        'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
+
+                if is_fd
+                    % Render FD computational stencil (5-point Laplacian molecule)
+                    app.render_fd_stencil(ax);
+                else
+                    % Resolution preview (for non-FD methods)
+                    cla(ax);
+                    dx = Lx / Nx; dy = Ly / Ny;
+                    delta_val = app.handles.delta.Value;
+                    n_prev = min(16, min(Nx, Ny));
+                    x_prev = linspace(-Lx/2, -Lx/2 + n_prev*dx, n_prev+1);
+                    y_prev = linspace(-Ly/2, -Ly/2 + n_prev*dy, n_prev+1);
+                    hold(ax, 'on');
+                    for i = 1:numel(x_prev)
+                        plot(ax, [x_prev(i) x_prev(i)], [y_prev(1) y_prev(end)], '-', ...
+                            'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
+                    end
+                    for j = 1:numel(y_prev)
+                        plot(ax, [x_prev(1) x_prev(end)], [y_prev(j) y_prev(j)], '-', ...
+                            'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
+                    end
+                    hold(ax, 'off');
+                    xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
+                    ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
+                    title(ax, sprintf('$\\Delta x=%.3g,\\;\\Delta y=%.3g,\\;\\delta=%.3g$', dx, dy, delta_val), ...
+                        'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
+                    axis(ax, 'equal'); grid(ax, 'off');
                 end
-                hold(ax, 'off');
-                xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
-                ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
-                title(ax, sprintf('$\\Delta x=%.3g,\\;\\Delta y=%.3g,\\;\\delta=%.3g$', dx, dy, delta_val), ...
-                    'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
-                axis(ax, 'equal'); grid(ax, 'off');
             end
+        end
+
+        function render_fd_stencil(app, ax)
+            % Render 5-point FD computational stencil with LaTeX labels
+            % Displays the finite difference computational molecule showing
+            % the 5-point stencil used for Laplacian discretization
+            C = app.layout_cfg.colors;
+
+            cla(ax);
+            hold(ax, 'on');
+
+            % Center point (i,j)
+            scatter(ax, 0, 0, 200, 'filled', 'MarkerFaceColor', C.accent_red, ...
+                'MarkerEdgeColor', C.fg_text, 'LineWidth', 1.5);
+
+            % Neighboring points (i±1,j) and (i,j±1)
+            scatter(ax, [1, -1, 0, 0], [0, 0, 1, -1], 120, 'filled', ...
+                'MarkerFaceColor', C.accent_cyan, ...
+                'MarkerEdgeColor', C.fg_text, 'LineWidth', 1.0);
+
+            % Draw connecting lines (stencil arms)
+            plot(ax, [-1 1], [0 0], '-', 'Color', C.accent_yellow, 'LineWidth', 2.5);
+            plot(ax, [0 0], [-1 1], '-', 'Color', C.accent_yellow, 'LineWidth', 2.5);
+
+            % LaTeX labels for grid points
+            text(ax, 0, 0, '  $\omega_{i,j}$', 'Interpreter', 'latex', ...
+                'FontSize', 14, 'Color', C.fg_text, 'HorizontalAlignment', 'left', ...
+                'VerticalAlignment', 'middle', 'FontWeight', 'bold');
+
+            text(ax, 1, 0, '  $\omega_{i+1,j}$', 'Interpreter', 'latex', ...
+                'FontSize', 12, 'Color', C.fg_text, 'HorizontalAlignment', 'left', ...
+                'VerticalAlignment', 'middle');
+
+            text(ax, -1, 0, '$\omega_{i-1,j}$  ', 'Interpreter', 'latex', ...
+                'FontSize', 12, 'Color', C.fg_text, 'HorizontalAlignment', 'right', ...
+                'VerticalAlignment', 'middle');
+
+            text(ax, 0, 1, '$\omega_{i,j+1}$', 'Interpreter', 'latex', ...
+                'FontSize', 12, 'Color', C.fg_text, 'HorizontalAlignment', 'center', ...
+                'VerticalAlignment', 'bottom');
+
+            text(ax, 0, -1, '$\omega_{i,j-1}$', 'Interpreter', 'latex', ...
+                'FontSize', 12, 'Color', C.fg_text, 'HorizontalAlignment', 'center', ...
+                'VerticalAlignment', 'top');
+
+            % Direction labels (i→ and j↑)
+            text(ax, 1.3, 0, '$i \rightarrow$', 'Interpreter', 'latex', ...
+                'FontSize', 11, 'Color', C.fg_muted, 'FontAngle', 'italic');
+
+            text(ax, 0, 1.3, '$j \uparrow$', 'Interpreter', 'latex', ...
+                'FontSize', 11, 'Color', C.fg_muted, 'FontAngle', 'italic');
+
+            % Axis configuration
+            axis(ax, 'equal');
+            xlim(ax, [-1.6, 1.6]);
+            ylim(ax, [-1.6, 1.6]);
+            ax.XColor = 'none';
+            ax.YColor = 'none';
+            ax.Color = C.bg_panel_alt;
+
+            % Title
+            title(ax, 'FD Stencil (5-point Laplacian)', 'Interpreter', 'latex', ...
+                'Color', C.fg_text, 'FontSize', 12, 'FontWeight', 'bold');
+
+            % Discretization equation annotation
+            annotation_text = {
+                '$\nabla^2\omega \approx \frac{\omega_{i+1,j} - 2\omega_{i,j} + \omega_{i-1,j}}{\Delta x^2}$',
+                '$ + \frac{\omega_{i,j+1} - 2\omega_{i,j} + \omega_{i,j-1}}{\Delta y^2}$'
+            };
+
+            text(ax, 0, -1.4, annotation_text, 'Interpreter', 'latex', ...
+                'FontSize', 9, 'Color', C.fg_muted, 'HorizontalAlignment', 'center');
+
+            hold(ax, 'off');
         end
 
         function on_method_changed(app)
@@ -2693,6 +2780,7 @@ classdef UIController < handle
             % Update convergence display with selected method
             app.update_convergence_display();
             app.update_ic_preview();
+            app.update_grid_domain_plots(); % Refresh grid visualization (FD stencil toggle)
             app.update_checklist();
         end
 
