@@ -267,21 +267,21 @@ classdef UIController < handle
                     case 'config'
                         if ~isfield(app.tabs, 'config')
                             app.tabs.config = uitab(app.tab_group, ...
-                                'Title', app.tab_title_from_layout('config', 'Configuration'), ...
+                                'Title', app.tab_title_from_layout('config', 'Simulation Configuration'), ...
                                 'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
                             app.create_config_tab();
                         end
                     case {'monitor', 'monitoring', 'live_monitor'}
                         if ~isfield(app.tabs, 'monitoring')
                             app.tabs.monitoring = uitab(app.tab_group, ...
-                                'Title', app.tab_title_from_layout('monitoring', 'Live Monitor'), ...
+                                'Title', app.tab_title_from_layout('monitoring', 'Simulation Monitor'), ...
                                 'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
                             app.create_monitoring_tab();
                         end
                     case {'results', 'results_and_figures'}
                         if ~isfield(app.tabs, 'results')
                             app.tabs.results = uitab(app.tab_group, ...
-                                'Title', app.tab_title_from_layout('results', 'Results and Figures'), ...
+                                'Title', app.tab_title_from_layout('results', 'Figure Viewer'), ...
                                 'BackgroundColor', app.layout_cfg.colors.bg_panel_alt);
                             app.create_results_tab();
                         end
@@ -322,11 +322,6 @@ classdef UIController < handle
                     isfield(app.layout_cfg.text.tabs, key)
                 title_txt = char(string(app.layout_cfg.text.tabs.(key)));
             end
-        end
-        
-        function create_control_buttons(~)
-            % Control buttons now integrated into readiness checklist
-            % (Previously placed at bottom, now in right panel checklist area)
         end
         
         % Tab creation methods
@@ -502,13 +497,25 @@ classdef UIController < handle
             app.handles.physics_status.Layout.Row = 5;
             app.handles.physics_status.Layout.Column = [1 4];
 
-            % Grid and domain panel
+            % Grid and Domain panel — 2x2 quad layout
             panel_grid = uipanel(subtab_hosts.grid, 'Title', T.config.grid.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_grid.Layout.Row = 1;
             panel_grid.Layout.Column = 1;
+            cfg_quad = app.layout_cfg.config_tab.grid_quad;
+            quad_layout = uigridlayout(panel_grid, cfg_quad.rows_cols);
+            quad_layout.ColumnWidth = cfg_quad.col_widths;
+            quad_layout.RowHeight = cfg_quad.row_heights;
+            quad_layout.Padding = cfg_quad.padding;
+            quad_layout.RowSpacing = cfg_quad.row_spacing;
+            quad_layout.ColumnSpacing = cfg_quad.col_spacing;
+
+            % === Top-left quadrant: Grid settings ===
+            settings_panel = uipanel(quad_layout, 'Title', 'Grid Parameters', ...
+                'BackgroundColor', C.bg_panel);
+            settings_panel.Layout.Row = 1; settings_panel.Layout.Column = 1;
             cfg_grid = app.layout_cfg.config_tab.grid_grid;
-            grid_layout = uigridlayout(panel_grid, cfg_grid.rows_cols);
+            grid_layout = uigridlayout(settings_panel, cfg_grid.rows_cols);
             grid_layout.ColumnWidth = cfg_grid.col_widths;
             grid_layout.RowHeight = cfg_grid.row_heights;
             grid_layout.Padding = cfg_grid.padding;
@@ -516,33 +523,63 @@ classdef UIController < handle
             app.handles.label_Nx = app.create_math_label(grid_layout, 'N_x', 'Nx', 'FontColor', C.fg_text);
             app.handles.label_Nx.Layout.Row = 1; app.handles.label_Nx.Layout.Column = 1;
             app.handles.Nx = uieditfield(grid_layout, 'numeric', 'Value', D.Nx, ...
-                'ValueChangedFcn', @(~,~) app.update_delta());
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
             app.handles.Nx.Layout.Row = 1; app.handles.Nx.Layout.Column = 2;
             app.handles.label_Ny = app.create_math_label(grid_layout, 'N_y', 'Ny', 'FontColor', C.fg_text);
             app.handles.label_Ny.Layout.Row = 1; app.handles.label_Ny.Layout.Column = 3;
             app.handles.Ny = uieditfield(grid_layout, 'numeric', 'Value', D.Ny, ...
-                'ValueChangedFcn', @(~,~) app.update_delta());
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
             app.handles.Ny.Layout.Row = 1; app.handles.Ny.Layout.Column = 4;
 
             app.handles.label_Lx = app.create_math_label(grid_layout, 'L_x', 'Lx', 'FontColor', C.fg_text);
             app.handles.label_Lx.Layout.Row = 2; app.handles.label_Lx.Layout.Column = 1;
             app.handles.Lx = uieditfield(grid_layout, 'numeric', 'Value', D.Lx, ...
-                'ValueChangedFcn', @(~,~) app.update_delta());
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
             app.handles.Lx.Layout.Row = 2; app.handles.Lx.Layout.Column = 2;
             app.handles.label_Ly = app.create_math_label(grid_layout, 'L_y', 'Ly', 'FontColor', C.fg_text);
             app.handles.label_Ly.Layout.Row = 2; app.handles.label_Ly.Layout.Column = 3;
             app.handles.Ly = uieditfield(grid_layout, 'numeric', 'Value', D.Ly, ...
-                'ValueChangedFcn', @(~,~) app.update_delta());
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
             app.handles.Ly.Layout.Row = 2; app.handles.Ly.Layout.Column = 4;
 
             lbl = uilabel(grid_layout, 'Text', T.config.grid.delta_label, 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 1;
             app.handles.delta = uieditfield(grid_layout, 'numeric', 'Editable', 'on', ...
                 'Value', D.delta, ...
-                'ValueChangedFcn', @(~,~) app.update_delta());
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
             app.handles.delta.Layout.Row = 3; app.handles.delta.Layout.Column = 2;
             lbl = uilabel(grid_layout, 'Text', T.config.grid.grid_points_label, 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 3;
             app.handles.grid_points = uilabel(grid_layout, 'Text', D.grid_points, 'FontColor', C.fg_text);
             app.handles.grid_points.Layout.Row = 3; app.handles.grid_points.Layout.Column = 4;
+
+            % === Top-right quadrant: Mesh grid plot ===
+            mesh_panel = uipanel(quad_layout, 'Title', 'Mesh Grid', ...
+                'BackgroundColor', C.bg_panel);
+            mesh_panel.Layout.Row = 1; mesh_panel.Layout.Column = 2;
+            mesh_ax_layout = uigridlayout(mesh_panel, [1 1]);
+            mesh_ax_layout.Padding = [4 4 4 4];
+            app.handles.grid_mesh_axes = uiaxes(mesh_ax_layout);
+            app.style_axes(app.handles.grid_mesh_axes);
+
+            % === Bottom-left quadrant: Domain & boundary conditions plot ===
+            domain_panel = uipanel(quad_layout, 'Title', 'Domain & Boundaries', ...
+                'BackgroundColor', C.bg_panel);
+            domain_panel.Layout.Row = 2; domain_panel.Layout.Column = 1;
+            domain_ax_layout = uigridlayout(domain_panel, [1 1]);
+            domain_ax_layout.Padding = [4 4 4 4];
+            app.handles.grid_domain_axes = uiaxes(domain_ax_layout);
+            app.style_axes(app.handles.grid_domain_axes);
+
+            % === Bottom-right quadrant: Placeholder plot ===
+            placeholder_panel = uipanel(quad_layout, 'Title', 'Resolution Preview', ...
+                'BackgroundColor', C.bg_panel);
+            placeholder_panel.Layout.Row = 2; placeholder_panel.Layout.Column = 2;
+            ph_ax_layout = uigridlayout(placeholder_panel, [1 1]);
+            ph_ax_layout.Padding = [4 4 4 4];
+            app.handles.grid_placeholder_axes = uiaxes(ph_ax_layout);
+            app.style_axes(app.handles.grid_placeholder_axes);
+            text(app.handles.grid_placeholder_axes, 0.5, 0.5, 'Reserved', ...
+                'HorizontalAlignment', 'center', 'FontSize', 14, ...
+                'Color', C.fg_muted, 'Units', 'normalized');
 
             % Time and physics panel
             panel_time = uipanel(subtab_hosts.time, 'Title', T.config.time.panel_title, ...
@@ -1058,7 +1095,7 @@ classdef UIController < handle
             app.style_axes(app.handles.ic_preview_axes);
 
             % Initialize display
-            app.update_delta();
+            app.update_grid_domain_plots();
             app.update_ic_fields();
             app.on_method_changed();
             app.update_mode_control_visibility();
@@ -2312,6 +2349,113 @@ classdef UIController < handle
             app.handles.grid_points.Text = sprintf('%d', Nx * Ny);
             app.update_checklist();
             app.update_ic_preview();
+        end
+
+        function update_grid_domain_plots(app)
+            % Update delta display + all three grid/domain plots
+            app.update_delta();
+            C = app.layout_cfg.colors;
+
+            Nx = max(2, round(app.handles.Nx.Value));
+            Ny = max(2, round(app.handles.Ny.Value));
+            Lx = max(app.handles.Lx.Value, 1e-6);
+            Ly = max(app.handles.Ly.Value, 1e-6);
+
+            % --- Mesh grid plot (top-right) ---
+            if app.has_valid_handle('grid_mesh_axes')
+                ax = app.handles.grid_mesh_axes;
+                cla(ax);
+                n_show_x = min(Nx, 32); n_show_y = min(Ny, 32);
+                x_lines = linspace(-Lx/2, Lx/2, n_show_x);
+                y_lines = linspace(-Ly/2, Ly/2, n_show_y);
+                hold(ax, 'on');
+                for i = 1:numel(x_lines)
+                    plot(ax, [x_lines(i) x_lines(i)], [-Ly/2 Ly/2], '-', ...
+                        'Color', [0.3 0.7 1.0 0.4], 'LineWidth', 0.5);
+                end
+                for j = 1:numel(y_lines)
+                    plot(ax, [-Lx/2 Lx/2], [y_lines(j) y_lines(j)], '-', ...
+                        'Color', [0.3 0.7 1.0 0.4], 'LineWidth', 0.5);
+                end
+                hold(ax, 'off');
+                xlabel(ax, '$L_x$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                ylabel(ax, '$L_y$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                title(ax, sprintf('Mesh: $%d \\times %d$', Nx, Ny), 'Interpreter', 'latex', ...
+                    'FontSize', 10, 'Color', C.fg_text);
+                xlim(ax, [-Lx/2, Lx/2]); ylim(ax, [-Ly/2, Ly/2]);
+                ax.XTick = [-Lx/2, 0, Lx/2]; ax.YTick = [-Ly/2, 0, Ly/2];
+                axis(ax, 'equal');
+                grid(ax, 'off');
+            end
+
+            % --- Domain & Boundary conditions plot (bottom-left) ---
+            if app.has_valid_handle('grid_domain_axes')
+                ax = app.handles.grid_domain_axes;
+                cla(ax);
+                hold(ax, 'on');
+                % Domain rectangle
+                rectangle(ax, 'Position', [-Lx/2 -Ly/2 Lx Ly], ...
+                    'EdgeColor', C.accent_cyan, 'LineWidth', 2.0, ...
+                    'LineStyle', '-');
+                % Periodic arrows on each boundary
+                bc_color = C.accent_green;
+                arr_len = min(Lx, Ly) * 0.15;
+                % Top boundary
+                quiver(ax, 0, Ly/2, arr_len, 0, 0, 'Color', bc_color, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
+                text(ax, 0, Ly/2 + Ly*0.06, 'Periodic', 'Color', bc_color, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 8, 'Interpreter', 'latex');
+                % Bottom boundary
+                quiver(ax, 0, -Ly/2, arr_len, 0, 0, 'Color', bc_color, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
+                text(ax, 0, -Ly/2 - Ly*0.06, 'Periodic', 'Color', bc_color, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 8, 'Interpreter', 'latex');
+                % Left boundary
+                quiver(ax, -Lx/2, 0, 0, arr_len, 0, 'Color', bc_color, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
+                text(ax, -Lx/2 - Lx*0.08, 0, 'Periodic', 'Color', bc_color, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 8, 'Rotation', 90, 'Interpreter', 'latex');
+                % Right boundary
+                quiver(ax, Lx/2, 0, 0, arr_len, 0, 'Color', bc_color, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
+                text(ax, Lx/2 + Lx*0.08, 0, 'Periodic', 'Color', bc_color, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 8, 'Rotation', 90, 'Interpreter', 'latex');
+                % Domain size annotations
+                text(ax, 0, -Ly/2 - Ly*0.16, sprintf('$L_x = %.2g$', Lx), 'Color', C.fg_text, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 9, 'Interpreter', 'latex');
+                text(ax, Lx/2 + Lx*0.18, 0, sprintf('$L_y = %.2g$', Ly), 'Color', C.fg_text, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 9, 'Rotation', 90, 'Interpreter', 'latex');
+                hold(ax, 'off');
+                xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                title(ax, 'Domain \& Boundary Conditions', 'Interpreter', 'latex', ...
+                    'FontSize', 10, 'Color', C.fg_text);
+                margin = max(Lx, Ly) * 0.3;
+                xlim(ax, [-Lx/2 - margin, Lx/2 + margin]);
+                ylim(ax, [-Ly/2 - margin, Ly/2 + margin]);
+                axis(ax, 'equal'); grid(ax, 'off');
+            end
+
+            % --- Resolution preview placeholder (bottom-right) ---
+            if app.has_valid_handle('grid_placeholder_axes')
+                ax = app.handles.grid_placeholder_axes;
+                cla(ax);
+                dx = Lx / Nx; dy = Ly / Ny;
+                n_prev = min(16, min(Nx, Ny));
+                x_prev = linspace(-Lx/2, -Lx/2 + n_prev*dx, n_prev+1);
+                y_prev = linspace(-Ly/2, -Ly/2 + n_prev*dy, n_prev+1);
+                hold(ax, 'on');
+                for i = 1:numel(x_prev)
+                    plot(ax, [x_prev(i) x_prev(i)], [y_prev(1) y_prev(end)], '-', ...
+                        'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
+                end
+                for j = 1:numel(y_prev)
+                    plot(ax, [x_prev(1) x_prev(end)], [y_prev(j) y_prev(j)], '-', ...
+                        'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
+                end
+                hold(ax, 'off');
+                xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                title(ax, sprintf('Cell: $\\Delta x=%.3g,\\;\\Delta y=%.3g$', dx, dy), ...
+                    'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                axis(ax, 'equal'); grid(ax, 'off');
+            end
         end
 
         function on_method_changed(app)
