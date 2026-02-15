@@ -1342,6 +1342,12 @@ classdef UIController < handle
             % Start each launch with a fresh terminal pane to avoid stale logs.
             app.clear_terminal_view();
             app.set_run_state('running', 'Collecting configuration...');
+
+            % Suppress all popup figures during UI-driven runs.
+            prev_fig_visible = get(0, 'DefaultFigureVisible');
+            set(0, 'DefaultFigureVisible', 'off');
+            figs_before = findall(0, 'Type', 'figure');
+
             try
                 app.collect_configuration_from_ui();
                 app.log_launch_parameter_summary();
@@ -1356,6 +1362,9 @@ classdef UIController < handle
                     summary = app.execute_single_run(app.config);
                 end
 
+                % Capture any figures created during the run and route to results tab
+                app.capture_run_figures(figs_before);
+
                 app.update_results_summary(summary);
                 app.append_to_terminal('Run completed successfully.', 'success');
                 app.set_run_state('idle', 'Completed');
@@ -1364,12 +1373,15 @@ classdef UIController < handle
                 end
 
             catch ME
+                app.capture_run_figures(figs_before);
                 app.append_to_terminal(sprintf('Launch failed: %s', ME.message), 'error');
                 app.set_run_state('idle', 'Failed');
                 if ~isempty(app.fig) && isvalid(app.fig)
                     app.show_alert_latex(ME.message, 'Launch Error', 'Icon', 'error');
                 end
             end
+            % Restore popup figure visibility
+            set(0, 'DefaultFigureVisible', prev_fig_visible);
         end
 
         function log_launch_parameter_summary(app)
@@ -3481,6 +3493,48 @@ classdef UIController < handle
             end
         end
         
+        function capture_run_figures(app, figs_before)
+            % Capture any figures created during a simulation run and add
+            % them to the results tab, then close the hidden originals.
+            try
+                figs_after = findall(0, 'Type', 'figure');
+                % Filter to only new figures (not present before run, not our UI)
+                new_figs = setdiff(figs_after, figs_before);
+                if ~isempty(app.fig) && isvalid(app.fig)
+                    new_figs(new_figs == app.fig) = [];
+                end
+                % Remove uifigures (inspector, dialogs) - keep only standard figures
+                keep = false(size(new_figs));
+                for fi = 1:numel(new_figs)
+                    if isvalid(new_figs(fi)) && ~isa(new_figs(fi), 'matlab.ui.Figure')
+                        keep(fi) = true;
+                    end
+                end
+                new_figs = new_figs(keep);
+
+                for fi = 1:numel(new_figs)
+                    if isvalid(new_figs(fi))
+                        fig_name = get(new_figs(fi), 'Name');
+                        if isempty(fig_name)
+                            fig_name = sprintf('Figure %d', fi);
+                        end
+                        app.add_figure(new_figs(fi), fig_name);
+                    end
+                end
+                % Close captured figures after frame capture
+                for fi = 1:numel(new_figs)
+                    if isvalid(new_figs(fi))
+                        close(new_figs(fi));
+                    end
+                end
+                if numel(new_figs) > 0
+                    app.append_to_terminal(sprintf('Captured %d figures to Results tab', numel(new_figs)), 'info');
+                end
+            catch ME
+                app.append_to_terminal(sprintf('Figure capture warning: %s', ME.message), 'warning');
+            end
+        end
+
         function add_figure(app, fig, name)
             T = app.layout_cfg.ui_text.results;
             % Add figure to figures list
