@@ -182,9 +182,6 @@ classdef UIController < handle
             
             % Create all tabs
             app.create_all_tabs();
-            
-            % Create control buttons
-            app.create_control_buttons();
 
             % Start MATLAB terminal capture
             app.start_terminal_capture();
@@ -988,7 +985,7 @@ classdef UIController < handle
             coeff_grid = uigridlayout(ic_layout, [3, 4]);
             coeff_grid.Layout.Row = 3; coeff_grid.Layout.Column = [1 4];
             coeff_grid.ColumnWidth = {90, 80, 90, 80};
-            coeff_grid.RowHeight = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
+            coeff_grid.RowHeight = {app.layout_cfg.heights.form_row, app.layout_cfg.heights.form_row, app.layout_cfg.heights.form_row};
             coeff_grid.Padding = [0 0 0 0];
             coeff_grid.RowSpacing = 2;
 
@@ -1029,7 +1026,7 @@ classdef UIController < handle
             scale_row = uigridlayout(ic_layout, [1, 4]);
             scale_row.Layout.Row = 4; scale_row.Layout.Column = [1 4];
             scale_row.ColumnWidth = {90, 80, 90, 80};
-            scale_row.RowHeight = {cfg.heights.form_row};
+            scale_row.RowHeight = {app.layout_cfg.heights.form_row};
             scale_row.Padding = [0 0 0 0];
 
             lbl = uilabel(scale_row, 'Text', 'Scale', 'FontColor', C.fg_text);
@@ -5881,7 +5878,7 @@ classdef UIController < handle
                 LABELS.machine, machine;
                 'Collectors', 'MATLAB';
                 'Profile', sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode));
-                'Monitor', app.on_off(cfg.enable_monitoring);
+                'Monitor', app.on_off(isfield(cfg,'enable_monitoring') && cfg.enable_monitoring);
             };
 
             if has_grid
