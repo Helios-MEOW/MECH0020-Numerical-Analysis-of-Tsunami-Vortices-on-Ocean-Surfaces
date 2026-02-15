@@ -6,13 +6,13 @@
 %   Self-contained interface with integrated monitoring and visualization
 %
 % Features:
-%   • Method Selection (Finite Difference, Finite Volume, Spectral)
-%   • Mode Configuration (Evolution, Convergence, Sweep, Animation, Experimentation)
-%   • Initial Condition Designer (Default presets + custom configuration)
-%   • Live Execution Monitor (CPU, Memory, Iteration tracking)
-%   • Convergence Monitor (Real-time error decay, mesh refinement tracking)
-%   • Parameter Validation & Export to Tsunami_Vorticity_Emulator
-%   • Developer Mode (layout inspector, click-to-inspect, validation tools)
+%   â€¢ Method Selection (Finite Difference, Finite Volume, Spectral)
+%   â€¢ Mode Configuration (Evolution, Convergence, Sweep, Animation, Experimentation)
+%   â€¢ Initial Condition Designer (Default presets + custom configuration)
+%   â€¢ Live Execution Monitor (CPU, Memory, Iteration tracking)
+%   â€¢ Convergence Monitor (Real-time error decay, mesh refinement tracking)
+%   â€¢ Parameter Validation & Export to Tsunami_Vorticity_Emulator
+%   â€¢ Developer Mode (layout inspector, click-to-inspect, validation tools)
 %
 % Usage:
 %   >> app = UIController();
@@ -149,7 +149,7 @@ classdef UIController < handle
             
             % User chose UI mode - create full interface
             % Create main figure (maximized, dark mode)
-            app.fig = uifigure('Name', 'Tsunami Numerical Simulation UI', ...
+            app.fig = uifigure('Name', app.layout_cfg.ui_text.window.main_title, ...
                 'WindowState', 'maximized', ...
                 'Color', app.layout_cfg.colors.bg_dark, ...
                 'AutoResizeChildren', 'on', ...
@@ -192,9 +192,10 @@ classdef UIController < handle
             app.fig.Visible = 'on';
         end
         
-        function choice = show_startup_dialog(~)
+        function choice = show_startup_dialog(app)
             % Show initial choice dialog: UI Mode or Traditional Mode
-            dialog_fig = uifigure('Name', 'Simulation Mode Selection', ...
+            T = app.layout_cfg.ui_text.startup;
+            dialog_fig = uifigure('Name', T.dialog_title, ...
                 'Position', [400 400 600 300], ...
                 'Color', [0.12 0.12 0.12], ...
                 'Visible', 'off');
@@ -206,19 +207,19 @@ classdef UIController < handle
             
             % Title
             uilabel(dialog_fig, 'Position', [50 220 500 50], ...
-                'Text', 'Choose Simulation Interface', ...
+                'Text', T.header, ...
                 'FontSize', 18, 'FontWeight', 'bold', ...
                 'FontColor', [0.92 0.92 0.92]);
             
             % Description
             uilabel(dialog_fig, 'Position', [50 160 500 40], ...
-                'Text', 'How would you like to run the simulation?', ...
+                'Text', T.description, ...
                 'FontSize', 12, ...
                 'FontColor', [0.82 0.82 0.82]);
             
             % UI Mode Button
             uibutton(dialog_fig, 'push', 'Position', [50 80 200 60], ...
-                'Text', sprintf('🖥️ UI Mode\n(Full Configuration Interface)'), ...
+                'Text', T.ui_mode_button, ...
                 'FontSize', 12, ...
                 'BackgroundColor', [0.25 0.78 0.35], ...
                 'FontColor', [0.05 0.05 0.05], ...
@@ -226,7 +227,7 @@ classdef UIController < handle
             
             % Traditional Mode Button
             uibutton(dialog_fig, 'push', 'Position', [300 80 200 60], ...
-                'Text', sprintf('📊 Traditional\n(Separate Windows)'), ...
+                'Text', T.traditional_mode_button, ...
                 'FontSize', 12, ...
                 'BackgroundColor', [0.35 0.72 0.95], ...
                 'FontColor', [0.05 0.05 0.05], ...
@@ -330,8 +331,18 @@ classdef UIController < handle
         
         % Tab creation methods
         function create_config_tab(app)
-            % Build configuration tab using explicit grid coordinates from UI_Layout_Config
+            % Build configuration tab using explicit coordinates and text/options/defaults
+            % from UI_Layout_Config.m.
+            %
+            % Debugging map:
+            % - Position/sizing comes from app.layout_cfg.config_tab.* and app.layout_cfg.coords.config.*
+            % - Display names/labels/button text come from app.layout_cfg.ui_text.config.*
+            % - Dropdown items come from app.layout_cfg.ui_options.*
+            % - Initial control values come from app.layout_cfg.ui_defaults.*
             C = app.layout_cfg.colors;
+            T = app.layout_cfg.ui_text;
+            O = app.layout_cfg.ui_options;
+            D = app.layout_cfg.ui_defaults;
 
             parent = app.tabs.config;
             parent.BackgroundColor = C.bg_dark;
@@ -347,14 +358,14 @@ classdef UIController < handle
             root.RowSpacing = cfg_root.row_spacing;
             root.ColumnSpacing = cfg_root.col_spacing;
 
-            left = uipanel(root, 'Title', 'Configuration', 'FontWeight', 'bold', ...
+            left = uipanel(root, 'Title', T.config.root.left_panel_title, 'FontWeight', 'bold', ...
                 'BackgroundColor', C.bg_panel, ...
                 'Scrollable', 'on');
             left.Layout.Row = app.layout_cfg.coords.config.left(1);
             left.Layout.Column = app.layout_cfg.coords.config.left(2);
             app.handles.config_left_panel = left;
 
-            right = uipanel(root, 'Title', 'Initial Conditions and Preview', 'FontWeight', 'bold', ...
+            right = uipanel(root, 'Title', T.config.root.right_panel_title, 'FontWeight', 'bold', ...
                 'BackgroundColor', C.bg_panel, ...
                 'Scrollable', 'on');
             right.Layout.Row = app.layout_cfg.coords.config.right(1);
@@ -409,7 +420,7 @@ classdef UIController < handle
             app.handles.config_subtab_hosts = subtab_hosts;
 
             % Method and mode panel
-            panel_method = uipanel(subtab_hosts.method, 'Title', 'Method and Mode', ...
+            panel_method = uipanel(subtab_hosts.method, 'Title', T.config.method.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_method.Layout.Row = 1;
             panel_method.Layout.Column = 1;
@@ -420,79 +431,79 @@ classdef UIController < handle
             method_grid.RowSpacing = cfg_method.row_spacing;
             method_grid.Padding = cfg_method.padding;
 
-            lbl = uilabel(method_grid, 'Text', 'Method', 'FontColor', C.fg_text);
+            lbl = uilabel(method_grid, 'Text', T.config.method.method_label, 'FontColor', C.fg_text);
             lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.method_dropdown = uidropdown(method_grid, ...
-                'Items', {'Finite Difference', 'Finite Volume', 'Spectral'}, ...
-                'Value', 'Finite Difference', ...
+                'Items', O.method_items, ...
+                'Value', D.method, ...
                 'ValueChangedFcn', @(~,~) app.on_method_changed());
             app.handles.method_dropdown.Layout.Row = 1;
             app.handles.method_dropdown.Layout.Column = 2;
 
-            lbl = uilabel(method_grid, 'Text', 'Mode', 'FontColor', C.fg_text);
+            lbl = uilabel(method_grid, 'Text', T.config.method.mode_label, 'FontColor', C.fg_text);
             lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.mode_dropdown = uidropdown(method_grid, ...
-                'Items', {'Evolution', 'Convergence', 'Sweep', 'Animation', 'Experimentation'}, ...
-                'Value', 'Evolution', ...
+                'Items', O.mode_items, ...
+                'Value', D.mode, ...
                 'ValueChangedFcn', @(~,~) app.on_mode_changed());
             app.handles.mode_dropdown.Layout.Row = 1;
             app.handles.mode_dropdown.Layout.Column = 4;
 
-            lbl = uilabel(method_grid, 'Text', 'Boundary', 'FontColor', C.fg_text);
+            lbl = uilabel(method_grid, 'Text', T.config.method.boundary_label, 'FontColor', C.fg_text);
             lbl.Layout.Row = 2; lbl.Layout.Column = 1;
-            app.handles.boundary_label = uilabel(method_grid, 'Text', 'Periodic (x,y)', ...
+            app.handles.boundary_label = uilabel(method_grid, 'Text', D.boundary_label, ...
                 'FontColor', C.fg_text);
             app.handles.boundary_label.Layout.Row = 2;
             app.handles.boundary_label.Layout.Column = [2 4];
 
             app.handles.bathy_enable = uicheckbox(method_grid, ...
-                'Text', 'Use Bathymetry', 'Value', false, ...
+                'Text', T.config.method.bathy_checkbox, 'Value', D.bathymetry_enabled, ...
                 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.on_method_changed());
             app.handles.bathy_enable.Layout.Row = 3;
             app.handles.bathy_enable.Layout.Column = 1;
 
             app.handles.bathy_file = uieditfield(method_grid, 'text', ...
-                'Value', '', 'Placeholder', 'Bathymetry file');
+                'Value', D.bathymetry_file, 'Placeholder', T.config.method.bathy_placeholder);
             app.handles.bathy_file.Layout.Row = 3;
             app.handles.bathy_file.Layout.Column = [2 3];
 
-            app.handles.bathy_browse_btn = uibutton(method_grid, 'Text', 'Browse', ...
+            app.handles.bathy_browse_btn = uibutton(method_grid, 'Text', T.config.method.bathy_browse_button, ...
                 'ButtonPushedFcn', @(~,~) app.browse_bathymetry_file());
             app.handles.bathy_browse_btn.Layout.Row = 3;
             app.handles.bathy_browse_btn.Layout.Column = 4;
 
             app.handles.motion_enable = uicheckbox(method_grid, ...
-                'Text', 'Enable Seabed Motion', 'Value', false, ...
+                'Text', T.config.method.motion_checkbox, 'Value', D.motion_enabled, ...
                 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.on_method_changed());
             app.handles.motion_enable.Layout.Row = 4;
             app.handles.motion_enable.Layout.Column = 1;
 
             app.handles.motion_model = uidropdown(method_grid, ...
-                'Items', {'none', 'sinusoidal', 'gaussian_pulse', 'file_driven'}, ...
-                'Value', 'none', ...
+                'Items', O.motion_model_items, ...
+                'Value', D.motion_model, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.motion_model.Layout.Row = 4;
             app.handles.motion_model.Layout.Column = 2;
 
             app.handles.motion_amplitude = uieditfield(method_grid, 'numeric', ...
-                'Value', 0.0, 'Limits', [0 Inf], ...
+                'Value', D.motion_amplitude, 'Limits', [0 Inf], ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.motion_amplitude.Layout.Row = 4;
             app.handles.motion_amplitude.Layout.Column = 3;
-            lbl = uilabel(method_grid, 'Text', 'Amplitude', 'FontColor', C.fg_text);
+            lbl = uilabel(method_grid, 'Text', T.config.method.motion_amplitude_label, 'FontColor', C.fg_text);
             lbl.Layout.Row = 4;
             lbl.Layout.Column = 4;
 
             app.handles.physics_status = uilabel(method_grid, ...
-                'Text', 'Bathymetry and motion configured independently', ...
+                'Text', T.config.method.physics_status_ready, ...
                 'FontColor', C.fg_muted);
             app.handles.physics_status.Layout.Row = 5;
             app.handles.physics_status.Layout.Column = [1 4];
 
             % Grid and domain panel
-            panel_grid = uipanel(subtab_hosts.grid, 'Title', 'Grid and Domain', ...
+            panel_grid = uipanel(subtab_hosts.grid, 'Title', T.config.grid.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_grid.Layout.Row = 1;
             panel_grid.Layout.Column = 1;
@@ -504,37 +515,37 @@ classdef UIController < handle
 
             app.handles.label_Nx = app.create_math_label(grid_layout, 'N_x', 'Nx', 'FontColor', C.fg_text);
             app.handles.label_Nx.Layout.Row = 1; app.handles.label_Nx.Layout.Column = 1;
-            app.handles.Nx = uieditfield(grid_layout, 'numeric', 'Value', 128, ...
+            app.handles.Nx = uieditfield(grid_layout, 'numeric', 'Value', D.Nx, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.Nx.Layout.Row = 1; app.handles.Nx.Layout.Column = 2;
             app.handles.label_Ny = app.create_math_label(grid_layout, 'N_y', 'Ny', 'FontColor', C.fg_text);
             app.handles.label_Ny.Layout.Row = 1; app.handles.label_Ny.Layout.Column = 3;
-            app.handles.Ny = uieditfield(grid_layout, 'numeric', 'Value', 128, ...
+            app.handles.Ny = uieditfield(grid_layout, 'numeric', 'Value', D.Ny, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.Ny.Layout.Row = 1; app.handles.Ny.Layout.Column = 4;
 
             app.handles.label_Lx = app.create_math_label(grid_layout, 'L_x', 'Lx', 'FontColor', C.fg_text);
             app.handles.label_Lx.Layout.Row = 2; app.handles.label_Lx.Layout.Column = 1;
-            app.handles.Lx = uieditfield(grid_layout, 'numeric', 'Value', 10.0, ...
+            app.handles.Lx = uieditfield(grid_layout, 'numeric', 'Value', D.Lx, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.Lx.Layout.Row = 2; app.handles.Lx.Layout.Column = 2;
             app.handles.label_Ly = app.create_math_label(grid_layout, 'L_y', 'Ly', 'FontColor', C.fg_text);
             app.handles.label_Ly.Layout.Row = 2; app.handles.label_Ly.Layout.Column = 3;
-            app.handles.Ly = uieditfield(grid_layout, 'numeric', 'Value', 10.0, ...
+            app.handles.Ly = uieditfield(grid_layout, 'numeric', 'Value', D.Ly, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.Ly.Layout.Row = 2; app.handles.Ly.Layout.Column = 4;
 
-            lbl = uilabel(grid_layout, 'Text', 'Delta', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 1;
+            lbl = uilabel(grid_layout, 'Text', T.config.grid.delta_label, 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 1;
             app.handles.delta = uieditfield(grid_layout, 'numeric', 'Editable', 'on', ...
-                'Value', 2, ...
+                'Value', D.delta, ...
                 'ValueChangedFcn', @(~,~) app.update_delta());
             app.handles.delta.Layout.Row = 3; app.handles.delta.Layout.Column = 2;
-            lbl = uilabel(grid_layout, 'Text', 'Grid points', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 3;
-            app.handles.grid_points = uilabel(grid_layout, 'Text', '16384', 'FontColor', C.fg_text);
+            lbl = uilabel(grid_layout, 'Text', T.config.grid.grid_points_label, 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 3;
+            app.handles.grid_points = uilabel(grid_layout, 'Text', D.grid_points, 'FontColor', C.fg_text);
             app.handles.grid_points.Layout.Row = 3; app.handles.grid_points.Layout.Column = 4;
 
             % Time and physics panel
-            panel_time = uipanel(subtab_hosts.time, 'Title', 'Time and Physics', ...
+            panel_time = uipanel(subtab_hosts.time, 'Title', T.config.time.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_time.Layout.Row = 1;
             panel_time.Layout.Column = 1;
@@ -555,26 +566,26 @@ classdef UIController < handle
 
             app.handles.label_dt = app.create_math_label(time_layout, 'Delta_t', 'dt', 'FontColor', C.fg_text);
             app.handles.label_dt.Layout.Row = 1; app.handles.label_dt.Layout.Column = 1;
-            app.handles.dt = uieditfield(time_layout, 'numeric', 'Value', 0.001, ...
+            app.handles.dt = uieditfield(time_layout, 'numeric', 'Value', D.dt, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.dt.Layout.Row = 1; app.handles.dt.Layout.Column = 2;
             app.handles.label_Tfinal = app.create_math_label(time_layout, 'T_final', 'Tfinal', 'FontColor', C.fg_text);
             app.handles.label_Tfinal.Layout.Row = 1; app.handles.label_Tfinal.Layout.Column = 3;
-            app.handles.t_final = uieditfield(time_layout, 'numeric', 'Value', 10.0, ...
+            app.handles.t_final = uieditfield(time_layout, 'numeric', 'Value', D.t_final, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.t_final.Layout.Row = 1; app.handles.t_final.Layout.Column = 4;
             app.handles.label_nu = app.create_math_label(time_layout, 'nu', 'nu', 'FontColor', C.fg_text);
             app.handles.label_nu.Layout.Row = 2; app.handles.label_nu.Layout.Column = 1;
-            app.handles.nu = uieditfield(time_layout, 'numeric', 'Value', 1e-4, ...
+            app.handles.nu = uieditfield(time_layout, 'numeric', 'Value', D.nu, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.nu.Layout.Row = 2; app.handles.nu.Layout.Column = 2;
-            lbl = uilabel(time_layout, 'Text', 'Snapshots', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
-            app.handles.num_snapshots = uieditfield(time_layout, 'numeric', 'Value', 9);
+            lbl = uilabel(time_layout, 'Text', T.config.time.snapshots_label, 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
+            app.handles.num_snapshots = uieditfield(time_layout, 'numeric', 'Value', D.num_snapshots);
             app.handles.num_snapshots.Layout.Row = 2; app.handles.num_snapshots.Layout.Column = 4;
 
             % Time/Physics animation triplet preview (MP4/AVI/GIF).
             video_panel = uipanel(time_root, ...
-                'Title', 'Build Time/Physics Animation Preview (MP4 | AVI | GIF)', ...
+                'Title', T.config.time.video_panel_title, ...
                 'BackgroundColor', C.bg_panel);
             video_panel.Layout.Row = 2;
             video_panel.Layout.Column = 1;
@@ -620,7 +631,7 @@ classdef UIController < handle
                 h_img.Visible = 'off';
 
                 status_label = uilabel(card_grid, ...
-                    'Text', sprintf('%s: pending', fmt_title), ...
+                    'Text', sprintf(T.config.time.video_status_pending_pattern, fmt_title), ...
                     'FontColor', C.fg_muted, ...
                     'FontSize', 10, ...
                     'HorizontalAlignment', 'center');
@@ -628,7 +639,7 @@ classdef UIController < handle
                 status_label.Layout.Column = 1;
 
                 codec_label = uilabel(card_grid, ...
-                    'Text', 'Codec: --', ...
+                    'Text', T.config.time.video_codec_placeholder, ...
                     'FontColor', C.fg_muted, ...
                     'FontSize', 10, ...
                     'HorizontalAlignment', 'center');
@@ -649,24 +660,24 @@ classdef UIController < handle
             controls_grid.Padding = cfg_time_video.controls_padding;
             controls_grid.ColumnSpacing = 6;
 
-            app.handles.btn_time_video_play = uibutton(controls_grid, 'Text', 'Play', ...
+            app.handles.btn_time_video_play = uibutton(controls_grid, 'Text', T.config.time.video_play_button, ...
                 'ButtonPushedFcn', @(~,~) app.play_time_video_triplet());
             app.handles.btn_time_video_play.Layout.Row = 1; app.handles.btn_time_video_play.Layout.Column = 1;
 
-            app.handles.btn_time_video_pause = uibutton(controls_grid, 'Text', 'Pause', ...
+            app.handles.btn_time_video_pause = uibutton(controls_grid, 'Text', T.config.time.video_pause_button, ...
                 'ButtonPushedFcn', @(~,~) app.pause_time_video_triplet());
             app.handles.btn_time_video_pause.Layout.Row = 1; app.handles.btn_time_video_pause.Layout.Column = 2;
 
-            app.handles.btn_time_video_restart = uibutton(controls_grid, 'Text', 'Restart', ...
+            app.handles.btn_time_video_restart = uibutton(controls_grid, 'Text', T.config.time.video_restart_button, ...
                 'ButtonPushedFcn', @(~,~) app.restart_time_video_triplet());
             app.handles.btn_time_video_restart.Layout.Row = 1; app.handles.btn_time_video_restart.Layout.Column = 3;
 
-            app.handles.btn_time_video_load = uibutton(controls_grid, 'Text', 'Load Latest', ...
+            app.handles.btn_time_video_load = uibutton(controls_grid, 'Text', T.config.time.video_load_button, ...
                 'ButtonPushedFcn', @(~,~) app.load_time_video_triplet('AutoGenerate', true));
             app.handles.btn_time_video_load.Layout.Row = 1; app.handles.btn_time_video_load.Layout.Column = 4;
 
             app.handles.time_video_status = uilabel(controls_grid, ...
-                'Text', 'Triplet status: idle', ...
+                'Text', T.config.time.video_status_idle, ...
                 'FontColor', C.fg_muted, ...
                 'HorizontalAlignment', 'left', ...
                 'WordWrap', 'on');
@@ -676,7 +687,7 @@ classdef UIController < handle
             app.initialize_time_video_state();
 
             % Simulation settings panel
-            panel_sim = uipanel(subtab_hosts.simulation, 'Title', 'Simulation Settings', ...
+            panel_sim = uipanel(subtab_hosts.simulation, 'Title', T.config.simulation.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_sim.Layout.Row = 1;
             panel_sim.Layout.Column = 1;
@@ -686,34 +697,34 @@ classdef UIController < handle
             sim_layout.RowHeight = cfg_sim.row_heights;
             sim_layout.Padding = cfg_sim.padding;
 
-            app.handles.save_csv = uicheckbox(sim_layout, 'Text', 'Save CSV', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.save_csv = uicheckbox(sim_layout, 'Text', T.config.simulation.save_csv_checkbox, 'Value', D.save_csv, 'FontColor', C.fg_text);
             app.handles.save_csv.Layout.Row = 1; app.handles.save_csv.Layout.Column = 1;
-            app.handles.save_mat = uicheckbox(sim_layout, 'Text', 'Save MAT', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.save_mat = uicheckbox(sim_layout, 'Text', T.config.simulation.save_mat_checkbox, 'Value', D.save_mat, 'FontColor', C.fg_text);
             app.handles.save_mat.Layout.Row = 1; app.handles.save_mat.Layout.Column = 2;
-            app.handles.figures_save_png = uicheckbox(sim_layout, 'Text', 'Save PNG', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.figures_save_png = uicheckbox(sim_layout, 'Text', T.config.simulation.save_png_checkbox, 'Value', D.figures_save_png, 'FontColor', C.fg_text);
             app.handles.figures_save_png.Layout.Row = 1; app.handles.figures_save_png.Layout.Column = 3;
-            app.handles.figures_save_fig = uicheckbox(sim_layout, 'Text', 'Save FIG', 'Value', false, 'FontColor', C.fg_text);
+            app.handles.figures_save_fig = uicheckbox(sim_layout, 'Text', T.config.simulation.save_fig_checkbox, 'Value', D.figures_save_fig, 'FontColor', C.fg_text);
             app.handles.figures_save_fig.Layout.Row = 1; app.handles.figures_save_fig.Layout.Column = 4;
 
-            lbl = uilabel(sim_layout, 'Text', 'DPI', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
-            app.handles.figures_dpi = uieditfield(sim_layout, 'numeric', 'Value', 300);
+            lbl = uilabel(sim_layout, 'Text', T.config.simulation.dpi_label, 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            app.handles.figures_dpi = uieditfield(sim_layout, 'numeric', 'Value', D.figures_dpi);
             app.handles.figures_dpi.Layout.Row = 2; app.handles.figures_dpi.Layout.Column = 2;
-            app.handles.figures_close_after_save = uicheckbox(sim_layout, 'Text', 'Close after save', 'Value', false, 'FontColor', C.fg_text);
+            app.handles.figures_close_after_save = uicheckbox(sim_layout, 'Text', T.config.simulation.close_after_save_checkbox, 'Value', D.figures_close_after_save, 'FontColor', C.fg_text);
             app.handles.figures_close_after_save.Layout.Row = 2; app.handles.figures_close_after_save.Layout.Column = 3;
-            app.handles.figures_use_owl_saver = uicheckbox(sim_layout, 'Text', 'Use OWL saver', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.figures_use_owl_saver = uicheckbox(sim_layout, 'Text', T.config.simulation.use_owl_saver_checkbox, 'Value', D.figures_use_owl_saver, 'FontColor', C.fg_text);
             app.handles.figures_use_owl_saver.Layout.Row = 2; app.handles.figures_use_owl_saver.Layout.Column = 4;
 
-            app.handles.create_animations = uicheckbox(sim_layout, 'Text', 'Create animations', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.create_animations = uicheckbox(sim_layout, 'Text', T.config.simulation.create_animations_checkbox, 'Value', D.create_animations, 'FontColor', C.fg_text);
             app.handles.create_animations.Layout.Row = 3; app.handles.create_animations.Layout.Column = 1;
-            app.handles.animation_format = uidropdown(sim_layout, 'Items', {'mp4', 'avi', 'gif'}, 'Value', 'mp4');
+            app.handles.animation_format = uidropdown(sim_layout, 'Items', O.animation_format_items, 'Value', D.animation_format);
             app.handles.animation_format.Layout.Row = 3; app.handles.animation_format.Layout.Column = 2;
-            app.handles.animation_fps = uieditfield(sim_layout, 'numeric', 'Value', 30);
+            app.handles.animation_fps = uieditfield(sim_layout, 'numeric', 'Value', D.animation_fps);
             app.handles.animation_fps.Layout.Row = 3; app.handles.animation_fps.Layout.Column = 3;
-            app.handles.animation_num_frames = uieditfield(sim_layout, 'numeric', 'Value', 100);
+            app.handles.animation_num_frames = uieditfield(sim_layout, 'numeric', 'Value', D.animation_num_frames);
             app.handles.animation_num_frames.Layout.Row = 3; app.handles.animation_num_frames.Layout.Column = 4;
 
             % Convergence panel
-            panel_conv = uipanel(subtab_hosts.convergence, 'Title', 'Convergence Study', ...
+            panel_conv = uipanel(subtab_hosts.convergence, 'Title', T.config.convergence.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_conv.Layout.Row = 1;
             panel_conv.Layout.Column = 1;
@@ -723,47 +734,47 @@ classdef UIController < handle
             conv_layout.RowHeight = cfg_conv.row_heights;
             conv_layout.Padding = cfg_conv.padding;
 
-            lbl = uilabel(conv_layout, 'Text', 'N coarse', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
-            app.handles.conv_N_coarse = uieditfield(conv_layout, 'numeric', 'Value', 64, ...
+            lbl = uilabel(conv_layout, 'Text', T.config.convergence.n_coarse_label, 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
+            app.handles.conv_N_coarse = uieditfield(conv_layout, 'numeric', 'Value', D.convergence_N_coarse, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_N_coarse.Layout.Row = 1; app.handles.conv_N_coarse.Layout.Column = 2;
-            lbl = uilabel(conv_layout, 'Text', 'N max', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
-            app.handles.conv_N_max = uieditfield(conv_layout, 'numeric', 'Value', 512, ...
+            lbl = uilabel(conv_layout, 'Text', T.config.convergence.n_max_label, 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
+            app.handles.conv_N_max = uieditfield(conv_layout, 'numeric', 'Value', D.convergence_N_max, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_N_max.Layout.Row = 1; app.handles.conv_N_max.Layout.Column = 4;
 
-            lbl = uilabel(conv_layout, 'Text', 'Tolerance', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
-            app.handles.conv_tolerance = uieditfield(conv_layout, 'numeric', 'Value', 1e-2, ...
+            lbl = uilabel(conv_layout, 'Text', T.config.convergence.tolerance_label, 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            app.handles.conv_tolerance = uieditfield(conv_layout, 'numeric', 'Value', D.convergence_tol, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_tolerance.Layout.Row = 2; app.handles.conv_tolerance.Layout.Column = 2;
-            lbl = uilabel(conv_layout, 'Text', 'Criterion', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
+            lbl = uilabel(conv_layout, 'Text', T.config.convergence.criterion_label, 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
             app.handles.conv_criterion = uidropdown(conv_layout, ...
-                'Items', {'l2_relative', 'l2_absolute', 'linf_relative', 'max_vorticity', 'energy_dissipation', 'auto_physical'}, ...
-                'Value', 'l2_relative', ...
+                'Items', O.convergence_criterion_items, ...
+                'Value', D.convergence_criterion_type, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_criterion.Layout.Row = 2; app.handles.conv_criterion.Layout.Column = 4;
 
             app.handles.conv_binary = uicheckbox(conv_layout, ...
-                'Text', 'Binary search', 'Value', true, 'FontColor', C.fg_text, ...
+                'Text', T.config.convergence.binary_checkbox, 'Value', D.convergence_binary, 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_binary.Layout.Row = 3; app.handles.conv_binary.Layout.Column = 1;
             app.handles.conv_use_adaptive = uicheckbox(conv_layout, ...
-                'Text', 'Adaptive', 'Value', true, 'FontColor', C.fg_text, ...
+                'Text', T.config.convergence.adaptive_checkbox, 'Value', D.convergence_use_adaptive, 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_use_adaptive.Layout.Row = 3; app.handles.conv_use_adaptive.Layout.Column = 2;
-            lbl = uilabel(conv_layout, 'Text', 'Max jumps', 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 3;
-            app.handles.conv_max_jumps = uieditfield(conv_layout, 'numeric', 'Value', 5, ...
+            lbl = uilabel(conv_layout, 'Text', T.config.convergence.max_jumps_label, 'FontColor', C.fg_text); lbl.Layout.Row = 3; lbl.Layout.Column = 3;
+            app.handles.conv_max_jumps = uieditfield(conv_layout, 'numeric', 'Value', D.convergence_max_jumps, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.conv_max_jumps.Layout.Row = 3; app.handles.conv_max_jumps.Layout.Column = 4;
 
             app.handles.conv_agent_enabled = uicheckbox(conv_layout, ...
-                'Text', 'Agent-guided', 'Value', true, 'FontColor', C.fg_text, ...
+                'Text', T.config.convergence.agent_guided_checkbox, 'Value', D.convergence_agent_enabled, 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.on_convergence_agent_changed());
             app.handles.conv_agent_enabled.Layout.Row = 4;
             app.handles.conv_agent_enabled.Layout.Column = 1;
 
             app.handles.conv_agent_status = uilabel(conv_layout, ...
-                'Text', 'Agent lock active', 'FontColor', C.accent_yellow);
+                'Text', T.config.convergence.agent_status_locked, 'FontColor', C.accent_yellow);
             app.handles.conv_agent_status.Layout.Row = 4;
             app.handles.conv_agent_status.Layout.Column = 2;
 
@@ -776,17 +787,17 @@ classdef UIController < handle
             app.handles.conv_math.Layout.Row = 4;
             app.handles.conv_math.Layout.Column = [3 4];
 
-            app.handles.btn_load_converged_mesh = uibutton(conv_layout, 'Text', 'Load converged mesh preset', ...
+            app.handles.btn_load_converged_mesh = uibutton(conv_layout, 'Text', T.config.convergence.load_mesh_button, ...
                 'ButtonPushedFcn', @(~,~) app.load_converged_mesh_preset());
             app.handles.btn_load_converged_mesh.Layout.Row = 5;
             app.handles.btn_load_converged_mesh.Layout.Column = [1 2];
             app.handles.converged_mesh_status = uilabel(conv_layout, ...
-                'Text', 'No preset loaded', 'FontColor', C.fg_muted);
+                'Text', T.config.convergence.no_mesh_loaded, 'FontColor', C.fg_muted);
             app.handles.converged_mesh_status.Layout.Row = 5;
             app.handles.converged_mesh_status.Layout.Column = [3 4];
 
             % Sustainability panel
-            panel_sus = uipanel(subtab_hosts.sustainability, 'Title', 'Sustainability', ...
+            panel_sus = uipanel(subtab_hosts.sustainability, 'Title', T.config.sustainability.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_sus.Layout.Row = 1;
             panel_sus.Layout.Column = 1;
@@ -796,45 +807,45 @@ classdef UIController < handle
             sus_layout.RowHeight = cfg_sus.row_heights;
             sus_layout.Padding = cfg_sus.padding;
 
-            app.handles.enable_monitoring = uicheckbox(sus_layout, 'Text', 'Enable monitoring', 'Value', true, 'FontColor', C.fg_text);
+            app.handles.enable_monitoring = uicheckbox(sus_layout, 'Text', T.config.sustainability.enable_monitoring_checkbox, 'Value', D.enable_monitoring, 'FontColor', C.fg_text);
             app.handles.enable_monitoring.Layout.Row = 1;
             app.handles.enable_monitoring.Layout.Column = 1;
-            lbl = uilabel(sus_layout, 'Text', 'Sample interval (s)', 'FontColor', C.fg_text);
+            lbl = uilabel(sus_layout, 'Text', T.config.sustainability.sample_interval_label, 'FontColor', C.fg_text);
             lbl.Layout.Row = 1;
             lbl.Layout.Column = 2;
-            app.handles.sample_interval = uieditfield(sus_layout, 'numeric', 'Value', 0.5);
+            app.handles.sample_interval = uieditfield(sus_layout, 'numeric', 'Value', D.sample_interval);
             app.handles.sample_interval.Layout.Row = 1;
             app.handles.sample_interval.Layout.Column = 3;
             app.handles.sustainability_auto_log = uicheckbox(sus_layout, ...
-                'Text', 'Always log run ledger', 'Value', true, 'FontColor', C.fg_text);
+                'Text', T.config.sustainability.always_log_checkbox, 'Value', D.sustainability_auto_log, 'FontColor', C.fg_text);
             app.handles.sustainability_auto_log.Layout.Row = 1;
             app.handles.sustainability_auto_log.Layout.Column = 4;
 
             app.handles.cpuz_enable = uicheckbox(sus_layout, ...
-                'Text', 'CPU-Z collector', 'Value', false, 'FontColor', C.fg_text, ...
+                'Text', T.config.sustainability.cpuz_checkbox, 'Value', D.collector_cpuz, 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.cpuz_enable.Layout.Row = 2; app.handles.cpuz_enable.Layout.Column = 1;
             app.handles.hwinfo_enable = uicheckbox(sus_layout, ...
-                'Text', 'HWiNFO collector', 'Value', false, 'FontColor', C.fg_text, ...
+                'Text', T.config.sustainability.hwinfo_checkbox, 'Value', D.collector_hwinfo, 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.hwinfo_enable.Layout.Row = 2; app.handles.hwinfo_enable.Layout.Column = 2;
             app.handles.icue_enable = uicheckbox(sus_layout, ...
-                'Text', 'iCUE collector', 'Value', false, 'FontColor', C.fg_text, ...
+                'Text', T.config.sustainability.icue_checkbox, 'Value', D.collector_icue, 'FontColor', C.fg_text, ...
                 'ValueChangedFcn', @(~,~) app.update_checklist());
             app.handles.icue_enable.Layout.Row = 2; app.handles.icue_enable.Layout.Column = 3;
             app.handles.collector_strict = uicheckbox(sus_layout, ...
-                'Text', 'Strict external checks', 'Value', false, 'FontColor', C.fg_text);
+                'Text', T.config.sustainability.strict_checkbox, 'Value', D.collector_strict, 'FontColor', C.fg_text);
             app.handles.collector_strict.Layout.Row = 2; app.handles.collector_strict.Layout.Column = 4;
 
-            lbl = uilabel(sus_layout, 'Text', 'Machine tag', 'FontColor', C.fg_text);
+            lbl = uilabel(sus_layout, 'Text', T.config.sustainability.machine_tag_label, 'FontColor', C.fg_text);
             lbl.Layout.Row = 3; lbl.Layout.Column = 1;
-            default_machine = getenv('COMPUTERNAME');
-            if isempty(default_machine), default_machine = 'unknown_machine'; end
+            default_machine = char(string(D.machine_tag));
+            if isempty(strtrim(default_machine)), default_machine = 'unknown_machine'; end
             app.handles.machine_tag = uieditfield(sus_layout, 'text', 'Value', default_machine);
             app.handles.machine_tag.Layout.Row = 3; app.handles.machine_tag.Layout.Column = [2 4];
 
             app.handles.collector_status = uilabel(sus_layout, ...
-                'Text', 'Collector readiness: MATLAB baseline active', ...
+                'Text', sprintf(T.config.sustainability.collector_status_template, 0, 0), ...
                 'FontColor', C.fg_muted);
             app.handles.collector_status.Layout.Row = 4;
             app.handles.collector_status.Layout.Column = [1 4];
@@ -847,7 +858,7 @@ classdef UIController < handle
             right_layout.RowSpacing = cfg_right.row_spacing;
 
             % Readiness checklist
-            panel_check = uipanel(right_layout, 'Title', 'Readiness Checklist', ...
+            panel_check = uipanel(right_layout, 'Title', T.config.readiness.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_check.Layout.Row = app.layout_cfg.coords.config.panel_check(1);
             panel_check.Layout.Column = app.layout_cfg.coords.config.panel_check(2);
@@ -867,42 +878,38 @@ classdef UIController < handle
             checks_grid.RowSpacing = 1;
             checks_grid.ColumnSpacing = 4;
 
-            app.handles.check_grid = uilabel(checks_grid, 'Text', '■', ...
+            check_state_unchecked = T.config.readiness.check_state_unchecked;
+            app.handles.check_grid = uilabel(checks_grid, 'Text', check_state_unchecked, ...
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
             app.handles.check_grid.Layout.Row = 1; app.handles.check_grid.Layout.Column = 1;
-            app.handles.check_domain = uilabel(checks_grid, 'Text', '■', ...
+            app.handles.check_domain = uilabel(checks_grid, 'Text', check_state_unchecked, ...
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
             app.handles.check_domain.Layout.Row = 1; app.handles.check_domain.Layout.Column = 2;
-            app.handles.check_time = uilabel(checks_grid, 'Text', '■', ...
+            app.handles.check_time = uilabel(checks_grid, 'Text', check_state_unchecked, ...
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
             app.handles.check_time.Layout.Row = 1; app.handles.check_time.Layout.Column = 3;
-            app.handles.check_ic = uilabel(checks_grid, 'Text', '■', ...
+            app.handles.check_ic = uilabel(checks_grid, 'Text', check_state_unchecked, ...
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
             app.handles.check_ic.Layout.Row = 1; app.handles.check_ic.Layout.Column = 4;
-            app.handles.check_conv = uilabel(checks_grid, 'Text', '■', ...
+            app.handles.check_conv = uilabel(checks_grid, 'Text', check_state_unchecked, ...
                 'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
             app.handles.check_conv.Layout.Row = 1; app.handles.check_conv.Layout.Column = 5;
-            app.handles.check_monitor = uilabel(checks_grid, 'Text', '[ ]', ...
+            app.handles.check_monitor = uilabel(checks_grid, 'Text', check_state_unchecked, ...
                 'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
             app.handles.check_monitor.Layout.Row = 1; app.handles.check_monitor.Layout.Column = 6;
-            app.handles.check_collectors = uilabel(checks_grid, 'Text', '[ ]', ...
+            app.handles.check_collectors = uilabel(checks_grid, 'Text', check_state_unchecked, ...
                 'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
             app.handles.check_collectors.Layout.Row = 1; app.handles.check_collectors.Layout.Column = 7;
-            app.handles.check_outputs = uilabel(checks_grid, 'Text', '[ ]', ...
+            app.handles.check_outputs = uilabel(checks_grid, 'Text', check_state_unchecked, ...
                 'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
             app.handles.check_outputs.Layout.Row = 1; app.handles.check_outputs.Layout.Column = 8;
-            app.handles.check_grid.Text = '[ ]';
-            app.handles.check_domain.Text = '[ ]';
-            app.handles.check_time.Text = '[ ]';
-            app.handles.check_ic.Text = '[ ]';
-            app.handles.check_conv.Text = '[ ]';
             app.handles.check_grid.FontSize = 10;
             app.handles.check_domain.FontSize = 10;
             app.handles.check_time.FontSize = 10;
             app.handles.check_ic.FontSize = 10;
             app.handles.check_conv.FontSize = 10;
 
-            label_names = {'Grid', 'Domain', 'Time', 'IC', 'Conv', 'Mon', 'Coll', 'Out'};
+            label_names = T.config.readiness.checks;
             for idx = 1:numel(label_names)
                 lbl = uilabel(checks_grid, 'Text', label_names{idx}, ...
                     'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 9);
@@ -910,13 +917,15 @@ classdef UIController < handle
                 lbl.Layout.Column = idx;
             end
 
-            defaults_summary = 'Defaults source: create_default_parameters.m -> Scripts/Editable/Parameters.m + Scripts/Editable/Settings.m';
+            defaults_summary = sprintf(T.config.readiness.defaults_summary_template, ...
+                app.layout_cfg.defaults_source.editable_parameters, ...
+                app.layout_cfg.defaults_source.editable_settings);
             if isfield(app.layout_cfg, 'defaults_source') && isstruct(app.layout_cfg.defaults_source) && ...
                     isfield(app.layout_cfg.defaults_source, 'summary') && ~isempty(app.layout_cfg.defaults_source.summary)
                 defaults_summary = char(string(app.layout_cfg.defaults_source.summary));
             end
             info_lbl = uilabel(check_layout, ...
-                'Text', sprintf('Legend: green = ready, red = needs input\n%s', defaults_summary), ...
+                'Text', sprintf(T.config.readiness.legend_template, defaults_summary), ...
                 'FontColor', C.fg_muted, 'HorizontalAlignment', 'center', 'WordWrap', 'on');
             info_lbl.Layout.Row = 2;
             info_lbl.Layout.Column = 1;
@@ -931,25 +940,25 @@ classdef UIController < handle
             buttons_row.ColumnSpacing = 8;
 
             app.handles.btn_launch = uibutton(buttons_row, 'push', ...
-                'Text', 'Launch', 'FontWeight', 'bold', ...
+                'Text', T.config.readiness.launch_button, 'FontWeight', 'bold', ...
                 'BackgroundColor', C.accent_green, 'FontColor', [0.05 0.05 0.05], ...
                 'ButtonPushedFcn', @(~,~) app.launch_simulation());
             app.handles.btn_launch.Layout.Row = 1; app.handles.btn_launch.Layout.Column = 1;
 
             app.handles.btn_export = uibutton(buttons_row, 'push', ...
-                'Text', 'Export', ...
+                'Text', T.config.readiness.export_button, ...
                 'BackgroundColor', C.accent_cyan, 'FontColor', [0.05 0.05 0.05], ...
                 'ButtonPushedFcn', @(~,~) app.export_configuration());
             app.handles.btn_export.Layout.Row = 1; app.handles.btn_export.Layout.Column = 2;
 
             app.handles.btn_import = uibutton(buttons_row, 'push', ...
-                'Text', 'Import', ...
+                'Text', T.config.readiness.import_button, ...
                 'BackgroundColor', C.accent_yellow, 'FontColor', [0.05 0.05 0.05], ...
                 'ButtonPushedFcn', @(~,~) app.import_configuration());
             app.handles.btn_import.Layout.Row = 1; app.handles.btn_import.Layout.Column = 3;
 
             % IC configuration
-            panel_ic = uipanel(right_layout, 'Title', 'Initial Condition', ...
+            panel_ic = uipanel(right_layout, 'Title', T.config.initial_condition.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_ic.Layout.Row = app.layout_cfg.coords.config.panel_ic(1);
             panel_ic.Layout.Column = app.layout_cfg.coords.config.panel_ic(2);
@@ -961,29 +970,27 @@ classdef UIController < handle
             ic_layout.RowSpacing = cfg_ic.row_spacing;
             app.handles.ic_layout = ic_layout;
 
-            lbl = uilabel(ic_layout, 'Text', 'IC Type', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
+            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.ic_type_label, 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.ic_dropdown = uidropdown(ic_layout, ...
-                'Items', {'Stretched Gaussian', 'Vortex Blob', 'Vortex Pair', 'Multi-Vortex', ...
-                          'Lamb-Oseen', 'Rankine', 'Lamb Dipole', 'Taylor-Green', ...
-                          'Random Turbulence', 'Elliptical Vortex'}, ...
-                'Value', 'Stretched Gaussian', ...
+                'Items', O.ic_type_items, ...
+                'Value', D.ic_type, ...
                 'ValueChangedFcn', @(~,~) app.on_ic_changed());
             app.handles.ic_dropdown.Layout.Row = 1; app.handles.ic_dropdown.Layout.Column = 2;
 
-            lbl = uilabel(ic_layout, 'Text', 'Pattern', 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
+            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.pattern_label, 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.ic_pattern = uidropdown(ic_layout, ...
-                'Items', {'single', 'circular', 'grid', 'random'}, ...
-                'Value', 'single', ...
+                'Items', O.ic_pattern_items, ...
+                'Value', D.ic_pattern, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_pattern.Layout.Row = 1; app.handles.ic_pattern.Layout.Column = 4;
 
-            lbl = uilabel(ic_layout, 'Text', 'Scale Factor', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
-            app.handles.ic_scale = uieditfield(ic_layout, 'numeric', 'Value', 1.0, ...
+            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.scale_label, 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
+            app.handles.ic_scale = uieditfield(ic_layout, 'numeric', 'Value', D.ic_scale, ...
                 'Limits', [0.1 10.0], 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_scale.Layout.Row = 2; app.handles.ic_scale.Layout.Column = 2;
 
-            lbl = uilabel(ic_layout, 'Text', 'Count (N)', 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
-            app.handles.ic_count = uieditfield(ic_layout, 'numeric', 'Value', 1, ...
+            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.count_label, 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
+            app.handles.ic_count = uieditfield(ic_layout, 'numeric', 'Value', D.ic_count, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_count.Layout.Row = 2; app.handles.ic_count.Layout.Column = 4;
 
@@ -999,49 +1006,49 @@ classdef UIController < handle
             app.handles.ic_equation.Layout.Column = [1 4];
 
             app.handles.ic_where = uitextarea(ic_layout, ...
-                'Value', {'where:', 'a,b > 0 control spread in x/y', 'x0,y0 set center position'}, ...
+                'Value', T.config.initial_condition.where_lines, ...
                 'Editable', 'off', 'FontSize', 10, 'WordWrap', 'on', ...
                 'BackgroundColor', C.bg_input, 'FontColor', C.fg_text);
             app.handles.ic_where.Layout.Row = 4;
             app.handles.ic_where.Layout.Column = [1 4];
 
-            app.handles.ic_coeff1_label = uilabel(ic_layout, 'Text', 'Coeff 1', 'FontColor', C.fg_text);
+            app.handles.ic_coeff1_label = uilabel(ic_layout, 'Text', T.config.initial_condition.coeff1_label, 'FontColor', C.fg_text);
             app.handles.ic_coeff1_label.Layout.Row = 5; app.handles.ic_coeff1_label.Layout.Column = 1;
-            app.handles.ic_coeff1 = uieditfield(ic_layout, 'numeric', 'Value', 2.0, ...
+            app.handles.ic_coeff1 = uieditfield(ic_layout, 'numeric', 'Value', D.ic_coeff1, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_coeff1.Layout.Row = 5; app.handles.ic_coeff1.Layout.Column = 2;
-            app.handles.ic_coeff2_label = uilabel(ic_layout, 'Text', 'Coeff 2', 'FontColor', C.fg_text);
+            app.handles.ic_coeff2_label = uilabel(ic_layout, 'Text', T.config.initial_condition.coeff2_label, 'FontColor', C.fg_text);
             app.handles.ic_coeff2_label.Layout.Row = 5; app.handles.ic_coeff2_label.Layout.Column = 3;
-            app.handles.ic_coeff2 = uieditfield(ic_layout, 'numeric', 'Value', 0.2, ...
+            app.handles.ic_coeff2 = uieditfield(ic_layout, 'numeric', 'Value', D.ic_coeff2, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_coeff2.Layout.Row = 5; app.handles.ic_coeff2.Layout.Column = 4;
 
-            app.handles.ic_coeff3_label = uilabel(ic_layout, 'Text', 'Coeff 3', 'FontColor', C.fg_text);
+            app.handles.ic_coeff3_label = uilabel(ic_layout, 'Text', T.config.initial_condition.coeff3_label, 'FontColor', C.fg_text);
             app.handles.ic_coeff3_label.Layout.Row = 6; app.handles.ic_coeff3_label.Layout.Column = 1;
-            app.handles.ic_coeff3 = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
+            app.handles.ic_coeff3 = uieditfield(ic_layout, 'numeric', 'Value', D.ic_coeff3, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_coeff3.Layout.Row = 6; app.handles.ic_coeff3.Layout.Column = 2;
-            app.handles.ic_coeff4_label = uilabel(ic_layout, 'Text', 'Coeff 4', 'FontColor', C.fg_text);
+            app.handles.ic_coeff4_label = uilabel(ic_layout, 'Text', T.config.initial_condition.coeff4_label, 'FontColor', C.fg_text);
             app.handles.ic_coeff4_label.Layout.Row = 6; app.handles.ic_coeff4_label.Layout.Column = 3;
-            app.handles.ic_coeff4 = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
+            app.handles.ic_coeff4 = uieditfield(ic_layout, 'numeric', 'Value', D.ic_coeff4, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_coeff4.Layout.Row = 6; app.handles.ic_coeff4.Layout.Column = 4;
 
-            lbl = uilabel(ic_layout, 'Text', 'Center x0', 'FontColor', C.fg_text); lbl.Layout.Row = 7; lbl.Layout.Column = 1;
-            app.handles.ic_center_x = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
+            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.center_x_label, 'FontColor', C.fg_text); lbl.Layout.Row = 7; lbl.Layout.Column = 1;
+            app.handles.ic_center_x = uieditfield(ic_layout, 'numeric', 'Value', D.ic_center_x, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_center_x.Layout.Row = 7; app.handles.ic_center_x.Layout.Column = 2;
-            lbl = uilabel(ic_layout, 'Text', 'Center y0', 'FontColor', C.fg_text); lbl.Layout.Row = 7; lbl.Layout.Column = 3;
-            app.handles.ic_center_y = uieditfield(ic_layout, 'numeric', 'Value', 0.0, ...
+            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.center_y_label, 'FontColor', C.fg_text); lbl.Layout.Row = 7; lbl.Layout.Column = 3;
+            app.handles.ic_center_y = uieditfield(ic_layout, 'numeric', 'Value', D.ic_center_y, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_center_y.Layout.Row = 7; app.handles.ic_center_y.Layout.Column = 4;
 
-            app.handles.ic_status = uilabel(ic_layout, 'Text', 'IC ready', 'FontColor', C.fg_muted);
+            app.handles.ic_status = uilabel(ic_layout, 'Text', T.config.initial_condition.status_ready, 'FontColor', C.fg_muted);
             app.handles.ic_status.Layout.Row = 8;
             app.handles.ic_status.Layout.Column = [1 4];
 
             % IC preview
-            panel_preview = uipanel(right_layout, 'Title', 'IC Preview (t=0)', ...
+            panel_preview = uipanel(right_layout, 'Title', T.config.preview.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_preview.Layout.Row = app.layout_cfg.coords.config.panel_preview(1);
             panel_preview.Layout.Column = app.layout_cfg.coords.config.panel_preview(2);
@@ -1062,8 +1069,13 @@ classdef UIController < handle
         end
         function create_monitoring_tab(app)
             % 3x3 dashboard contract: 8 ranked plots + 1 numeric table tile.
+            % Data-flow reference for debugging:
+            % - Incoming runtime payloads are consumed in handle_live_monitor_progress().
+            % - Plot/numeric tile vectors are assembled in resolve_monitor_series().
+            % - This method only creates components and performs initial bind/setup.
             C = app.layout_cfg.colors;
             cfg = app.layout_cfg.monitor_tab;
+            T = app.layout_cfg.ui_text.monitor;
 
             parent = app.tabs.monitoring;
             parent.BackgroundColor = C.bg_dark;
@@ -1087,6 +1099,7 @@ classdef UIController < handle
             dash_grid.RowSpacing = cfg.left.row_spacing;
             dash_grid.ColumnSpacing = cfg.left.col_spacing;
 
+            % Metric title/xlabel/ylabel/rank are owned by cfg.monitor_tab.metric_catalog.
             app.handles.monitor_metric_catalog = app.build_monitor_metric_catalog();
             app.handles.monitor_ranked_selection = 1:8;
             app.handles.monitor_axes = gobjects(1, 8);
@@ -1105,24 +1118,11 @@ classdef UIController < handle
                     numeric_layout = uigridlayout(numeric_panel, [1 1]);
                     numeric_layout.Padding = [4 4 4 4];
                     app.handles.monitor_numeric_table = uitable(numeric_layout, ...
-                        'ColumnName', {'Metric Summary'}, ...
+                        'ColumnName', {T.numeric_tile.column_name}, ...
                         'ColumnEditable', false, ...
                         'ColumnWidth', {330}, ...
                         'RowName', [], ...
-                        'Data', {
-                            '[Session] Status: Waiting for run';
-                            '[Iteration] Runtime: -- s';
-                            '[Iteration] Iteration: -- iter';
-                            '[Iteration] Iterations/s: -- iter/s';
-                            '[Solution] Max |omega|: --';
-                            '[Convergence] Tolerance: --';
-                            '[Convergence] Metric: --';
-                            '[Convergence] Suggested coarse N: --';
-                            '[Computer] CPU usage: -- %';
-                            '[Computer] Memory: -- MB';
-                            '[System] Machine: --';
-                            '[System] Collectors: --'
-                        });
+                        'Data', T.numeric_tile.placeholder_rows(:));
                     continue;
                 end
 
@@ -1152,7 +1152,7 @@ classdef UIController < handle
             app.handles.exec_monitor_axes2 = app.handles.monitor_axes(2);
             app.handles.conv_monitor_axes = app.handles.monitor_axes(3);
 
-            sidebar = uipanel(root, 'Title', 'Terminal and Telemetry', ...
+            sidebar = uipanel(root, 'Title', T.sidebar.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             sidebar.Layout.Row = app.layout_cfg.coords.monitor.terminal_panel(1);
             sidebar.Layout.Column = app.layout_cfg.coords.monitor.terminal_panel(2);
@@ -1167,12 +1167,12 @@ classdef UIController < handle
             controls.ColumnWidth = {'1x', '1x'};
             controls.Padding = [0 0 0 0];
             controls.ColumnSpacing = 6;
-            uibutton(controls, 'Text', 'Save Log', ...
+            uibutton(controls, 'Text', T.sidebar.save_log_button, ...
                 'ButtonPushedFcn', @(~,~) app.save_terminal_log());
-            uibutton(controls, 'Text', 'Clear', ...
+            uibutton(controls, 'Text', T.sidebar.clear_button, ...
                 'ButtonPushedFcn', @(~,~) app.clear_terminal_view());
 
-            app.handles.run_status = uilabel(side_layout, 'Text', 'Idle', ...
+            app.handles.run_status = uilabel(side_layout, 'Text', T.sidebar.run_status_idle, ...
                 'FontColor', C.fg_muted, 'HorizontalAlignment', 'center', ...
                 'FontWeight', 'bold');
             app.handles.run_status.Layout.Row = 2;
@@ -1183,7 +1183,7 @@ classdef UIController < handle
             app.handles.terminal_output.Layout.Row = 3;
             app.handles.terminal_output.Layout.Column = 1;
 
-            source_panel = uipanel(side_layout, 'Title', 'Collector Probe and Runtime Signals', ...
+            source_panel = uipanel(side_layout, 'Title', T.sidebar.collector_panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             source_panel.Layout.Row = 4;
             source_panel.Layout.Column = 1;
@@ -1193,39 +1193,40 @@ classdef UIController < handle
             source_grid.ColumnWidth = {'1x', '1x', '1x', '1x'};
 
             app.handles.collector_probe_status = uilabel(source_grid, ...
-                'Text', 'Probe status: waiting for first scan', ...
+                'Text', T.sidebar.collector_probe_waiting, ...
                 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted, 'FontSize', 10);
             app.handles.collector_probe_status.Layout.Row = 1;
             app.handles.collector_probe_status.Layout.Column = [1 4];
 
-            lbl = uilabel(source_grid, 'Text', 'MATLAB', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
+            headers = T.sidebar.collector_headers;
+            lbl = uilabel(source_grid, 'Text', headers{1}, 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
             lbl.Layout.Row = 2; lbl.Layout.Column = 1;
-            lbl = uilabel(source_grid, 'Text', 'CPU-Z', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
+            lbl = uilabel(source_grid, 'Text', headers{2}, 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
             lbl.Layout.Row = 2; lbl.Layout.Column = 2;
-            lbl = uilabel(source_grid, 'Text', 'HWiNFO', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
+            lbl = uilabel(source_grid, 'Text', headers{3}, 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
             lbl.Layout.Row = 2; lbl.Layout.Column = 3;
-            lbl = uilabel(source_grid, 'Text', 'iCUE', 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
+            lbl = uilabel(source_grid, 'Text', headers{4}, 'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 10);
             lbl.Layout.Row = 2; lbl.Layout.Column = 4;
 
-            app.handles.metrics_source_matlab = uilabel(source_grid, 'Text', 'ready', 'HorizontalAlignment', 'center', 'FontColor', C.accent_green);
+            app.handles.metrics_source_matlab = uilabel(source_grid, 'Text', T.sidebar.collector_state_ready, 'HorizontalAlignment', 'center', 'FontColor', C.accent_green);
             app.handles.metrics_source_matlab.Layout.Row = 3; app.handles.metrics_source_matlab.Layout.Column = 1;
-            app.handles.metrics_source_cpuz = uilabel(source_grid, 'Text', 'off', 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
+            app.handles.metrics_source_cpuz = uilabel(source_grid, 'Text', T.sidebar.collector_state_off, 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
             app.handles.metrics_source_cpuz.Layout.Row = 3; app.handles.metrics_source_cpuz.Layout.Column = 2;
-            app.handles.metrics_source_hwinfo = uilabel(source_grid, 'Text', 'off', 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
+            app.handles.metrics_source_hwinfo = uilabel(source_grid, 'Text', T.sidebar.collector_state_off, 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
             app.handles.metrics_source_hwinfo.Layout.Row = 3; app.handles.metrics_source_hwinfo.Layout.Column = 3;
-            app.handles.metrics_source_icue = uilabel(source_grid, 'Text', 'off', 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
+            app.handles.metrics_source_icue = uilabel(source_grid, 'Text', T.sidebar.collector_state_off, 'HorizontalAlignment', 'center', 'FontColor', C.fg_muted);
             app.handles.metrics_source_icue.Layout.Row = 3; app.handles.metrics_source_icue.Layout.Column = 4;
 
-            app.handles.btn_retry_all_collectors = uibutton(source_grid, 'Text', 'Probe All', ...
+            app.handles.btn_retry_all_collectors = uibutton(source_grid, 'Text', T.sidebar.retry_all_button, ...
                 'ButtonPushedFcn', @(~,~) app.retry_collector_connection('all'));
             app.handles.btn_retry_all_collectors.Layout.Row = 4; app.handles.btn_retry_all_collectors.Layout.Column = 1;
-            app.handles.btn_retry_cpuz = uibutton(source_grid, 'Text', 'Retry CPU-Z', ...
+            app.handles.btn_retry_cpuz = uibutton(source_grid, 'Text', T.sidebar.retry_cpuz_button, ...
                 'ButtonPushedFcn', @(~,~) app.retry_collector_connection('cpuz'));
             app.handles.btn_retry_cpuz.Layout.Row = 4; app.handles.btn_retry_cpuz.Layout.Column = 2;
-            app.handles.btn_retry_hwinfo = uibutton(source_grid, 'Text', 'Retry HWiNFO', ...
+            app.handles.btn_retry_hwinfo = uibutton(source_grid, 'Text', T.sidebar.retry_hwinfo_button, ...
                 'ButtonPushedFcn', @(~,~) app.retry_collector_connection('hwinfo'));
             app.handles.btn_retry_hwinfo.Layout.Row = 4; app.handles.btn_retry_hwinfo.Layout.Column = 3;
-            app.handles.btn_retry_icue = uibutton(source_grid, 'Text', 'Retry iCUE', ...
+            app.handles.btn_retry_icue = uibutton(source_grid, 'Text', T.sidebar.retry_icue_button, ...
                 'ButtonPushedFcn', @(~,~) app.retry_collector_connection('icue'));
             app.handles.btn_retry_icue.Layout.Row = 4; app.handles.btn_retry_icue.Layout.Column = 4;
 
@@ -1240,6 +1241,7 @@ classdef UIController < handle
             % Results and figures tab
             C = app.layout_cfg.colors;
             cfg = app.layout_cfg.results_tab;
+            T = app.layout_cfg.ui_text.results;
 
             parent = app.tabs.results;
             parent.BackgroundColor = C.bg_dark;
@@ -1249,7 +1251,7 @@ classdef UIController < handle
             root.Padding = cfg.root.padding;
             root.RowSpacing = cfg.root.row_spacing;
 
-            panel_fig = uipanel(root, 'Title', 'Figures', ...
+            panel_fig = uipanel(root, 'Title', app.layout_cfg.text.results_panels.figures, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_fig.Layout.Row = app.layout_cfg.coords.results.panel_fig(1);
             panel_fig.Layout.Column = app.layout_cfg.coords.results.panel_fig(2);
@@ -1263,32 +1265,32 @@ classdef UIController < handle
             control_row.Padding = cfg.controls.padding;
             control_row.ColumnSpacing = cfg.controls.col_spacing;
 
-            uilabel(control_row, 'Text', 'Figure', 'FontColor', C.fg_text);
+            uilabel(control_row, 'Text', T.figure_label, 'FontColor', C.fg_text);
             app.handles.figure_selector = uidropdown(control_row, ...
-                'Items', {'No figures yet'}, ...
-                'Value', 'No figures yet', ...
+                'Items', {T.figure_none}, ...
+                'Value', T.figure_none, ...
                 'ValueChangedFcn', @(~,~) app.on_figure_selected());
-            uibutton(control_row, 'Text', 'Save Current', ...
+            uibutton(control_row, 'Text', T.save_current_button, ...
                 'ButtonPushedFcn', @(~,~) app.save_current_figure());
-            uibutton(control_row, 'Text', 'Export All', ...
+            uibutton(control_row, 'Text', T.export_all_button, ...
                 'ButtonPushedFcn', @(~,~) app.export_all_figures());
-            uibutton(control_row, 'Text', 'Refresh', ...
+            uibutton(control_row, 'Text', T.refresh_button, ...
                 'ButtonPushedFcn', @(~,~) app.refresh_figures());
 
             app.handles.figure_tabs = uitabgroup(fig_layout);
-            tab = uitab(app.handles.figure_tabs, 'Title', 'Preview');
+            tab = uitab(app.handles.figure_tabs, 'Title', T.preview_tab_title);
             app.handles.figure_axes = uiaxes(tab);
             app.style_axes(app.handles.figure_axes);
-            title(app.handles.figure_axes, 'Figures will appear here during simulation', 'Color', C.fg_text);
+            title(app.handles.figure_axes, T.preview_axes_title, 'Color', C.fg_text);
 
-            panel_metrics = uipanel(root, 'Title', 'Metrics and History', ...
+            panel_metrics = uipanel(root, 'Title', T.metrics_panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_metrics.Layout.Row = app.layout_cfg.coords.results.panel_metrics(1);
             panel_metrics.Layout.Column = app.layout_cfg.coords.results.panel_metrics(2);
             metrics_layout = uigridlayout(panel_metrics, [1 1]);
             metrics_layout.Padding = [6 6 6 6];
             app.handles.metrics_text = uitextarea(metrics_layout, ...
-                'Value', {'Run a simulation to populate metrics and history.'}, ...
+                'Value', {T.metrics_placeholder}, ...
                 'Editable', 'off', ...
                 'BackgroundColor', C.bg_input, ...
                 'FontColor', C.fg_text);
@@ -1948,6 +1950,7 @@ classdef UIController < handle
             if nargin < 2 || isempty(cfg)
                 cfg = app.config;
             end
+            runtime_text = app.layout_cfg.ui_text.monitor.runtime;
             app.handles.monitor_live_state = struct( ...
                 't', zeros(1, 0), ...
                 'iters', zeros(1, 0), ...
@@ -1966,7 +1969,7 @@ classdef UIController < handle
                 'total_iterations', NaN, ...
                 'update_counter', 0, ...
                 'last_refresh_tic', tic, ...
-                'status_text', sprintf('Running %s...', app.humanize_token(cfg.mode)));
+                'status_text', sprintf(runtime_text.running_mode_pattern, app.humanize_token(cfg.mode)));
         end
 
         function reset_live_monitor_history_for_run(app, cfg)
@@ -1986,6 +1989,10 @@ classdef UIController < handle
 
         function handle_live_monitor_progress(app, payload, cfg)
             % Consume runtime progress payloads emitted by mode loops.
+            % Monitor data source chain:
+            %   Mode loops emit `payload` structs -> this method normalizes fields
+            %   -> app.handles.monitor_live_state ring buffers -> refresh_monitor_dashboard().
+            runtime_text = app.layout_cfg.ui_text.monitor.runtime;
             if nargin < 3 || isempty(cfg)
                 cfg = app.config;
             end
@@ -2093,9 +2100,9 @@ classdef UIController < handle
 
             if isfinite(total_iter) && total_iter > 0
                 progress_pct = 100 * min(max(iter / total_iter, 0), 1);
-                state.status_text = sprintf('Running %d/%d (%.1f%%%%)', round(iter), round(total_iter), progress_pct);
+                state.status_text = sprintf(runtime_text.running_progress_pattern, round(iter), round(total_iter), progress_pct);
             else
-                state.status_text = sprintf('Running iteration %d', round(iter));
+                state.status_text = sprintf(runtime_text.running_iteration_pattern, round(iter));
             end
 
             state = app.trim_live_monitor_history(state, update_policy.max_history_points);
@@ -2251,7 +2258,7 @@ classdef UIController < handle
                 errors{end+1} = 'Ny must be >= 32 points';
             end
             if app.handles.Nx.Value > 1024 || app.handles.Ny.Value > 1024
-                errors{end+1} = 'Grid size should not exceed 1024×1024 (memory limits)';
+                errors{end+1} = 'Grid size should not exceed 1024Ã—1024 (memory limits)';
             end
             
             % Time integration validation
@@ -2283,16 +2290,16 @@ classdef UIController < handle
             end
             
             if isempty(errors)
-                msg = sprintf('All parameters valid!\n\nGrid: %d × %d\ndt = %.4f, T = %.2f\nν = %.4f', ...
+                msg = sprintf('All parameters valid!\n\nGrid: %d Ã— %d\ndt = %.4f, T = %.2f\nÎ½ = %.4f', ...
                     round(app.handles.Nx.Value), round(app.handles.Ny.Value), ...
                     app.handles.dt.Value, app.handles.t_final.Value, app.handles.nu.Value);
                 app.show_alert_latex(msg, 'Validation Passed', 'Icon', 'success');
-                app.append_to_terminal('✓ All parameters validated successfully', 'success');
+                app.append_to_terminal('âœ“ All parameters validated successfully', 'success');
             else
-                msg = sprintf('Found %d validation error(s):\n\n• %s', ...
-                    length(errors), strjoin(errors, '\n• '));
+                msg = sprintf('Found %d validation error(s):\n\nâ€¢ %s', ...
+                    length(errors), strjoin(errors, '\nâ€¢ '));
                 app.show_alert_latex(msg, 'Validation Errors', 'Icon', 'error');
-                app.append_to_terminal(sprintf('✗ Validation errors: %s', strjoin(errors, ', ')), 'error');
+                app.append_to_terminal(sprintf('âœ— Validation errors: %s', strjoin(errors, ', ')), 'error');
             end
 
             app.update_checklist();
@@ -2308,6 +2315,8 @@ classdef UIController < handle
         end
 
         function on_method_changed(app)
+            T = app.layout_cfg.ui_text;
+            D = app.layout_cfg.ui_defaults;
             method_val = app.handles.method_dropdown.Value;
             is_fd = strcmp(method_val, 'Finite Difference');
             bathy_on = app.handles.bathy_enable.Value;
@@ -2315,11 +2324,11 @@ classdef UIController < handle
             
             switch method_val
                 case 'Finite Difference'
-                    app.handles.boundary_label.Text = 'Periodic (x,y)';
+                    app.handles.boundary_label.Text = T.config.method.boundary_periodic;
                 case 'Finite Volume'
-                    app.handles.boundary_label.Text = 'Periodic (x,y)';
+                    app.handles.boundary_label.Text = T.config.method.boundary_periodic;
                 case 'Spectral'
-                    app.handles.boundary_label.Text = 'Periodic (x,y)';
+                    app.handles.boundary_label.Text = T.config.method.boundary_periodic;
             end
 
             app.set_optional_handle_enable('bathy_enable', app.on_off(is_fd));
@@ -2333,22 +2342,22 @@ classdef UIController < handle
                 app.handles.bathy_enable.Value = false;
                 app.handles.motion_enable.Value = false;
                 app.handles.bathy_file.Value = '';
-                app.handles.motion_model.Value = 'none';
+                app.handles.motion_model.Value = D.motion_model;
                 app.handles.motion_amplitude.Value = 0.0;
                 if app.has_valid_handle('physics_status')
-                    app.handles.physics_status.Text = 'Bathymetry/motion disabled for non-FD method';
+                    app.handles.physics_status.Text = T.config.method.physics_status_non_fd;
                     app.handles.physics_status.FontColor = app.layout_cfg.colors.accent_yellow;
                 end
             else
                 if bathy_on && motion_on
-                    app.handles.boundary_label.Text = 'Periodic (x,y) + Bathymetry + Motion';
+                    app.handles.boundary_label.Text = T.config.method.boundary_with_bathy_motion;
                 elseif bathy_on
-                    app.handles.boundary_label.Text = 'Periodic (x,y) + Bathymetry';
+                    app.handles.boundary_label.Text = T.config.method.boundary_with_bathy;
                 elseif motion_on
-                    app.handles.boundary_label.Text = 'Periodic (x,y) + Motion';
+                    app.handles.boundary_label.Text = T.config.method.boundary_with_motion;
                 end
                 if app.has_valid_handle('physics_status')
-                    app.handles.physics_status.Text = 'Bathymetry and motion configured independently';
+                    app.handles.physics_status.Text = T.config.method.physics_status_ready;
                     app.handles.physics_status.FontColor = app.layout_cfg.colors.fg_muted;
                 end
             end
@@ -2379,6 +2388,7 @@ classdef UIController < handle
         end
 
         function update_convergence_control_state(app)
+            T = app.layout_cfg.ui_text;
             mode_val = app.handles.mode_dropdown.Value;
             conv_on = strcmp(mode_val, 'Convergence');
             agent_on = conv_on && app.handles.conv_agent_enabled.Value;
@@ -2393,13 +2403,13 @@ classdef UIController < handle
 
             if app.has_valid_handle('conv_agent_status')
                 if ~conv_on
-                    app.handles.conv_agent_status.Text = 'Convergence mode inactive';
+                    app.handles.conv_agent_status.Text = T.config.convergence.agent_status_inactive;
                     app.handles.conv_agent_status.FontColor = app.layout_cfg.colors.fg_muted;
                 elseif agent_on
-                    app.handles.conv_agent_status.Text = 'Agent mode: manual fields locked';
+                    app.handles.conv_agent_status.Text = T.config.convergence.agent_status_locked;
                     app.handles.conv_agent_status.FontColor = app.layout_cfg.colors.accent_yellow;
                 else
-                    app.handles.conv_agent_status.Text = 'Manual mode: controls editable';
+                    app.handles.conv_agent_status.Text = T.config.convergence.agent_status_manual;
                     app.handles.conv_agent_status.FontColor = app.layout_cfg.colors.accent_green;
                 end
             end
@@ -2407,6 +2417,7 @@ classdef UIController < handle
 
         function update_checklist(app)
             % Update readiness checklist lights
+            T = app.layout_cfg.ui_text;
             grid_ok = app.handles.Nx.Value >= 2 && app.handles.Ny.Value >= 2;
             domain_ok = app.handles.Lx.Value > 0 && app.handles.Ly.Value > 0;
             time_ok = app.handles.dt.Value > 0 && app.handles.t_final.Value > 0;
@@ -2473,10 +2484,10 @@ classdef UIController < handle
             end
 
             if app.has_valid_handle('collector_status')
-                collector_msg = sprintf('Collector readiness: %d/%d external connected', ...
+                collector_msg = sprintf(T.config.sustainability.collector_status_template, ...
                     collector_probe.connected_external_count, collector_probe.enabled_external_count);
                 if app.handles.collector_strict.Value && ~collectors_ok
-                    collector_msg = "Collector readiness: strict mode requires at least one external collector";
+                    collector_msg = T.config.sustainability.collector_status_strict;
                     app.handles.collector_status.FontColor = app.layout_cfg.colors.accent_yellow;
                 else
                     app.handles.collector_status.FontColor = app.layout_cfg.colors.fg_muted;
@@ -2524,13 +2535,14 @@ classdef UIController < handle
 
         function retry_collector_connection(app, source)
             % Re-probe one or all external collectors and refresh status lights.
+            T = app.layout_cfg.ui_text.monitor;
             if nargin < 2 || isempty(source)
                 source = 'all';
             end
             probe = app.refresh_collector_probe_status(source);
             if app.has_valid_handle('collector_probe_status')
                 app.handles.collector_probe_status.Text = sprintf( ...
-                    'Probe @ %s: %d/%d external connected', ...
+                    T.sidebar.collector_probe_template, ...
                     char(datetime('now', 'Format', 'HH:mm:ss')), ...
                     probe.connected_external_count, probe.enabled_external_count);
             end
@@ -2539,6 +2551,7 @@ classdef UIController < handle
 
         function probe = refresh_collector_probe_status(app, source)
             % Update collector connection indicators from lightweight installation probes.
+            T = app.layout_cfg.ui_text.monitor;
             if nargin < 2 || isempty(source)
                 source = 'all';
             end
@@ -2568,7 +2581,7 @@ classdef UIController < handle
             app.handles.collector_probe_state = state;
 
             if app.has_valid_handle('metrics_source_matlab')
-                app.handles.metrics_source_matlab.Text = 'connected';
+                app.handles.metrics_source_matlab.Text = T.sidebar.collector_state_connected;
                 app.handles.metrics_source_matlab.FontColor = app.layout_cfg.colors.accent_green;
             end
             app.set_collector_light('metrics_source_cpuz', enabled.cpuz, state.cpuz);
@@ -2586,7 +2599,7 @@ classdef UIController < handle
 
             if app.has_valid_handle('collector_probe_status')
                 app.handles.collector_probe_status.Text = sprintf( ...
-                    'Probe @ %s: %d/%d external connected', ...
+                    T.sidebar.collector_probe_template, ...
                     char(datetime('now', 'Format', 'HH:mm:ss')), ...
                     connected_external_count, enabled_external_count);
                 if connected_external_count == enabled_external_count && enabled_external_count > 0
@@ -2648,19 +2661,20 @@ classdef UIController < handle
         end
 
         function set_collector_light(app, handle_name, enabled, connected)
+            T = app.layout_cfg.ui_text.monitor;
             if ~app.has_valid_handle(handle_name)
                 return;
             end
             if ~enabled
-                app.handles.(handle_name).Text = 'off';
+                app.handles.(handle_name).Text = T.sidebar.collector_state_off;
                 app.handles.(handle_name).FontColor = app.layout_cfg.colors.fg_muted;
                 return;
             end
             if connected
-                app.handles.(handle_name).Text = 'connected';
+                app.handles.(handle_name).Text = T.sidebar.collector_state_connected;
                 app.handles.(handle_name).FontColor = app.layout_cfg.colors.accent_green;
             else
-                app.handles.(handle_name).Text = 'not found';
+                app.handles.(handle_name).Text = T.sidebar.collector_state_missing;
                 app.handles.(handle_name).FontColor = app.layout_cfg.colors.accent_yellow;
             end
         end
@@ -2713,7 +2727,7 @@ classdef UIController < handle
                     app.handles.ic_coeff2.Value = 0.2;
                     app.handles.ic_coeff3.Value = 0.0;
                     app.handles.ic_coeff4.Value = 0.0;
-                    app.append_to_terminal('✓ Loaded: Stretched Gaussian preset');
+                    app.append_to_terminal('âœ“ Loaded: Stretched Gaussian preset');
                     
                 case 'lamb_oseen'
                     app.handles.ic_dropdown.Value = 'Lamb-Oseen';
@@ -2721,7 +2735,7 @@ classdef UIController < handle
                     app.handles.ic_coeff2.Value = 1.0;   % t0
                     app.handles.ic_coeff3.Value = 0.001; % nu
                     app.handles.ic_coeff4.Value = 0.0;
-                    app.append_to_terminal('✓ Loaded: Lamb-Oseen preset');
+                    app.append_to_terminal('âœ“ Loaded: Lamb-Oseen preset');
                     
                 case 'rankine'
                     app.handles.ic_dropdown.Value = 'Rankine';
@@ -2729,7 +2743,7 @@ classdef UIController < handle
                     app.handles.ic_coeff2.Value = 1.0;   % core radius
                     app.handles.ic_coeff3.Value = 0.0;
                     app.handles.ic_coeff4.Value = 0.0;
-                    app.append_to_terminal('✓ Loaded: Rankine preset');
+                    app.append_to_terminal('âœ“ Loaded: Rankine preset');
                     
                 case 'lamb_dipole'
                     app.handles.ic_dropdown.Value = 'Lamb Dipole';
@@ -2737,7 +2751,7 @@ classdef UIController < handle
                     app.handles.ic_coeff2.Value = 1.0;   % a
                     app.handles.ic_coeff3.Value = 0.0;
                     app.handles.ic_coeff4.Value = 0.0;
-                    app.append_to_terminal('✓ Loaded: Lamb Dipole preset');
+                    app.append_to_terminal('âœ“ Loaded: Lamb Dipole preset');
             end
             app.update_ic_preview();
         end
@@ -2869,7 +2883,7 @@ classdef UIController < handle
                 save(filepath, 'config_export');
             end
             
-            app.append_to_terminal(sprintf('✓ Configuration exported to: %s', file));
+            app.append_to_terminal(sprintf('âœ“ Configuration exported to: %s', file));
         end
         
         function import_configuration(app)
@@ -3077,13 +3091,15 @@ classdef UIController < handle
                 app.config.defaults_source = cfg.defaults_source;
             end
             if app.has_valid_handle('defaults_source_info')
-                defaults_summary = 'Defaults source: create_default_parameters.m -> Scripts/Editable/Parameters.m + Scripts/Editable/Settings.m';
+                defaults_summary = sprintf(app.layout_cfg.ui_text.config.readiness.defaults_summary_template, ...
+                    app.layout_cfg.defaults_source.editable_parameters, ...
+                    app.layout_cfg.defaults_source.editable_settings);
                 if isfield(app.config, 'defaults_source') && isstruct(app.config.defaults_source) && ...
                         isfield(app.config.defaults_source, 'summary')
                     defaults_summary = char(string(app.config.defaults_source.summary));
                 end
                 app.handles.defaults_source_info.Text = sprintf( ...
-                    'Legend: green = ready, red = needs input\n%s', defaults_summary);
+                    app.layout_cfg.ui_text.config.readiness.legend_template, defaults_summary);
             end
 
             app.on_method_changed();
@@ -3095,13 +3111,14 @@ classdef UIController < handle
         end
 
         function save_terminal_log(app)
+            A = app.layout_cfg.ui_text.alerts;
             if isempty(app.terminal_log)
-                uialert(app.fig, 'No terminal output to save', 'Empty Log', 'icon', 'warning');
+                uialert(app.fig, A.empty_log_body, A.empty_log_title, 'icon', 'warning');
                 return;
             end
             
             timestamp = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
-            [file, path] = uiputfile('*.log', 'Save Terminal Log', sprintf('sim_log_%s.log', timestamp));
+            [file, path] = uiputfile('*.log', A.save_terminal_log_dialog_title, sprintf('sim_log_%s.log', timestamp));
             if isequal(file, 0)
                 return;
             end
@@ -3113,16 +3130,17 @@ classdef UIController < handle
             end
             fclose(fid);
             
-            app.append_to_terminal(sprintf('✓ Terminal log saved (%d lines) to: %s', length(app.terminal_log), file));
+            app.append_to_terminal(sprintf('âœ“ Terminal log saved (%d lines) to: %s', length(app.terminal_log), file));
         end
         
         function save_current_figure(app)
+            A = app.layout_cfg.ui_text.alerts;
             if isempty(app.figures_list)
-                uialert(app.fig, 'No figures to save', 'No Figures', 'icon', 'warning');
+                uialert(app.fig, A.no_figures_body, A.no_figures_title, 'icon', 'warning');
                 return;
             end
             
-            [file, path] = uiputfile({'*.png';'*.pdf';'*.fig'}, 'Save Figure As', 'figure.png');
+            [file, path] = uiputfile({'*.png';'*.pdf';'*.fig'}, A.save_figure_dialog_title, 'figure.png');
             if isequal(file, 0)
                 return;
             end
@@ -3135,19 +3153,20 @@ classdef UIController < handle
                 end
                 
                 saveas(app.figures_list(current_idx), fullfile(path, file));
-                app.append_to_terminal(sprintf('✓ Figure saved to: %s', file));
+                app.append_to_terminal(sprintf('âœ“ Figure saved to: %s', file));
             catch ME
-                app.append_to_terminal(sprintf('✗ Error saving figure: %s', ME.message));
+                app.append_to_terminal(sprintf('âœ— Error saving figure: %s', ME.message));
             end
         end
         
         function export_all_figures(app)
+            A = app.layout_cfg.ui_text.alerts;
             if isempty(app.figures_list)
-                uialert(app.fig, 'No figures to export', 'No Figures', 'icon', 'warning');
+                uialert(app.fig, A.no_figures_export_body, A.no_figures_title, 'icon', 'warning');
                 return;
             end
             
-            path = uigetdir(pwd, 'Select Export Directory for All Figures');
+            path = uigetdir(pwd, A.export_directory_dialog_title);
             if isequal(path, 0)
                 return;
             end
@@ -3157,9 +3176,9 @@ classdef UIController < handle
                     filename = sprintf('figure_%03d.png', i);
                     saveas(app.figures_list(i), fullfile(path, filename));
                 end
-                app.append_to_terminal(sprintf('✓ Exported %d figures to: %s', length(app.figures_list), path));
+                app.append_to_terminal(sprintf('âœ“ Exported %d figures to: %s', length(app.figures_list), path));
             catch ME
-                app.append_to_terminal(sprintf('✗ Error exporting figures: %s', ME.message));
+                app.append_to_terminal(sprintf('âœ— Error exporting figures: %s', ME.message));
             end
         end
         
@@ -3169,12 +3188,17 @@ classdef UIController < handle
             %   message: String to display
             %   msg_type: 'success', 'warning', 'error', 'info', 'debug' (optional)
             %             If omitted, auto-detects from message content
+            %
+            % Terminal flow:
+            %   UI callbacks push explicit lines through this method.
+            %   Diary-captured command window lines are merged by update_terminal_from_diary().
+            %   Both streams render in the monitoring tab terminal panel.
             
             if nargin < 3
                 % Auto-detect message type from content
-                if contains(message, {'✓', 'Success', 'Updated', 'Complete'}, 'IgnoreCase', true)
+                if contains(message, {'âœ“', 'Success', 'Updated', 'Complete'}, 'IgnoreCase', true)
                     msg_type = 'success';
-                elseif contains(message, {'✗', 'Error', 'Failed', 'Exception'}, 'IgnoreCase', true)
+                elseif contains(message, {'âœ—', 'Error', 'Failed', 'Exception'}, 'IgnoreCase', true)
                     msg_type = 'error';
                 elseif contains(message, {'Warning', 'Caution'}, 'IgnoreCase', true)
                     msg_type = 'warning';
@@ -3224,7 +3248,10 @@ classdef UIController < handle
         end
 
         function start_terminal_capture(app)
-            % Capture MATLAB command window output in the UI terminal panel
+            % Capture MATLAB command window output in the UI terminal panel.
+            % Data path:
+            %   MATLAB diary file -> update_terminal_from_diary() timer -> app.terminal_log
+            %   -> render_terminal_html() -> uihtml.HTMLSource in monitoring sidebar.
             try
                 app.diary_file = fullfile(tempdir, 'ui_controller_terminal.log');
                 app.diary_last_size = 0;
@@ -3244,7 +3271,8 @@ classdef UIController < handle
         end
 
         function update_terminal_from_diary(app)
-            % Refresh terminal panel from MATLAB diary file
+            % Refresh terminal panel from MATLAB diary file.
+            % This keeps the embedded terminal synchronized with command-window output.
             if isempty(app.diary_file) || ~isfile(app.diary_file)
                 return;
             end
@@ -3297,6 +3325,7 @@ classdef UIController < handle
         end
         
         function add_figure(app, fig, name)
+            T = app.layout_cfg.ui_text.results;
             % Add figure to figures list
             if nargin < 3
                 name = sprintf('Figure %d', length(app.figures_list) + 1);
@@ -3313,11 +3342,11 @@ classdef UIController < handle
                 % Use grid layout for label instead of Position
                 tab_grid = uigridlayout(tab, [1 1]);
                 tab_grid.Padding = [10 10 10 10];
-                uilabel(tab_grid, 'Text', sprintf('%s stored. Select in dropdown to preview.', name));
+                uilabel(tab_grid, 'Text', sprintf('%s stored. Select in %s to preview.', name, lower(T.figure_label)));
             end
 
             app.show_figure(length(app.figures_list));
-            app.append_to_terminal(sprintf('✓ Added figure: %s', name));
+            app.append_to_terminal(sprintf('âœ“ Added figure: %s', name));
         end
         
         function on_figure_selected(app)
@@ -3332,9 +3361,10 @@ classdef UIController < handle
         end
 
         function refresh_figures(app)
+            T = app.layout_cfg.ui_text.results;
             if isempty(app.figures_list)
-                app.handles.figure_selector.Items = {'No figures yet'};
-                app.handles.figure_selector.Value = 'No figures yet';
+                app.handles.figure_selector.Items = {T.figure_none};
+                app.handles.figure_selector.Value = T.figure_none;
                 return;
             end
             fig_names = arrayfun(@(i) sprintf('Figure %d', i), 1:length(app.figures_list), 'UniformOutput', false);
@@ -3874,15 +3904,15 @@ classdef UIController < handle
             eq_plain = regexprep(eq_plain, '\\left|\\right', '');
             eq_plain = regexprep(eq_plain, '\\mathrm\{([^{}]+)\}', '$1');
             eq_plain = regexprep(eq_plain, '\\frac\{([^{}]+)\}\{([^{}]+)\}', '($1)/($2)');
-            eq_plain = strrep(eq_plain, '\omega', 'ω');
-            eq_plain = strrep(eq_plain, '\Gamma', 'Γ');
-            eq_plain = strrep(eq_plain, '\nu', 'ν');
-            eq_plain = strrep(eq_plain, '\theta', 'θ');
-            eq_plain = strrep(eq_plain, '\sigma', 'σ');
-            eq_plain = strrep(eq_plain, '\alpha', 'α');
-            eq_plain = strrep(eq_plain, '\pi', 'π');
-            eq_plain = strrep(eq_plain, '\sum', 'Σ');
-            eq_plain = strrep(eq_plain, '\cdot', '·');
+            eq_plain = strrep(eq_plain, '\omega', 'Ï‰');
+            eq_plain = strrep(eq_plain, '\Gamma', 'Î“');
+            eq_plain = strrep(eq_plain, '\nu', 'Î½');
+            eq_plain = strrep(eq_plain, '\theta', 'Î¸');
+            eq_plain = strrep(eq_plain, '\sigma', 'Ïƒ');
+            eq_plain = strrep(eq_plain, '\alpha', 'Î±');
+            eq_plain = strrep(eq_plain, '\pi', 'Ï€');
+            eq_plain = strrep(eq_plain, '\sum', 'Î£');
+            eq_plain = strrep(eq_plain, '\cdot', 'Â·');
             eq_plain = strrep(eq_plain, '\exp', 'exp');
             eq_plain = strrep(eq_plain, '\begin{cases}', '');
             eq_plain = strrep(eq_plain, '\end{cases}', '');
@@ -3981,31 +4011,31 @@ classdef UIController < handle
 
         function run_convergence_test(app)
             % Run a quick convergence test
-            app.append_to_terminal('🔧 Convergence test would run here (integrate with Tsunami_Vorticity_Emulator)');
+            app.append_to_terminal('ðŸ”§ Convergence test would run here (integrate with Tsunami_Vorticity_Emulator)');
             uialert(app.fig, 'Convergence test integration pending', 'Info', 'icon', 'info');
         end
         
         function view_convergence_results(app)
             % View previous convergence results
-            app.append_to_terminal('📊 Loading previous convergence results...');
+            app.append_to_terminal('ðŸ“Š Loading previous convergence results...');
             uialert(app.fig, 'Convergence results viewer pending', 'Info', 'icon', 'info');
         end
         
         function export_convergence_data(app)
             % Export convergence data to CSV
-            app.append_to_terminal('💾 Exporting convergence data...');
+            app.append_to_terminal('ðŸ’¾ Exporting convergence data...');
             uialert(app.fig, 'Convergence data export pending', 'Info', 'icon', 'info');
         end
         
         function view_energy_dashboard(app)
             % View energy monitoring dashboard
-            app.append_to_terminal('🔌 Energy dashboard would launch here');
+            app.append_to_terminal('ðŸ”Œ Energy dashboard would launch here');
             uialert(app.fig, 'Energy dashboard integration pending', 'Info', 'icon', 'info');
         end
         
         function export_energy_data(app)
             % Export energy monitoring data
-            app.append_to_terminal('💾 Exporting energy data...');
+            app.append_to_terminal('ðŸ’¾ Exporting energy data...');
             uialert(app.fig, 'Energy data export pending', 'Info', 'icon', 'info');
         end
         
@@ -4108,6 +4138,7 @@ classdef UIController < handle
         function create_menu_bar(app)
             % Create menu bar with Developer Mode toggle
             % Menu bar occupies row 1 of root_grid
+            T = app.layout_cfg.ui_text;
             
             menu_panel = uipanel(app.root_grid, 'BorderType', 'none', ...
                 'BackgroundColor', app.layout_cfg.colors.bg_panel);
@@ -4120,7 +4151,7 @@ classdef UIController < handle
             menu_grid.ColumnSpacing = 10;
             
             % Title label
-            uilabel(menu_grid, 'Text', '🌊 Tsunami Vortex Simulation UI', ...
+            uilabel(menu_grid, 'Text', T.window.menu_title, ...
                 'FontSize', 14, 'FontWeight', 'bold', ...
                 'FontColor', app.layout_cfg.colors.fg_text);
             
@@ -4129,7 +4160,7 @@ classdef UIController < handle
             
             % Developer Mode toggle
             app.handles.dev_mode_toggle = uibutton(menu_grid, 'push', ...
-                'Text', '🔧 Developer Mode: OFF', ...
+                'Text', T.menu.dev_mode_off, ...
                 'FontSize', 11, ...
                 'BackgroundColor', [0.3 0.3 0.3], ...
                 'FontColor', [0.9 0.9 0.9], ...
@@ -4138,26 +4169,28 @@ classdef UIController < handle
         
         function toggle_developer_mode(app)
             % Toggle Developer Mode on/off
+            T = app.layout_cfg.ui_text;
             app.dev_mode_enabled = ~app.dev_mode_enabled;
             
             if app.dev_mode_enabled
-                app.handles.dev_mode_toggle.Text = '🔧 Developer Mode: ON';
+                app.handles.dev_mode_toggle.Text = T.menu.dev_mode_on;
                 app.handles.dev_mode_toggle.BackgroundColor = app.layout_cfg.colors.accent_green;
                 app.handles.dev_mode_toggle.FontColor = [0 0 0];
                 app.show_developer_inspector();
-                app.append_to_terminal('Developer Mode ENABLED. Click any component to inspect.', 'info');
+                app.append_to_terminal(T.menu.dev_enabled_log, 'info');
             else
-                app.handles.dev_mode_toggle.Text = '🔧 Developer Mode: OFF';
+                app.handles.dev_mode_toggle.Text = T.menu.dev_mode_off;
                 app.handles.dev_mode_toggle.BackgroundColor = [0.3 0.3 0.3];
                 app.handles.dev_mode_toggle.FontColor = [0.9 0.9 0.9];
                 app.hide_developer_inspector();
-                app.append_to_terminal('Developer Mode DISABLED.', 'info');
+                app.append_to_terminal(T.menu.dev_disabled_log, 'info');
             end
         end
         
         function show_developer_inspector(app)
             % Create or show Developer Mode inspector panel
             % Inspector appears as floating window with component details
+            DTXT = app.layout_cfg.ui_text.developer;
             
             if isfield(app.handles, 'dev_inspector_fig') && ishghandle(app.handles.dev_inspector_fig)
                 app.handles.dev_inspector_fig.Visible = 'on';
@@ -4165,7 +4198,7 @@ classdef UIController < handle
             end
             
             % Create inspector figure
-            app.handles.dev_inspector_fig = uifigure('Name', 'UI Developer Inspector', ...
+            app.handles.dev_inspector_fig = uifigure('Name', DTXT.inspector_window_title, ...
                 'Position', [100 100 app.layout_cfg.dev_mode.inspector_width 500], ...
                 'Color', app.layout_cfg.colors.bg_dark);
             
@@ -4175,17 +4208,17 @@ classdef UIController < handle
             grid.RowSpacing = 8;
             
             % Title
-            uilabel(grid, 'Text', '🔍 Component Inspector', ...
+            uilabel(grid, 'Text', DTXT.inspector_title, ...
                 'FontSize', 14, 'FontWeight', 'bold', ...
                 'FontColor', app.layout_cfg.colors.fg_text);
             
             % Instructions
-            uilabel(grid, 'Text', 'Click any UI component to inspect', ...
+            uilabel(grid, 'Text', DTXT.inspector_instructions, ...
                 'FontSize', 10, 'FontColor', app.layout_cfg.colors.accent_gray, ...
                 'WordWrap', 'on');
             
             % Component info panel
-            info_panel = uipanel(grid, 'Title', 'Selected Component', ...
+            info_panel = uipanel(grid, 'Title', DTXT.selected_component_panel, ...
                 'FontWeight', 'bold', 'BackgroundColor', app.layout_cfg.colors.bg_panel);
             info_grid = uigridlayout(info_panel, [10 2]);
             info_grid.ColumnWidth = {'fit', '1x'};
@@ -4194,60 +4227,60 @@ classdef UIController < handle
             info_grid.RowSpacing = 4;
             
             % Labels and values
-            uilabel(info_grid, 'Text', 'Type:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_type = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            uilabel(info_grid, 'Text', DTXT.type_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_type = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7]);
             
-            uilabel(info_grid, 'Text', 'Parent:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_parent = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            uilabel(info_grid, 'Text', DTXT.parent_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_parent = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7]);
             
-            uilabel(info_grid, 'Text', 'Layout.Row:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_row = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            uilabel(info_grid, 'Text', DTXT.layout_row_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_row = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7]);
             
-            uilabel(info_grid, 'Text', 'Layout.Column:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_col = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            uilabel(info_grid, 'Text', DTXT.layout_col_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_col = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7]);
             
-            uilabel(info_grid, 'Text', 'Row Span:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_rowspan = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            uilabel(info_grid, 'Text', DTXT.row_span_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_rowspan = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7]);
             
-            uilabel(info_grid, 'Text', 'Col Span:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_colspan = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            uilabel(info_grid, 'Text', DTXT.col_span_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_colspan = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7]);
             
-            uilabel(info_grid, 'Text', 'Parent Grid Rows:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_parent_rows = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            uilabel(info_grid, 'Text', DTXT.parent_rows_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_parent_rows = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7]);
             
-            uilabel(info_grid, 'Text', 'Parent Grid Cols:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_parent_cols = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7]);
+            uilabel(info_grid, 'Text', DTXT.parent_cols_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_parent_cols = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7]);
             
-            uilabel(info_grid, 'Text', 'Callbacks:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_callbacks = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7], 'WordWrap', 'on');
+            uilabel(info_grid, 'Text', DTXT.callbacks_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_callbacks = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7], 'WordWrap', 'on');
             
-            uilabel(info_grid, 'Text', 'Tag/ID:', 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
-            app.handles.dev_tag = uilabel(info_grid, 'Text', '(none)', 'FontColor', [0.7 0.7 0.7], 'WordWrap', 'on');
+            uilabel(info_grid, 'Text', DTXT.tag_label, 'FontWeight', 'bold', 'FontColor', [0.9 0.9 0.9]);
+            app.handles.dev_tag = uilabel(info_grid, 'Text', DTXT.none_value, 'FontColor', [0.7 0.7 0.7], 'WordWrap', 'on');
             
             % Tools panel
-            tools_panel = uipanel(grid, 'Title', 'Layout Tools', ...
+            tools_panel = uipanel(grid, 'Title', DTXT.layout_tools_panel, ...
                 'FontWeight', 'bold', 'BackgroundColor', app.layout_cfg.colors.bg_panel);
             tools_grid = uigridlayout(tools_panel, [3 1]);
             tools_grid.RowHeight = {'fit', 'fit', 'fit'};
             tools_grid.Padding = [8 8 8 8];
             tools_grid.RowSpacing = 6;
             
-            uibutton(tools_grid, 'Text', 'Validate All Layouts', ...
+            uibutton(tools_grid, 'Text', DTXT.validate_button, ...
                 'FontSize', 11, 'ButtonPushedFcn', @(~,~) app.validate_all_layouts());
             
-            uibutton(tools_grid, 'Text', 'Dump UI Map to Console', ...
+            uibutton(tools_grid, 'Text', DTXT.dump_button, ...
                 'FontSize', 11, 'ButtonPushedFcn', @(~,~) app.dump_ui_map());
             
-            uibutton(tools_grid, 'Text', 'Reset to Default Layout', ...
+            uibutton(tools_grid, 'Text', DTXT.reset_button, ...
                 'FontSize', 11, 'ButtonPushedFcn', @(~,~) app.reset_layout());
             
             % Log area
-            log_panel = uipanel(grid, 'Title', 'Inspector Log', ...
+            log_panel = uipanel(grid, 'Title', DTXT.inspector_log_panel, ...
                 'FontWeight', 'bold', 'BackgroundColor', app.layout_cfg.colors.bg_panel);
             log_grid = uigridlayout(log_panel, [1 1]);
             log_grid.Padding = [5 5 5 5];
             
-            app.handles.dev_log = uitextarea(log_grid, 'Value', {'Developer Mode Active'}, ...
+            app.handles.dev_log = uitextarea(log_grid, 'Value', {DTXT.log_initial}, ...
                 'Editable', 'off', 'FontName', 'Courier New', 'FontSize', 9);
             
             % Enable click-to-inspect on all components
@@ -5063,9 +5096,10 @@ classdef UIController < handle
         function stream = read_time_video_stream(app, fmt, file_path)
             % Decode a media stream to frame cache with graceful failure semantics.
             stream = app.empty_time_video_stream(fmt);
+            time_text = app.layout_cfg.ui_text.config.time;
             if isempty(file_path) || ~isfile(file_path)
-                stream.status_text = sprintf('%s: missing', upper(fmt));
-                stream.codec_text = 'Codec: file not found';
+                stream.status_text = sprintf(time_text.video_status_missing_pattern, upper(fmt));
+                stream.codec_text = time_text.video_codec_file_missing;
                 return;
             end
 
@@ -5096,7 +5130,7 @@ classdef UIController < handle
                         end
                         stream.frames = frames;
                         stream.fps = max(1, src_fps / stride);
-                        stream.codec_text = sprintf('Codec: VideoReader @ %.1f fps', stream.fps);
+                        stream.codec_text = sprintf(time_text.video_codec_videoreader_pattern, stream.fps);
 
                     case 'gif'
                         info = imfinfo(file_path);
@@ -5127,11 +5161,11 @@ classdef UIController < handle
                         else
                             stream.fps = max(1, 1 / median(delays(delays > 0)));
                         end
-                        stream.codec_text = sprintf('Codec: GIF @ %.1f fps', stream.fps);
+                        stream.codec_text = sprintf(time_text.video_codec_gif_pattern, stream.fps);
                 end
             catch ME
-                stream.status_text = sprintf('%s: load failed', upper(fmt));
-                stream.codec_text = sprintf('Codec: %s', ME.message);
+                stream.status_text = sprintf(time_text.video_status_load_failed_pattern, upper(fmt));
+                stream.codec_text = sprintf(time_text.video_codec_error_pattern, ME.message);
                 stream.available = false;
                 stream.frames = {};
                 stream.frame_count = 0;
@@ -5144,16 +5178,17 @@ classdef UIController < handle
             stream.phase = 0;
             stream.available = stream.frame_count > 0;
             if stream.available
-                stream.status_text = sprintf('%s: loaded %d frame(s)', upper(fmt), stream.frame_count);
+                stream.status_text = sprintf(time_text.video_status_loaded_pattern, upper(fmt), stream.frame_count);
             else
-                stream.status_text = sprintf('%s: empty stream', upper(fmt));
-                stream.codec_text = 'Codec: no frames decoded';
+                stream.status_text = sprintf(time_text.video_status_empty_stream_pattern, upper(fmt));
+                stream.codec_text = time_text.video_codec_no_frames;
             end
         end
 
         function stream = empty_time_video_stream(app, fmt)
             % Construct a default stream struct.
             default_fps = 24;
+            time_text = app.layout_cfg.ui_text.config.time;
             if isfield(app.layout_cfg, 'config_tab') && isfield(app.layout_cfg.config_tab, 'time_video') && ...
                     isfield(app.layout_cfg.config_tab.time_video, 'default_fps')
                 default_fps = max(1, app.layout_cfg.config_tab.time_video.default_fps);
@@ -5171,8 +5206,8 @@ classdef UIController < handle
                 'image_handle', [], ...
                 'status_handle', [], ...
                 'codec_handle', [], ...
-                'status_text', sprintf('%s: pending', upper(string(fmt))), ...
-                'codec_text', 'Codec: --');
+                'status_text', sprintf(time_text.video_status_pending_pattern, upper(string(fmt))), ...
+                'codec_text', time_text.video_codec_placeholder);
         end
 
         function update_time_video_status_label(app, txt)
@@ -5188,21 +5223,23 @@ classdef UIController < handle
         end
 
         function clear_terminal_view(app)
+            T = app.layout_cfg.ui_text.terminal;
             app.terminal_log = {};
             app.terminal_type_log = {};
             if app.has_valid_handle('terminal_output')
                 if isprop(app.handles.terminal_output, 'HTMLSource')
                     app.handles.terminal_output.HTMLSource = app.render_terminal_html();
                 elseif isprop(app.handles.terminal_output, 'Value')
-                    app.handles.terminal_output.Value = {'Terminal cleared'};
+                    app.handles.terminal_output.Value = {T.cleared};
                 end
             end
         end
 
         function html = render_terminal_html(app)
-            % Render terminal log as color-coded HTML rows.
+            % Render terminal log as color-coded HTML rows for the monitoring sidebar.
+            T = app.layout_cfg.ui_text.terminal;
             if isempty(app.terminal_log)
-                lines = "<span style='color:#8ab4f8;'>[terminal]</span> waiting for output...";
+                lines = string(T.waiting_html);
                 html = "<html><body style='margin:0;background:#111;color:#ddd;font-family:Consolas,monospace;font-size:11px;'>" + ...
                     "<div style='padding:6px;white-space:pre-wrap;line-height:1.25;'>" + lines + "</div></body></html>";
                 html = char(html);
@@ -5248,12 +5285,19 @@ classdef UIController < handle
             end
         end
 
-        function catalog = build_monitor_metric_catalog(~)
+        function catalog = build_monitor_metric_catalog(app)
             % Ranked metric catalog for the 3x3 monitor (first 8 rendered as plots).
+            % Source of truth: app.layout_cfg.monitor_tab.metric_catalog.
+            if isfield(app.layout_cfg, 'monitor_tab') && isfield(app.layout_cfg.monitor_tab, 'metric_catalog') ...
+                    && ~isempty(app.layout_cfg.monitor_tab.metric_catalog)
+                catalog = app.layout_cfg.monitor_tab.metric_catalog;
+                return;
+            end
+
+            % Fallback catalog kept for resilience if config is incomplete.
             all_methods = {'finite_difference', 'finite_volume', 'spectral'};
             all_modes = {'evolution', 'convergence', 'sweep', 'animation', 'experimentation'};
             conv_only = {'convergence'};
-
             catalog = struct( ...
                 'id', {'iter_vs_time', 'iter_per_sec', 'runtime_vs_time', 'max_vorticity', ...
                        'energy_proxy', 'enstrophy_proxy', 'vorticity_decay_rate', 'cpu_proxy', ...
@@ -5340,6 +5384,10 @@ classdef UIController < handle
             if ~app.has_valid_handle('monitor_numeric_table')
                 return;
             end
+            M = app.layout_cfg.ui_text.monitor.numeric_tile;
+            CATS = M.categories;
+            LABELS = M.labels;
+            RT = app.layout_cfg.ui_text.monitor.runtime;
 
             machine = getenv('COMPUTERNAME');
             if isempty(machine)
@@ -5402,19 +5450,19 @@ classdef UIController < handle
                 wall_time = NaN;
             end
 
-            status_text = 'Ready';
-            status_source = 'UI';
+            status_text = RT.status_ready;
+            status_source = RT.source_ui;
             if isfield(summary, 'monitor_series') && isstruct(summary.monitor_series)
                 if isfield(summary.monitor_series, 'status_text')
                     status_text = char(string(summary.monitor_series.status_text));
                 else
-                    status_text = 'Running';
+                    status_text = RT.status_running;
                 end
-                status_source = 'Runtime';
+                status_source = RT.source_runtime;
             end
             if ~isempty(strtrim(run_id))
-                status_text = 'Completed';
-                status_source = 'Dispatcher';
+                status_text = RT.status_completed;
+                status_source = RT.source_dispatcher;
             end
 
             suggested_n = NaN;
@@ -5447,33 +5495,37 @@ classdef UIController < handle
             end
 
             rows = {
-                app.monitor_metric_line('Session', 'Status', sprintf('%s [%s]', status_text, status_source), '');
-                app.monitor_metric_line('Iteration', 'Runtime', app.if_nan_num(wall_time), 's');
-                app.monitor_metric_line('Iteration', 'Iteration', app.if_nan_num(iter_now), 'iter');
-                app.monitor_metric_line('Iteration', 'Iterations/s', app.if_nan_num(iter_rate_now), 'iter/s');
-                app.monitor_metric_line('Solution', 'Max |omega|', app.if_nan_num(max_omega_val), '');
-                app.monitor_metric_line('Computer', 'CPU usage', app.if_nan_num(cpu_now), '%');
-                app.monitor_metric_line('Computer', 'Memory', app.if_nan_num(mem_now), 'MB');
-                app.monitor_metric_line('Convergence', 'Tolerance', conv_tol_display, '');
-                app.monitor_metric_line('Convergence', 'Metric', conv_metric_display, '');
-                app.monitor_metric_line('Convergence', 'Suggested coarse N', suggested_n_display, '');
-                app.monitor_metric_line('Grid', 'Mesh', sprintf('%dx%d', cfg.Nx, cfg.Ny), '');
-                app.monitor_metric_line('Grid', 'dt', sprintf('%.3g', cfg.dt), 's');
-                app.monitor_metric_line('Grid', 'Tfinal', sprintf('%.3g', cfg.Tfinal), 's');
-                app.monitor_metric_line('Grid', 'Domain Lx', sprintf('%.3g', cfg.Lx), 'm');
-                app.monitor_metric_line('Grid', 'Domain Ly', sprintf('%.3g', cfg.Ly), 'm');
-                app.monitor_metric_line('Session', 'Mode', app.humanize_token(run_mode), '');
-                app.monitor_metric_line('Session', 'Method', app.humanize_token(cfg.method), '');
-                app.monitor_metric_line('Session', 'Monitor profile', sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode)), '');
-                app.monitor_metric_line('Session', 'Run ID', app.if_empty(run_id, '--'), '');
-                app.monitor_metric_line('System', 'Machine', machine, '');
-                app.monitor_metric_line('System', 'Collectors', collectors, '')
+                app.monitor_metric_line(CATS.session, LABELS.status, sprintf('%s [%s]', status_text, status_source), '');
+                app.monitor_metric_line(CATS.iteration, LABELS.runtime, app.if_nan_num(wall_time), 's');
+                app.monitor_metric_line(CATS.iteration, LABELS.iteration, app.if_nan_num(iter_now), 'iter');
+                app.monitor_metric_line(CATS.iteration, LABELS.iterations_per_sec, app.if_nan_num(iter_rate_now), 'iter/s');
+                app.monitor_metric_line(CATS.solution, LABELS.max_omega, app.if_nan_num(max_omega_val), '');
+                app.monitor_metric_line(CATS.computer, LABELS.cpu_usage, app.if_nan_num(cpu_now), '%');
+                app.monitor_metric_line(CATS.computer, LABELS.memory, app.if_nan_num(mem_now), 'MB');
+                app.monitor_metric_line(CATS.convergence, LABELS.tolerance, conv_tol_display, '');
+                app.monitor_metric_line(CATS.convergence, LABELS.metric, conv_metric_display, '');
+                app.monitor_metric_line(CATS.convergence, LABELS.suggested_coarse_n, suggested_n_display, '');
+                app.monitor_metric_line(CATS.grid, LABELS.mesh, sprintf('%dx%d', cfg.Nx, cfg.Ny), '');
+                app.monitor_metric_line(CATS.grid, LABELS.dt, sprintf('%.3g', cfg.dt), 's');
+                app.monitor_metric_line(CATS.grid, LABELS.tfinal, sprintf('%.3g', cfg.Tfinal), 's');
+                app.monitor_metric_line(CATS.grid, LABELS.domain_lx, sprintf('%.3g', cfg.Lx), 'm');
+                app.monitor_metric_line(CATS.grid, LABELS.domain_ly, sprintf('%.3g', cfg.Ly), 'm');
+                app.monitor_metric_line(CATS.session, LABELS.mode, app.humanize_token(run_mode), '');
+                app.monitor_metric_line(CATS.session, LABELS.method, app.humanize_token(cfg.method), '');
+                app.monitor_metric_line(CATS.session, LABELS.monitor_profile, sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode)), '');
+                app.monitor_metric_line(CATS.session, LABELS.run_id, app.if_empty(run_id, '--'), '');
+                app.monitor_metric_line(CATS.system, LABELS.machine, machine, '');
+                app.monitor_metric_line(CATS.system, LABELS.collectors, collectors, '')
             };
             app.handles.monitor_numeric_table.Data = rows;
         end
 
         function monitor_series = resolve_monitor_series(app, summary, cfg)
             % Build monitor tile data from runtime payloads, with synthetic fallback.
+            % Priority order:
+            %   1) summary.monitor_series live buffers (from handle_live_monitor_progress)
+            %   2) summary.results scalars (dispatcher outputs)
+            %   3) synthetic traces for safe UI rendering when no run has started
             n_steps = max(16, min(400, round(cfg.Tfinal / max(cfg.dt, eps))));
             t = linspace(0, cfg.Tfinal, n_steps);
             iters = linspace(1, max(1, round(cfg.Tfinal / max(cfg.dt, eps))), n_steps);
@@ -5780,6 +5832,7 @@ classdef UIController < handle
         end
 
         function render_monitor_metric_not_applicable(app, ax, metric, cfg)
+            T = app.layout_cfg.ui_text.monitor_metric_na;
             cla(ax);
             xlim(ax, [0 1]);
             ylim(ax, [0 1]);
@@ -5788,14 +5841,14 @@ classdef UIController < handle
             ax.Box = 'on';
             grid(ax, 'off');
 
-            msg_1 = 'Metric not applicable';
+            msg_1 = T.msg_1;
             msg_2 = sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(cfg.mode));
             text(ax, 0.5, 0.58, msg_1, 'HorizontalAlignment', 'center', ...
                 'Color', app.layout_cfg.colors.accent_yellow, 'FontSize', 11, 'FontWeight', 'bold');
             text(ax, 0.5, 0.42, msg_2, 'HorizontalAlignment', 'center', ...
                 'Color', app.layout_cfg.colors.fg_muted, 'FontSize', 9);
 
-            title(ax, sprintf('%s (N/A)', metric.title), 'Color', app.layout_cfg.colors.fg_text, ...
+            title(ax, sprintf('%s%s', metric.title, T.title_suffix), 'Color', app.layout_cfg.colors.fg_text, ...
                 'FontSize', 10, 'Interpreter', 'latex');
             xlabel(ax, '', 'Interpreter', 'latex');
             ylabel(ax, '', 'Interpreter', 'latex');
@@ -5941,11 +5994,11 @@ classdef UIController < handle
             % (TODO: implement full validation)
             
             if isempty(issues)
-                app.append_dev_log('✓ Validation passed: No issues found');
+                app.append_dev_log('âœ“ Validation passed: No issues found');
                 app.append_to_terminal('Layout validation PASSED', 'success');
             else
                 for i = 1:length(issues)
-                    app.append_dev_log(sprintf('⚠ Issue: %s', issues{i}));
+                    app.append_dev_log(sprintf('âš  Issue: %s', issues{i}));
                 end
                 app.append_to_terminal(sprintf('Layout validation found %d issue(s)', length(issues)), 'warning');
             end
@@ -5986,7 +6039,7 @@ classdef UIController < handle
             fprintf('\n===== UI COMPONENT MAP =====\n');
             app.dump_component_tree_recursive(app.fig, 0);
             fprintf('===== END UI MAP =====\n\n');
-            app.append_dev_log('✓ UI map dumped to console');
+            app.append_dev_log('âœ“ UI map dumped to console');
         end
         
         function dump_component_tree_recursive(~, obj, depth)

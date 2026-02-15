@@ -20,6 +20,10 @@ function sandbox = UI_Layout_Sandbox(varargin)
 
     cfg = UI_Layout_Config();
     C = cfg.colors;
+    % Debugging note:
+    % - Geometry comes from cfg.*_tab grids + cfg.coords.*
+    % - Human-facing names come from cfg.text.* / cfg.ui_text.*
+    % This mirrors the production UIController contract without runtime logic.
 
     fig = uifigure('Name', sprintf('%s - Layout Sandbox', cfg.text.app_title), ...
         'Color', C.bg_dark, ...
@@ -98,6 +102,9 @@ function sandbox = UI_Layout_Sandbox(varargin)
 end
 
 function out = build_config_tab(tab_group, cfg, C)
+    % Config tab sandbox map:
+    % - Root split uses cfg.config_tab.root and cfg.coords.config.left/right.
+    % - Sub-section naming comes from cfg.text.config_panels.
     out = struct();
     tab = uitab(tab_group, 'Title', resolve_tab_title(cfg, 'config', cfg.text.tabs.config), 'BackgroundColor', C.bg_panel_alt);
     root = uigridlayout(tab, cfg.config_tab.root.rows_cols);
@@ -149,6 +156,9 @@ function out = build_config_tab(tab_group, cfg, C)
 end
 
 function out = build_monitor_tab(tab_group, cfg, C)
+    % Monitor sandbox map:
+    % - 3x3 tile contract from cfg.monitor_tab.plot_*.
+    % - Numeric-tile and sidebar names from cfg.text.monitor_panels.
     out = struct();
     tab = uitab(tab_group, 'Title', resolve_tab_title(cfg, 'monitoring', cfg.text.tabs.monitoring), 'BackgroundColor', C.bg_panel_alt);
     root = uigridlayout(tab, cfg.monitor_tab.root.rows_cols);
@@ -222,6 +232,8 @@ function out = build_monitor_tab(tab_group, cfg, C)
 end
 
 function out = build_results_tab(tab_group, cfg, C)
+    % Results sandbox map:
+    % - Figure/metrics stack from cfg.results_tab.root and cfg.coords.results.
     out = struct();
     tab = uitab(tab_group, 'Title', resolve_tab_title(cfg, 'results', cfg.text.tabs.results), 'BackgroundColor', C.bg_panel_alt);
     root = uigridlayout(tab, cfg.results_tab.root.rows_cols);

@@ -25,7 +25,8 @@ This section provides reference equations commonly used across the literature; i
 
 ```latex
 \begin{align}
-\frac{\partial h}{\partial t} + \nabla\cdot\left(h\mathbf{u}\right) &= 0
+\frac{\partial h}{\partial 
+t} + \nabla\cdot\left(h\mathbf{u}\right) &= 0
 \\
 \frac{\partial \left(h\mathbf{u}\right)}{\partial t} + \nabla\cdot\left(h\mathbf{u}\otimes\mathbf{u}\right) + \frac{g}{2}\nabla\left(h^2\right) &= -g h \nabla z_b + \mathbf{S}
 \end{align}
