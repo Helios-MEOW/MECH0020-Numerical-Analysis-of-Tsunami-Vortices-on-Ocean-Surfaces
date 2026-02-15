@@ -83,10 +83,10 @@ function cfg = UI_Layout_Config()
             'col_spacing', 0), ...
         'order', {{'method', 'grid', 'simulation', 'convergence'}}, ...
         'titles', struct( ...
-            'method', '[ ] Select Method and Mode', ...
-            'grid', '[ ] Configure Grid and Domain', ...
-            'simulation', '[ ] Simulation Settings', ...
-            'convergence', '[ ] Convergence Settings'));
+            'method', 'Method and Mode', ...
+            'grid', 'Grid and Domain', ...
+            'simulation', 'Simulation Settings', ...
+            'convergence', 'Convergence'));
 
     % Right column: 3 stacked panels (readiness, initial condition, IC preview) with proportional heights
     cfg.config_tab.right.rows_cols     = [3, 1];      % 3 rows, 1 column
@@ -116,10 +116,10 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.grid_grid.padding       = [6 6 6 6];
 
     % Time panel: 2x4 grid for temporal parameters (dt, Tfinal, nu, etc.)
-    cfg.config_tab.sim_grid.rows_cols     = [2, 4]; % 2 rows, 4 columns
-    cfg.config_tab.sim_grid.col_widths    = {'1x', '1x', '1x', '1x'};
-    cfg.config_tab.sim_grid.row_heights   = {cfg.heights.form_row, cfg.heights.form_row};
-    cfg.config_tab.sim_grid.padding       = [6 6 6 6];
+    cfg.config_tab.time_grid.rows_cols     = [2, 4]; % 2 rows, 4 columns
+    cfg.config_tab.time_grid.col_widths    = {80, 100, 80, 100};
+    cfg.config_tab.time_grid.row_heights   = {cfg.heights.form_row, cfg.heights.form_row};
+    cfg.config_tab.time_grid.padding       = [6 6 6 6];
     cfg.config_tab.time_video = struct( ...
         'panel_rows_cols', {[2, 1]}, ...
         'panel_row_heights', {{'1x', 'fit'}}, ...
@@ -138,7 +138,7 @@ function cfg = UI_Layout_Config()
 
     % Simulation panel: 3x4 grid for output/save/animation parameters
     cfg.config_tab.sim_grid.rows_cols      = [3, 4]; % 3 rows, 4 columns
-    cfg.config_tab.sim_grid.col_widths     = {'1x', '1x', '1x', '1x'};
+    cfg.config_tab.sim_grid.col_widths     = {120, 80, 120, 80};
     cfg.config_tab.sim_grid.row_heights    = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.sim_grid.padding        = [6 6 6 6];
 
@@ -150,7 +150,7 @@ function cfg = UI_Layout_Config()
 
     % Sustainability panel: 4x4 grid for monitoring/collector settings
     cfg.config_tab.sus_grid.rows_cols      = [4, 4]; % 4 rows, 4 columns
-    cfg.config_tab.sus_grid.col_widths     = {'1x', '1x', '1x', '1x'};
+    cfg.config_tab.sus_grid.col_widths     = {120, 80, 120, 80};
     cfg.config_tab.sus_grid.row_heights    = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.sus_grid.padding        = [6 6 6 6];
 
@@ -598,7 +598,7 @@ function cfg = UI_Layout_Config()
     cfg.ui_defaults.Lx = 10.0;
     cfg.ui_defaults.Ly = 10.0;
     cfg.ui_defaults.delta = 2;
-    cfg.ui_defaults.grid_points = cfg.ui.defaults.Nx * cfg.ui.defaults.Ny;
+    cfg.ui_defaults.grid_points = num2str(cfg.ui_defaults.Nx * cfg.ui_defaults.Ny);
 
     cfg.ui_defaults.dt = 0.001;
     cfg.ui_defaults.t_final = 9.0;

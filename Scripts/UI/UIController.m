@@ -581,25 +581,29 @@ classdef UIController < handle
                 'HorizontalAlignment', 'center', 'FontSize', 14, ...
                 'Color', C.fg_muted, 'Units', 'normalized');
 
-            % Time and physics panel
-            panel_time = uipanel(subtab_hosts.time, 'Title', T.config.time.panel_title, ...
+            % === Combined Simulation Settings subtab ===
+            % Reconfigure simulation subtab host to hold time/physics + sim + sustainability
+            sim_host = subtab_hosts.simulation;
+            delete(sim_host);
+            sim_host = uigridlayout(subtabs.simulation, [7, 1]);
+            sim_host.RowHeight = {'fit', 2, 'fit', 2, 'fit', 2, '1x'};
+            sim_host.ColumnWidth = {'1x'};
+            sim_host.Padding = [4 4 4 4];
+            sim_host.RowSpacing = 4;
+            subtab_hosts.simulation = sim_host;
+
+            % --- Section 1: Time and Physics ---
+            panel_time = uipanel(sim_host, 'Title', T.config.time.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_time.Layout.Row = 1;
             panel_time.Layout.Column = 1;
             cfg_time = app.layout_cfg.config_tab.time_grid;
             cfg_time_video = app.layout_cfg.config_tab.time_video;
-            time_root = uigridlayout(panel_time, cfg_time_video.panel_rows_cols);
-            time_root.RowHeight = cfg_time_video.panel_row_heights;
-            time_root.ColumnWidth = {'1x'};
-            time_root.Padding = [6 6 6 6];
-            time_root.RowSpacing = 6;
 
-            time_layout = uigridlayout(time_root, cfg_time.rows_cols);
+            time_layout = uigridlayout(panel_time, cfg_time.rows_cols);
             time_layout.ColumnWidth = cfg_time.col_widths;
             time_layout.RowHeight = cfg_time.row_heights;
             time_layout.Padding = cfg_time.padding;
-            time_layout.Layout.Row = 1;
-            time_layout.Layout.Column = 1;
 
             app.handles.label_dt = app.create_math_label(time_layout, 'Delta_t', 'dt', 'FontColor', C.fg_text);
             app.handles.label_dt.Layout.Row = 1; app.handles.label_dt.Layout.Column = 1;
@@ -620,11 +624,16 @@ classdef UIController < handle
             app.handles.num_snapshots = uieditfield(time_layout, 'numeric', 'Value', D.num_snapshots);
             app.handles.num_snapshots.Layout.Row = 2; app.handles.num_snapshots.Layout.Column = 4;
 
+            % --- Separator 3 ---
+            sep3 = uipanel(sim_host, 'BackgroundColor', C.accent_gray, 'BorderType', 'none');
+            sep3.Layout.Row = 6; sep3.Layout.Column = 1;
+
+            % --- Section 4: Animation Preview ---
             % Time/Physics animation triplet preview (MP4/AVI/GIF).
-            video_panel = uipanel(time_root, ...
+            video_panel = uipanel(sim_host, ...
                 'Title', T.config.time.video_panel_title, ...
                 'BackgroundColor', C.bg_panel);
-            video_panel.Layout.Row = 2;
+            video_panel.Layout.Row = 7;
             video_panel.Layout.Column = 1;
 
             video_panel_grid = uigridlayout(video_panel, [2, 1]);
@@ -723,10 +732,14 @@ classdef UIController < handle
 
             app.initialize_time_video_state();
 
-            % Simulation settings panel
-            panel_sim = uipanel(subtab_hosts.simulation, 'Title', T.config.simulation.panel_title, ...
+            % --- Separator 1 ---
+            sep1 = uipanel(sim_host, 'BackgroundColor', C.accent_gray, 'BorderType', 'none');
+            sep1.Layout.Row = 2; sep1.Layout.Column = 1;
+
+            % --- Section 2: Output & Animation Settings ---
+            panel_sim = uipanel(sim_host, 'Title', T.config.simulation.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_sim.Layout.Row = 1;
+            panel_sim.Layout.Row = 3;
             panel_sim.Layout.Column = 1;
             cfg_sim = app.layout_cfg.config_tab.sim_grid;
             sim_layout = uigridlayout(panel_sim, cfg_sim.rows_cols);
@@ -833,10 +846,14 @@ classdef UIController < handle
             app.handles.converged_mesh_status.Layout.Row = 5;
             app.handles.converged_mesh_status.Layout.Column = [3 4];
 
-            % Sustainability panel
-            panel_sus = uipanel(subtab_hosts.sustainability, 'Title', T.config.sustainability.panel_title, ...
+            % --- Separator 2 ---
+            sep2 = uipanel(sim_host, 'BackgroundColor', C.accent_gray, 'BorderType', 'none');
+            sep2.Layout.Row = 4; sep2.Layout.Column = 1;
+
+            % --- Section 3: Sustainability ---
+            panel_sus = uipanel(sim_host, 'Title', T.config.sustainability.panel_title, ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_sus.Layout.Row = 1;
+            panel_sus.Layout.Row = 5;
             panel_sus.Layout.Column = 1;
             cfg_sus = app.layout_cfg.config_tab.sus_grid;
             sus_layout = uigridlayout(panel_sus, cfg_sus.rows_cols);
