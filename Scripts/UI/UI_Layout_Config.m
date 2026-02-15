@@ -88,11 +88,11 @@ function cfg = UI_Layout_Config()
             'simulation', 'Simulation Settings', ...
             'convergence', 'Convergence'));
 
-    % Right column: 3 stacked panels (readiness, initial condition, IC preview) with proportional heights
+    % Right column: 3 stacked panels (buttons, IC config, IC preview) - buttons snug at top
     cfg.config_tab.right.rows_cols     = [3, 1];      % 3 rows, 1 column
-    cfg.config_tab.right.row_heights   = {'0.45x', '1.15x', '1.5x'};  % Proportional flexible sizing
-    cfg.config_tab.right.padding       = [10 10 10 10]; % Panel internal padding
-    cfg.config_tab.right.row_spacing   = 8;           % Vertical spacing between panels
+    cfg.config_tab.right.row_heights   = {44, 'fit', '1x'};  % Buttons snug, IC config fit, preview fills
+    cfg.config_tab.right.padding       = [8 8 8 8];   % Panel internal padding
+    cfg.config_tab.right.row_spacing   = 6;           % Vertical spacing between panels
 
     % Method panel: 5x4 grid for algorithm/mode selectors (5 control rows, 4 columns)
     cfg.config_tab.method_grid.rows_cols    = [5, 4]; % 5 rows, 4 columns
@@ -154,19 +154,12 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.sus_grid.row_heights    = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.sus_grid.padding        = [6 6 6 6];
 
-    % Readiness panel: 3x1 column for pre-flight checks, status, and launch button
-    cfg.config_tab.check_grid.rows_cols   = [3, 1]; % 3 rows, 1 column
-    cfg.config_tab.check_grid.col_widths  = {'1x'};   % Full width
-    cfg.config_tab.check_grid.row_heights = {64, 36, cfg.heights.button};  % Status, message, button
-    cfg.config_tab.check_grid.padding     = [6 6 6 6];
-    cfg.config_tab.check_grid.row_spacing = 4;       % Tight spacing
-
-    % IC panel: 8x4 grid for initial condition parameters (type, amplitude, wavelength, etc.)
-    cfg.config_tab.ic_grid.rows_cols     = [8, 4]; % 8 rows, 4 columns
-    cfg.config_tab.ic_grid.col_widths    = {'1x', '1x', '1x', '1x'};
-    cfg.config_tab.ic_grid.row_heights   = {cfg.heights.form_row, cfg.heights.form_row, 92, 72, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};  % Fixed + spacious rows
+    % IC panel: 4x4 grid for IC type, equation, coefficients, scale/count
+    cfg.config_tab.ic_grid.rows_cols     = [4, 4]; % 4 rows, 4 columns
+    cfg.config_tab.ic_grid.col_widths    = {90, '1x', 90, '1x'};
+    cfg.config_tab.ic_grid.row_heights   = {cfg.heights.form_row, 60, 'fit', 'fit'};
     cfg.config_tab.ic_grid.padding       = [6 6 6 6];
-    cfg.config_tab.ic_grid.row_spacing   = 6;
+    cfg.config_tab.ic_grid.row_spacing   = 4;
 
     % ===== MONITOR TAB =====
     % Live monitoring: 2-column layout (main plots 3x wider, sidebar 1x narrower)
@@ -258,8 +251,8 @@ function cfg = UI_Layout_Config()
     cfg.coords.config.panel_sim         = [4, 1, 1, 1];  % Sim panel (left row 4)
     cfg.coords.config.panel_conv        = [5, 1, 1, 1];  % Convergence panel (left row 5)
     cfg.coords.config.panel_sus         = [6, 1, 1, 1];  % Sustainability panel (left row 6)
-    cfg.coords.config.panel_check       = [1, 1, 1, 1];  % Readiness panel (right row 1)
-    cfg.coords.config.panel_ic          = [2, 1, 1, 1];  % IC panel (right row 2)
+    cfg.coords.config.panel_buttons     = [1, 1, 1, 1];  % Action buttons (right row 1)
+    cfg.coords.config.panel_ic          = [2, 1, 1, 1];  % IC config panel (right row 2)
     cfg.coords.config.panel_preview     = [3, 1, 1, 1];  % IC Preview panel (right row 3)
 
     % Monitor tab coordinates
@@ -728,7 +721,6 @@ function tab_layout = build_tab_layout_groups(cfg)
             'simulation', cfg.config_tab.sim_grid, ...
             'convergence', cfg.config_tab.conv_grid, ...
             'sustainability', cfg.config_tab.sus_grid, ...
-            'readiness', cfg.config_tab.check_grid, ...
             'initial_condition', cfg.config_tab.ic_grid), ...
         'sub_tabs', cfg.config_tab.left_subtabs.titles, ...
         'plots', struct(), ...
@@ -787,9 +779,9 @@ function manifest = build_layout_manifest(cfg)
         cfg.text.config_panels.convergence, 'Convergence controls panel');
     manifest(end + 1) = make_entry('config_sus', 'Configuration', cfg.coords.config.panel_sus, ...
         cfg.text.config_panels.sustainability, 'Sustainability collectors and monitoring panel');
-    manifest(end + 1) = make_entry('config_check', 'Configuration', cfg.coords.config.panel_check, ...
-        cfg.text.config_panels.readiness, 'Readiness checks and launch controls');
-    % Right column entries (readiness, IC setup, IC preview)
+    manifest(end + 1) = make_entry('config_buttons', 'Configuration', cfg.coords.config.panel_buttons, ...
+        'Action Buttons', 'Launch, export and import controls');
+    % Right column entries (buttons, IC setup, IC preview)
     manifest(end + 1) = make_entry('config_ic', 'Configuration', cfg.coords.config.panel_ic, ...
         cfg.text.config_panels.ic, 'Initial condition parameter panel');
     manifest(end + 1) = make_entry('config_preview', 'Configuration', cfg.coords.config.panel_preview, ...

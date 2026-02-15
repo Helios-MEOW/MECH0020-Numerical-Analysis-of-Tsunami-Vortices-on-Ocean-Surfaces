@@ -904,90 +904,15 @@ classdef UIController < handle
             app.handles.collector_status.Layout.Row = 4;
             app.handles.collector_status.Layout.Column = [1 4];
 
-            % Right panel stack
-            cfg_right = app.layout_cfg.config_tab.right;
-            right_layout = uigridlayout(right, cfg_right.rows_cols);
-            right_layout.RowHeight = cfg_right.row_heights;
-            right_layout.Padding = cfg_right.padding;
-            right_layout.RowSpacing = cfg_right.row_spacing;
+            % Right panel stack: buttons + IC config + IC preview
+            right_layout = uigridlayout(right, [3, 1]);
+            right_layout.RowHeight = {44, 'fit', '1x'};
+            right_layout.Padding = [8 8 8 8];
+            right_layout.RowSpacing = 6;
 
-            % Readiness checklist
-            panel_check = uipanel(right_layout, 'Title', T.config.readiness.panel_title, ...
-                'BackgroundColor', C.bg_panel_alt);
-            panel_check.Layout.Row = app.layout_cfg.coords.config.panel_check(1);
-            panel_check.Layout.Column = app.layout_cfg.coords.config.panel_check(2);
-            cfg_check = app.layout_cfg.config_tab.check_grid;
-            check_layout = uigridlayout(panel_check, cfg_check.rows_cols);
-            check_layout.ColumnWidth = cfg_check.col_widths;
-            check_layout.RowHeight = cfg_check.row_heights;
-            check_layout.Padding = cfg_check.padding;
-            check_layout.RowSpacing = cfg_check.row_spacing;
-
-            checks_grid = uigridlayout(check_layout, [2 8]);
-            checks_grid.Layout.Row = 1;
-            checks_grid.Layout.Column = 1;
-            checks_grid.RowHeight = {18, 20};
-            checks_grid.ColumnWidth = {'1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x'};
-            checks_grid.Padding = [0 0 0 0];
-            checks_grid.RowSpacing = 1;
-            checks_grid.ColumnSpacing = 4;
-
-            check_state_unchecked = T.config.readiness.check_state_unchecked;
-            app.handles.check_grid = uilabel(checks_grid, 'Text', check_state_unchecked, ...
-                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
-            app.handles.check_grid.Layout.Row = 1; app.handles.check_grid.Layout.Column = 1;
-            app.handles.check_domain = uilabel(checks_grid, 'Text', check_state_unchecked, ...
-                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
-            app.handles.check_domain.Layout.Row = 1; app.handles.check_domain.Layout.Column = 2;
-            app.handles.check_time = uilabel(checks_grid, 'Text', check_state_unchecked, ...
-                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
-            app.handles.check_time.Layout.Row = 1; app.handles.check_time.Layout.Column = 3;
-            app.handles.check_ic = uilabel(checks_grid, 'Text', check_state_unchecked, ...
-                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
-            app.handles.check_ic.Layout.Row = 1; app.handles.check_ic.Layout.Column = 4;
-            app.handles.check_conv = uilabel(checks_grid, 'Text', check_state_unchecked, ...
-                'HorizontalAlignment', 'center', 'FontSize', 13, 'FontColor', C.accent_red);
-            app.handles.check_conv.Layout.Row = 1; app.handles.check_conv.Layout.Column = 5;
-            app.handles.check_monitor = uilabel(checks_grid, 'Text', check_state_unchecked, ...
-                'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
-            app.handles.check_monitor.Layout.Row = 1; app.handles.check_monitor.Layout.Column = 6;
-            app.handles.check_collectors = uilabel(checks_grid, 'Text', check_state_unchecked, ...
-                'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
-            app.handles.check_collectors.Layout.Row = 1; app.handles.check_collectors.Layout.Column = 7;
-            app.handles.check_outputs = uilabel(checks_grid, 'Text', check_state_unchecked, ...
-                'HorizontalAlignment', 'center', 'FontSize', 10, 'FontColor', C.accent_red);
-            app.handles.check_outputs.Layout.Row = 1; app.handles.check_outputs.Layout.Column = 8;
-            app.handles.check_grid.FontSize = 10;
-            app.handles.check_domain.FontSize = 10;
-            app.handles.check_time.FontSize = 10;
-            app.handles.check_ic.FontSize = 10;
-            app.handles.check_conv.FontSize = 10;
-
-            label_names = T.config.readiness.checks;
-            for idx = 1:numel(label_names)
-                lbl = uilabel(checks_grid, 'Text', label_names{idx}, ...
-                    'HorizontalAlignment', 'center', 'FontColor', C.fg_text, 'FontSize', 9);
-                lbl.Layout.Row = 2;
-                lbl.Layout.Column = idx;
-            end
-
-            defaults_summary = sprintf(T.config.readiness.defaults_summary_template, ...
-                app.layout_cfg.defaults_source.editable_parameters, ...
-                app.layout_cfg.defaults_source.editable_settings);
-            if isfield(app.layout_cfg, 'defaults_source') && isstruct(app.layout_cfg.defaults_source) && ...
-                    isfield(app.layout_cfg.defaults_source, 'summary') && ~isempty(app.layout_cfg.defaults_source.summary)
-                defaults_summary = char(string(app.layout_cfg.defaults_source.summary));
-            end
-            info_lbl = uilabel(check_layout, ...
-                'Text', sprintf(T.config.readiness.legend_template, defaults_summary), ...
-                'FontColor', C.fg_muted, 'HorizontalAlignment', 'center', 'WordWrap', 'on');
-            info_lbl.Layout.Row = 2;
-            info_lbl.Layout.Column = 1;
-            app.handles.defaults_source_info = info_lbl;
-
-            buttons_row = uigridlayout(check_layout, [1 3]);
-            buttons_row.Layout.Row = 3;
-            buttons_row.Layout.Column = 1;
+            % === Row 1: Action buttons (snug) ===
+            buttons_row = uigridlayout(right_layout, [1 3]);
+            buttons_row.Layout.Row = 1; buttons_row.Layout.Column = 1;
             buttons_row.ColumnWidth = {'1x', '1x', '1x'};
             buttons_row.RowHeight = {'1x'};
             buttons_row.Padding = [0 0 0 0];
@@ -1011,105 +936,150 @@ classdef UIController < handle
                 'ButtonPushedFcn', @(~,~) app.import_configuration());
             app.handles.btn_import.Layout.Row = 1; app.handles.btn_import.Layout.Column = 3;
 
-            % IC configuration
-            panel_ic = uipanel(right_layout, 'Title', T.config.initial_condition.panel_title, ...
+            % === Row 2: IC configuration (type selector + equation + coefficients) ===
+            panel_ic = uipanel(right_layout, 'Title', 'Initial Condition', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_ic.Layout.Row = app.layout_cfg.coords.config.panel_ic(1);
-            panel_ic.Layout.Column = app.layout_cfg.coords.config.panel_ic(2);
-            cfg_ic = app.layout_cfg.config_tab.ic_grid;
-            ic_layout = uigridlayout(panel_ic, cfg_ic.rows_cols);
-            ic_layout.ColumnWidth = cfg_ic.col_widths;
-            ic_layout.RowHeight = cfg_ic.row_heights;
-            ic_layout.Padding = cfg_ic.padding;
-            ic_layout.RowSpacing = cfg_ic.row_spacing;
+            panel_ic.Layout.Row = 2; panel_ic.Layout.Column = 1;
+            ic_layout = uigridlayout(panel_ic, [4, 4]);
+            ic_layout.ColumnWidth = {90, '1x', 90, '1x'};
+            ic_layout.RowHeight = {cfg.heights.form_row, 60, 'fit', 'fit'};
+            ic_layout.Padding = [6 6 6 6];
+            ic_layout.RowSpacing = 4;
             app.handles.ic_layout = ic_layout;
 
-            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.ic_type_label, 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 1;
+            % IC type and pattern selectors
+            lbl = uilabel(ic_layout, 'Text', 'IC Type', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.ic_dropdown = uidropdown(ic_layout, ...
                 'Items', O.ic_type_items, ...
                 'Value', D.ic_type, ...
                 'ValueChangedFcn', @(~,~) app.on_ic_changed());
             app.handles.ic_dropdown.Layout.Row = 1; app.handles.ic_dropdown.Layout.Column = 2;
 
-            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.pattern_label, 'FontColor', C.fg_text); lbl.Layout.Row = 1; lbl.Layout.Column = 3;
+            lbl = uilabel(ic_layout, 'Text', 'Pattern', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.ic_pattern = uidropdown(ic_layout, ...
                 'Items', O.ic_pattern_items, ...
                 'Value', D.ic_pattern, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_pattern.Layout.Row = 1; app.handles.ic_pattern.Layout.Column = 4;
 
-            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.scale_label, 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 1;
-            app.handles.ic_scale = uieditfield(ic_layout, 'numeric', 'Value', D.ic_scale, ...
-                'Limits', [0.1 10.0], 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_scale.Layout.Row = 2; app.handles.ic_scale.Layout.Column = 2;
+            % Equation rendered in LaTeX via uihtml (no white box)
+            app.handles.ic_equation = uihtml(ic_layout, ...
+                'HTMLSource', app.render_math_html('Stretched Gaussian', '\omega(x,y)=\exp(-a(x-x_0)^2-b(y-y_0)^2)'));
+            app.handles.ic_equation.Layout.Row = 2;
+            app.handles.ic_equation.Layout.Column = [1 2];
 
-            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.count_label, 'FontColor', C.fg_text); lbl.Layout.Row = 2; lbl.Layout.Column = 3;
-            app.handles.ic_count = uieditfield(ic_layout, 'numeric', 'Value', D.ic_count, ...
+            % Where clause rendered in LaTeX via uihtml (no white box)
+            app.handles.ic_where = uihtml(ic_layout, ...
+                'HTMLSource', app.render_where_html({'where:', 'a,b > 0 set spread', 'x0,y0 set center'}));
+            app.handles.ic_where.Layout.Row = 2;
+            app.handles.ic_where.Layout.Column = [3 4];
+
+            % IC-dependent coefficient controls (row 3: coefficients + scale/count)
+            coeff_grid = uigridlayout(ic_layout, [3, 4]);
+            coeff_grid.Layout.Row = 3; coeff_grid.Layout.Column = [1 4];
+            coeff_grid.ColumnWidth = {90, 80, 90, 80};
+            coeff_grid.RowHeight = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
+            coeff_grid.Padding = [0 0 0 0];
+            coeff_grid.RowSpacing = 2;
+
+            app.handles.ic_coeff1_label = uilabel(coeff_grid, 'Text', 'Stretch x (a):', 'FontColor', C.fg_text);
+            app.handles.ic_coeff1_label.Layout.Row = 1; app.handles.ic_coeff1_label.Layout.Column = 1;
+            app.handles.ic_coeff1 = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_coeff1, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_count.Layout.Row = 2; app.handles.ic_count.Layout.Column = 4;
-
-            if app.supports_equation_image_rendering() && (exist('uiimage', 'file') || exist('uiimage', 'builtin'))
-                app.handles.ic_equation = uiimage(ic_layout, ...
-                    'ImageSource', '', ...
-                    'ScaleMethod', 'fit');
-            else
-                app.handles.ic_equation = uihtml(ic_layout, ...
-                    'HTMLSource', app.render_math_html('Stretched Gaussian', '\omega(x,y)=\exp(-a(x-x_0)^2-b(y-y_0)^2)'));
-            end
-            app.handles.ic_equation.Layout.Row = 3;
-            app.handles.ic_equation.Layout.Column = [1 4];
-
-            app.handles.ic_where = uitextarea(ic_layout, ...
-                'Value', T.config.initial_condition.where_lines, ...
-                'Editable', 'off', 'FontSize', 10, 'WordWrap', 'on', ...
-                'BackgroundColor', C.bg_input, 'FontColor', C.fg_text);
-            app.handles.ic_where.Layout.Row = 4;
-            app.handles.ic_where.Layout.Column = [1 4];
-
-            app.handles.ic_coeff1_label = uilabel(ic_layout, 'Text', T.config.initial_condition.coeff1_label, 'FontColor', C.fg_text);
-            app.handles.ic_coeff1_label.Layout.Row = 5; app.handles.ic_coeff1_label.Layout.Column = 1;
-            app.handles.ic_coeff1 = uieditfield(ic_layout, 'numeric', 'Value', D.ic_coeff1, ...
+            app.handles.ic_coeff1.Layout.Row = 1; app.handles.ic_coeff1.Layout.Column = 2;
+            app.handles.ic_coeff2_label = uilabel(coeff_grid, 'Text', 'Stretch y (b):', 'FontColor', C.fg_text);
+            app.handles.ic_coeff2_label.Layout.Row = 1; app.handles.ic_coeff2_label.Layout.Column = 3;
+            app.handles.ic_coeff2 = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_coeff2, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff1.Layout.Row = 5; app.handles.ic_coeff1.Layout.Column = 2;
-            app.handles.ic_coeff2_label = uilabel(ic_layout, 'Text', T.config.initial_condition.coeff2_label, 'FontColor', C.fg_text);
-            app.handles.ic_coeff2_label.Layout.Row = 5; app.handles.ic_coeff2_label.Layout.Column = 3;
-            app.handles.ic_coeff2 = uieditfield(ic_layout, 'numeric', 'Value', D.ic_coeff2, ...
-                'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff2.Layout.Row = 5; app.handles.ic_coeff2.Layout.Column = 4;
+            app.handles.ic_coeff2.Layout.Row = 1; app.handles.ic_coeff2.Layout.Column = 4;
 
-            app.handles.ic_coeff3_label = uilabel(ic_layout, 'Text', T.config.initial_condition.coeff3_label, 'FontColor', C.fg_text);
-            app.handles.ic_coeff3_label.Layout.Row = 6; app.handles.ic_coeff3_label.Layout.Column = 1;
-            app.handles.ic_coeff3 = uieditfield(ic_layout, 'numeric', 'Value', D.ic_coeff3, ...
+            app.handles.ic_coeff3_label = uilabel(coeff_grid, 'Text', 'Coeff 3:', 'FontColor', C.fg_text);
+            app.handles.ic_coeff3_label.Layout.Row = 2; app.handles.ic_coeff3_label.Layout.Column = 1;
+            app.handles.ic_coeff3 = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_coeff3, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff3.Layout.Row = 6; app.handles.ic_coeff3.Layout.Column = 2;
-            app.handles.ic_coeff4_label = uilabel(ic_layout, 'Text', T.config.initial_condition.coeff4_label, 'FontColor', C.fg_text);
-            app.handles.ic_coeff4_label.Layout.Row = 6; app.handles.ic_coeff4_label.Layout.Column = 3;
-            app.handles.ic_coeff4 = uieditfield(ic_layout, 'numeric', 'Value', D.ic_coeff4, ...
+            app.handles.ic_coeff3.Layout.Row = 2; app.handles.ic_coeff3.Layout.Column = 2;
+            app.handles.ic_coeff4_label = uilabel(coeff_grid, 'Text', 'Coeff 4:', 'FontColor', C.fg_text);
+            app.handles.ic_coeff4_label.Layout.Row = 2; app.handles.ic_coeff4_label.Layout.Column = 3;
+            app.handles.ic_coeff4 = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_coeff4, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_coeff4.Layout.Row = 6; app.handles.ic_coeff4.Layout.Column = 4;
+            app.handles.ic_coeff4.Layout.Row = 2; app.handles.ic_coeff4.Layout.Column = 4;
 
-            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.center_x_label, 'FontColor', C.fg_text); lbl.Layout.Row = 7; lbl.Layout.Column = 1;
-            app.handles.ic_center_x = uieditfield(ic_layout, 'numeric', 'Value', D.ic_center_x, ...
+            lbl = uilabel(coeff_grid, 'Text', 'Center $x_0$:', 'FontColor', C.fg_text, 'Interpreter', 'latex');
+            lbl.Layout.Row = 3; lbl.Layout.Column = 1;
+            app.handles.ic_center_x = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_center_x, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_center_x.Layout.Row = 7; app.handles.ic_center_x.Layout.Column = 2;
-            lbl = uilabel(ic_layout, 'Text', T.config.initial_condition.center_y_label, 'FontColor', C.fg_text); lbl.Layout.Row = 7; lbl.Layout.Column = 3;
-            app.handles.ic_center_y = uieditfield(ic_layout, 'numeric', 'Value', D.ic_center_y, ...
+            app.handles.ic_center_x.Layout.Row = 3; app.handles.ic_center_x.Layout.Column = 2;
+            lbl = uilabel(coeff_grid, 'Text', 'Center $y_0$:', 'FontColor', C.fg_text, 'Interpreter', 'latex');
+            lbl.Layout.Row = 3; lbl.Layout.Column = 3;
+            app.handles.ic_center_y = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_center_y, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
-            app.handles.ic_center_y.Layout.Row = 7; app.handles.ic_center_y.Layout.Column = 4;
+            app.handles.ic_center_y.Layout.Row = 3; app.handles.ic_center_y.Layout.Column = 4;
 
-            app.handles.ic_status = uilabel(ic_layout, 'Text', T.config.initial_condition.status_ready, 'FontColor', C.fg_muted);
-            app.handles.ic_status.Layout.Row = 8;
-            app.handles.ic_status.Layout.Column = [1 4];
+            % Scale and count (row 4)
+            scale_row = uigridlayout(ic_layout, [1, 4]);
+            scale_row.Layout.Row = 4; scale_row.Layout.Column = [1 4];
+            scale_row.ColumnWidth = {90, 80, 90, 80};
+            scale_row.RowHeight = {cfg.heights.form_row};
+            scale_row.Padding = [0 0 0 0];
 
-            % IC preview
-            panel_preview = uipanel(right_layout, 'Title', T.config.preview.panel_title, ...
+            lbl = uilabel(scale_row, 'Text', 'Scale', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 1; lbl.Layout.Column = 1;
+            app.handles.ic_scale = uieditfield(scale_row, 'numeric', 'Value', D.ic_scale, ...
+                'Limits', [0.01 100.0], 'ValueChangedFcn', @(~,~) app.update_ic_preview());
+            app.handles.ic_scale.Layout.Row = 1; app.handles.ic_scale.Layout.Column = 2;
+
+            lbl = uilabel(scale_row, 'Text', 'Count (N)', 'FontColor', C.fg_text);
+            lbl.Layout.Row = 1; lbl.Layout.Column = 3;
+            app.handles.ic_count = uieditfield(scale_row, 'numeric', 'Value', D.ic_count, ...
+                'Limits', [1 50], 'ValueChangedFcn', @(~,~) app.update_ic_preview());
+            app.handles.ic_count.Layout.Row = 1; app.handles.ic_count.Layout.Column = 4;
+
+            app.handles.ic_status = uilabel(ic_layout, 'Text', '', 'FontColor', C.fg_muted);
+            app.handles.ic_status.Layout.Row = 4; app.handles.ic_status.Layout.Column = [1 4];
+            app.handles.ic_status.Visible = 'off';
+
+            % === Row 3: IC Preview (plot left + per-vortex settings right) ===
+            panel_preview = uipanel(right_layout, 'Title', 'IC Preview', ...
                 'BackgroundColor', C.bg_panel_alt);
-            panel_preview.Layout.Row = app.layout_cfg.coords.config.panel_preview(1);
-            panel_preview.Layout.Column = app.layout_cfg.coords.config.panel_preview(2);
-            preview_layout = uigridlayout(panel_preview, [1 1]);
-            preview_layout.Padding = [6 6 6 6];
-            app.handles.ic_preview_axes = uiaxes(preview_layout);
+            panel_preview.Layout.Row = 3; panel_preview.Layout.Column = 1;
+            preview_inner = uigridlayout(panel_preview, [1 2]);
+            preview_inner.ColumnWidth = {'3x', '1x'};
+            preview_inner.Padding = [4 4 4 4];
+            preview_inner.ColumnSpacing = 6;
+
+            % Left: preview axes
+            app.handles.ic_preview_axes = uiaxes(preview_inner);
+            app.handles.ic_preview_axes.Layout.Row = 1;
+            app.handles.ic_preview_axes.Layout.Column = 1;
             app.style_axes(app.handles.ic_preview_axes);
+
+            % Right: per-vortex scaling panel (dynamic)
+            vortex_ctrl_panel = uipanel(preview_inner, 'Title', 'Vortex Controls', ...
+                'BackgroundColor', C.bg_panel);
+            vortex_ctrl_panel.Layout.Row = 1;
+            vortex_ctrl_panel.Layout.Column = 2;
+            app.handles.vortex_ctrl_panel = vortex_ctrl_panel;
+            vortex_ctrl_grid = uigridlayout(vortex_ctrl_panel, [1 1]);
+            vortex_ctrl_grid.Padding = [4 4 4 4];
+            app.handles.vortex_ctrl_grid = vortex_ctrl_grid;
+            vortex_info = uilabel(vortex_ctrl_grid, 'Text', 'Single vortex mode', ...
+                'FontColor', C.fg_muted, 'WordWrap', 'on', 'FontSize', 10);
+            vortex_info.Layout.Row = 1; vortex_info.Layout.Column = 1;
+            app.handles.vortex_ctrl_info = vortex_info;
+
+            % Create dummy checklist handles for backward compatibility
+            app.handles.check_grid = uilabel(buttons_row, 'Text', '', 'Visible', 'off');
+            app.handles.check_grid.Layout.Row = 1; app.handles.check_grid.Layout.Column = 1;
+            app.handles.check_domain = app.handles.check_grid;
+            app.handles.check_time = app.handles.check_grid;
+            app.handles.check_ic = app.handles.check_grid;
+            app.handles.check_conv = app.handles.check_grid;
+            app.handles.check_monitor = app.handles.check_grid;
+            app.handles.check_collectors = app.handles.check_grid;
+            app.handles.check_outputs = app.handles.check_grid;
+            app.handles.defaults_source_info = app.handles.check_grid;
 
             % Initialize display
             app.update_grid_domain_plots();
@@ -3641,11 +3611,15 @@ classdef UIController < handle
                     'FontWeight', 'bold', ...
                     'Color', app.layout_cfg.colors.fg_text, ...
                     'Interpreter', 'latex');
-                xlabel(ax, '$x$', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
-                ylabel(ax, '$y$', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
+                xlabel(ax, '$L_x$', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
+                ylabel(ax, '$L_y$', 'FontSize', 10, 'Color', app.layout_cfg.colors.fg_text, 'Interpreter', 'latex');
                 axis(ax, 'equal');
                 xlim(ax, [-Lx/2 Lx/2]);
                 ylim(ax, [-Ly/2 Ly/2]);
+                ax.XTick = [-Lx/2 0 Lx/2];
+                ax.YTick = [-Ly/2 0 Ly/2];
+                ax.XTickLabel = {sprintf('%.1f', -Lx/2), '0', sprintf('%.1f', Lx/2)};
+                ax.YTickLabel = {sprintf('%.1f', -Ly/2), '0', sprintf('%.1f', Ly/2)};
                 grid(ax, 'on');
 
                 wmax = max(abs(Z), [], 'all');
@@ -3897,7 +3871,12 @@ classdef UIController < handle
                 end
             end
             if app.has_valid_handle('ic_where')
-                app.handles.ic_where.Value = where_lines;
+                wh = app.handles.ic_where;
+                if isprop(wh, 'HTMLSource')
+                    wh.HTMLSource = app.render_where_html(where_lines);
+                elseif isprop(wh, 'Value')
+                    wh.Value = where_lines;
+                end
             end
         end
 
@@ -4049,6 +4028,22 @@ classdef UIController < handle
             tf = usejava('desktop');
         end
 
+        function html = render_where_html(app, where_lines)
+            % Render "where:" clause as styled HTML (dark theme, no white box).
+            lines = string(where_lines);
+            body = "";
+            for i = 1:numel(lines)
+                line_txt = app.escape_html_text(char(lines(i)));
+                if i == 1
+                    body = body + "<b style='color:#80c7ff;'>" + line_txt + "</b>";
+                else
+                    body = body + "<br>" + line_txt;
+                end
+            end
+            html = char("<div style='font-family:Segoe UI,Arial,sans-serif;font-size:11px;color:#dcdcdc;" + ...
+                "line-height:1.3;padding:4px 6px;'>" + body + "</div>");
+        end
+
         function html = render_math_html(app, ic_name, eq_tex)
             eq_text = app.equation_tex_to_plain(eq_tex);
             eq_text = app.escape_html_text(eq_text);
@@ -4092,19 +4087,12 @@ classdef UIController < handle
             escaped = strrep(escaped, '>', '&gt;');
         end
 
-        function update_ic_compact_layout(app, visible_coeff_count)
+        function update_ic_compact_layout(app, ~)
+            % Layout is now handled by the simplified IC panel grid.
+            % No dynamic row height adjustments needed.
             if ~app.has_valid_handle('ic_layout')
                 return;
             end
-            n = max(2, min(4, round(visible_coeff_count)));
-            base_top = 34;
-            equation_h = 92;
-            where_h = 72;
-            coeff_total = 124;
-            coeff_row = max(28, floor(coeff_total / n));
-            center_row = max(28, 36 + (4 - n) * 4);
-            status_row = 28;
-            app.handles.ic_layout.RowHeight = {base_top, base_top, equation_h, where_h, coeff_row, coeff_row, center_row, status_row};
         end
 
         function load_converged_mesh_preset(app)
