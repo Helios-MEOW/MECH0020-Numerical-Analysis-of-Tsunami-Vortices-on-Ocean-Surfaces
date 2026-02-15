@@ -950,7 +950,7 @@ classdef UIController < handle
             panel_ic.Layout.Row = 2; panel_ic.Layout.Column = 1;
             ic_layout = uigridlayout(panel_ic, [4, 4]);
             ic_layout.ColumnWidth = {90, '1x', 90, '1x'};
-            ic_layout.RowHeight = {cfg.heights.form_row, 60, 'fit', 'fit'};
+            ic_layout.RowHeight = {app.layout_cfg.heights.form_row, 60, 'fit', 'fit'};
             ic_layout.Padding = [6 6 6 6];
             ic_layout.RowSpacing = 4;
             app.handles.ic_layout = ic_layout;
