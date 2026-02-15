@@ -1135,18 +1135,35 @@ classdef UIController < handle
 
                 if tile_idx == cfg.numeric_tile_index
                     numeric_panel = uipanel(dash_grid, ...
-                        'Title', app.layout_cfg.text.monitor_panels.numeric_tile, ...
+                        'Title', 'Metrics', ...
                         'BackgroundColor', C.bg_panel_alt);
                     numeric_panel.Layout.Row = row_idx;
                     numeric_panel.Layout.Column = col_idx;
-                    numeric_layout = uigridlayout(numeric_panel, [1 1]);
-                    numeric_layout.Padding = [4 4 4 4];
-                    app.handles.monitor_numeric_table = uitable(numeric_layout, ...
-                        'ColumnName', {T.numeric_tile.column_name}, ...
-                        'ColumnEditable', false, ...
-                        'ColumnWidth', {330}, ...
-                        'RowName', [], ...
-                        'Data', T.numeric_tile.placeholder_rows(:));
+                    % 2-column metrics grid instead of scrollable table
+                    metrics_grid = uigridlayout(numeric_panel, [11 4]);
+                    metrics_grid.Padding = [4 4 4 4];
+                    metrics_grid.RowSpacing = 2;
+                    metrics_grid.ColumnSpacing = 4;
+                    metrics_grid.ColumnWidth = {80, '1x', 80, '1x'};
+                    metrics_grid.RowHeight = repmat({16}, 1, 11);
+                    app.handles.monitor_metrics_grid = metrics_grid;
+                    app.handles.monitor_metric_labels = gobjects(0);
+                    app.handles.monitor_metric_values = gobjects(0);
+                    % Pre-create 22 label pairs (11 rows x 2 columns)
+                    for mi = 1:11
+                        lbl_l = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_muted, 'FontSize', 9);
+                        lbl_l.Layout.Row = mi; lbl_l.Layout.Column = 1;
+                        val_l = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_text, 'FontSize', 9);
+                        val_l.Layout.Row = mi; val_l.Layout.Column = 2;
+                        lbl_r = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_muted, 'FontSize', 9);
+                        lbl_r.Layout.Row = mi; lbl_r.Layout.Column = 3;
+                        val_r = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_text, 'FontSize', 9);
+                        val_r.Layout.Row = mi; val_r.Layout.Column = 4;
+                        app.handles.monitor_metric_labels(end+1) = lbl_l;
+                        app.handles.monitor_metric_values(end+1) = val_l;
+                        app.handles.monitor_metric_labels(end+1) = lbl_r;
+                        app.handles.monitor_metric_values(end+1) = val_r;
+                    end
                     continue;
                 end
 
@@ -2000,6 +2017,15 @@ classdef UIController < handle
             % Reset monitor plots/table to a clean per-run state while preserving files on disk.
             if nargin < 2 || isempty(cfg)
                 cfg = app.config;
+            end
+
+            % Clear all monitor axes to remove stale plot data
+            if isfield(app.handles, 'monitor_axes')
+                for ax_idx = 1:numel(app.handles.monitor_axes)
+                    if isvalid(app.handles.monitor_axes(ax_idx))
+                        cla(app.handles.monitor_axes(ax_idx));
+                    end
+                end
             end
 
             app.start_live_monitor_session(cfg);
@@ -5530,48 +5556,20 @@ classdef UIController < handle
         end
 
         function update_monitor_numeric_table(app, summary, cfg, monitor_series, mem_now, tol, conv_metric)
-            if ~app.has_valid_handle('monitor_numeric_table')
+            % Update 2-column metrics grid with key/value pairs.
+            has_grid = isfield(app.handles, 'monitor_metric_labels') && ...
+                ~isempty(app.handles.monitor_metric_labels);
+            has_table = app.has_valid_handle('monitor_numeric_table');
+            if ~has_grid && ~has_table
                 return;
             end
             M = app.layout_cfg.ui_text.monitor.numeric_tile;
-            CATS = M.categories;
             LABELS = M.labels;
             RT = app.layout_cfg.ui_text.monitor.runtime;
 
             machine = getenv('COMPUTERNAME');
-            if isempty(machine)
-                machine = getenv('HOSTNAME');
-            end
-            if isempty(machine)
-                machine = 'unknown_machine';
-            end
-            collectors = 'MATLAB';
-            probe_state = struct('cpuz', false, 'hwinfo', false, 'icue', false);
-            if isfield(app.handles, 'collector_probe_state') && isstruct(app.handles.collector_probe_state)
-                probe_state = app.handles.collector_probe_state;
-            end
-            if app.has_valid_handle('cpuz_enable') && app.handles.cpuz_enable.Value
-                if probe_state.cpuz
-                    collectors = collectors + "+CPU-Z(connected)";
-                else
-                    collectors = collectors + "+CPU-Z(missing)";
-                end
-            end
-            if app.has_valid_handle('hwinfo_enable') && app.handles.hwinfo_enable.Value
-                if probe_state.hwinfo
-                    collectors = collectors + "+HWiNFO(connected)";
-                else
-                    collectors = collectors + "+HWiNFO(missing)";
-                end
-            end
-            if app.has_valid_handle('icue_enable') && app.handles.icue_enable.Value
-                if probe_state.icue
-                    collectors = collectors + "+iCUE(connected)";
-                else
-                    collectors = collectors + "+iCUE(missing)";
-                end
-            end
-            collectors = char(string(collectors));
+            if isempty(machine); machine = getenv('HOSTNAME'); end
+            if isempty(machine); machine = 'unknown'; end
 
             run_mode = char(string(cfg.mode));
             norm_mode = app.normalize_mode_token(run_mode);
@@ -5579,94 +5577,105 @@ classdef UIController < handle
             max_omega_val = NaN;
             wall_time = NaN;
             if isfield(summary, 'results') && isstruct(summary.results)
-                if isfield(summary.results, 'run_id')
-                    run_id = char(string(summary.results.run_id));
-                end
+                if isfield(summary.results, 'run_id'); run_id = char(string(summary.results.run_id)); end
                 if isfield(summary.results, 'max_omega')
                     max_omega_val = summary.results.max_omega;
-                    if ~isscalar(max_omega_val)
-                        max_omega_val = max(abs(max_omega_val), [], 'all', 'omitnan');
-                    end
+                    if ~isscalar(max_omega_val); max_omega_val = max(abs(max_omega_val), [], 'all', 'omitnan'); end
                 end
-                if isfield(summary.results, 'wall_time')
-                    wall_time = summary.results.wall_time;
-                end
+                if isfield(summary.results, 'wall_time'); wall_time = summary.results.wall_time; end
             end
-            if isfield(summary, 'wall_time') && isfinite(summary.wall_time)
-                wall_time = summary.wall_time;
-            end
-            if ~isfinite(wall_time)
-                wall_time = NaN;
-            end
+            if isfield(summary, 'wall_time') && isfinite(summary.wall_time); wall_time = summary.wall_time; end
 
             status_text = RT.status_ready;
-            status_source = RT.source_ui;
             if isfield(summary, 'monitor_series') && isstruct(summary.monitor_series)
                 if isfield(summary.monitor_series, 'status_text')
                     status_text = char(string(summary.monitor_series.status_text));
                 else
                     status_text = RT.status_running;
                 end
-                status_source = RT.source_runtime;
             end
-            if ~isempty(strtrim(run_id))
-                status_text = RT.status_completed;
-                status_source = RT.source_dispatcher;
-            end
+            if ~isempty(strtrim(run_id)); status_text = RT.status_completed; end
 
-            suggested_n = NaN;
             conv_mode_active = strcmpi(norm_mode, 'convergence');
-            if conv_mode_active && isfinite(tol) && tol > 0 && isfinite(conv_metric)
-                if conv_metric <= 1.15 * tol
-                    if isfield(cfg, 'convergence_N_max') && isfinite(cfg.convergence_N_max)
-                        suggested_n = max(8, round(0.8 * cfg.convergence_N_max));
-                    end
-                elseif isfield(cfg, 'convergence_N_max')
-                    suggested_n = cfg.convergence_N_max;
-                end
-            end
-
+            conv_tol_d = 'N/A'; conv_met_d = 'N/A'; sug_n_d = 'N/A';
             if conv_mode_active
-                conv_tol_display = app.if_nan_num(tol);
-                conv_metric_display = app.if_nan_num(conv_metric);
-                suggested_n_display = app.if_nan_num(suggested_n);
-            else
-                conv_tol_display = 'N/A';
-                conv_metric_display = 'N/A';
-                suggested_n_display = 'N/A';
+                conv_tol_d = app.if_nan_num(tol);
+                conv_met_d = app.if_nan_num(conv_metric);
+                suggested_n = NaN;
+                if isfinite(tol) && tol > 0 && isfinite(conv_metric)
+                    if conv_metric <= 1.15 * tol && isfield(cfg, 'convergence_N_max') && isfinite(cfg.convergence_N_max)
+                        suggested_n = max(8, round(0.8 * cfg.convergence_N_max));
+                    elseif isfield(cfg, 'convergence_N_max')
+                        suggested_n = cfg.convergence_N_max;
+                    end
+                end
+                sug_n_d = app.if_nan_num(suggested_n);
             end
 
             iter_now = app.last_finite_from_series(monitor_series, 'iters');
             iter_rate_now = app.last_finite_from_series(monitor_series, 'iter_rate');
             cpu_now = app.last_finite_from_series(monitor_series, 'cpu_proxy');
-            if ~isfinite(cpu_now)
-                cpu_now = NaN;
-            end
 
-            rows = {
-                app.monitor_metric_line(CATS.session, LABELS.status, sprintf('%s [%s]', status_text, status_source), '');
-                app.monitor_metric_line(CATS.iteration, LABELS.runtime, app.if_nan_num(wall_time), 's');
-                app.monitor_metric_line(CATS.iteration, LABELS.iteration, app.if_nan_num(iter_now), 'iter');
-                app.monitor_metric_line(CATS.iteration, LABELS.iterations_per_sec, app.if_nan_num(iter_rate_now), 'iter/s');
-                app.monitor_metric_line(CATS.solution, LABELS.max_omega, app.if_nan_num(max_omega_val), '');
-                app.monitor_metric_line(CATS.computer, LABELS.cpu_usage, app.if_nan_num(cpu_now), '%');
-                app.monitor_metric_line(CATS.computer, LABELS.memory, app.if_nan_num(mem_now), 'MB');
-                app.monitor_metric_line(CATS.convergence, LABELS.tolerance, conv_tol_display, '');
-                app.monitor_metric_line(CATS.convergence, LABELS.metric, conv_metric_display, '');
-                app.monitor_metric_line(CATS.convergence, LABELS.suggested_coarse_n, suggested_n_display, '');
-                app.monitor_metric_line(CATS.grid, LABELS.mesh, sprintf('%dx%d', cfg.Nx, cfg.Ny), '');
-                app.monitor_metric_line(CATS.grid, LABELS.dt, sprintf('%.3g', cfg.dt), 's');
-                app.monitor_metric_line(CATS.grid, LABELS.tfinal, sprintf('%.3g', cfg.Tfinal), 's');
-                app.monitor_metric_line(CATS.grid, LABELS.domain_lx, sprintf('%.3g', cfg.Lx), 'm');
-                app.monitor_metric_line(CATS.grid, LABELS.domain_ly, sprintf('%.3g', cfg.Ly), 'm');
-                app.monitor_metric_line(CATS.session, LABELS.mode, app.humanize_token(run_mode), '');
-                app.monitor_metric_line(CATS.session, LABELS.method, app.humanize_token(cfg.method), '');
-                app.monitor_metric_line(CATS.session, LABELS.monitor_profile, sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode)), '');
-                app.monitor_metric_line(CATS.session, LABELS.run_id, app.if_empty(run_id, '--'), '');
-                app.monitor_metric_line(CATS.system, LABELS.machine, machine, '');
-                app.monitor_metric_line(CATS.system, LABELS.collectors, collectors, '')
+            % Build key/value pairs for 2-column layout (left column + right column)
+            pairs = {
+                LABELS.status, status_text;
+                LABELS.runtime, sprintf('%s s', app.if_nan_num(wall_time));
+                LABELS.iteration, sprintf('%s', app.if_nan_num(iter_now));
+                LABELS.iterations_per_sec, sprintf('%s it/s', app.if_nan_num(iter_rate_now));
+                LABELS.max_omega, app.if_nan_num(max_omega_val);
+                LABELS.cpu_usage, sprintf('%s%%', app.if_nan_num(cpu_now));
+                LABELS.memory, sprintf('%s MB', app.if_nan_num(mem_now));
+                LABELS.mesh, sprintf('%dx%d', cfg.Nx, cfg.Ny);
+                LABELS.dt, sprintf('%.3g s', cfg.dt);
+                LABELS.mode, app.humanize_token(run_mode);
+                LABELS.method, app.humanize_token(cfg.method);
+                LABELS.tolerance, conv_tol_d;
+                LABELS.metric, conv_met_d;
+                LABELS.suggested_coarse_n, sug_n_d;
+                LABELS.domain_lx, sprintf('%.3g m', cfg.Lx);
+                LABELS.domain_ly, sprintf('%.3g m', cfg.Ly);
+                LABELS.tfinal, sprintf('%.3g s', cfg.Tfinal);
+                LABELS.run_id, app.if_empty(run_id, '--');
+                LABELS.machine, machine;
+                'Collectors', 'MATLAB';
+                'Profile', sprintf('%s / %s', app.humanize_token(cfg.method), app.humanize_token(run_mode));
+                'Monitor', app.on_off(cfg.enable_monitoring);
             };
-            app.handles.monitor_numeric_table.Data = rows;
+
+            if has_grid
+                % Populate 2-column label grid (pairs flow column-first: left col then right col)
+                n_pairs = size(pairs, 1);
+                half = ceil(n_pairs / 2);
+                lbl_handles = app.handles.monitor_metric_labels;
+                val_handles = app.handles.monitor_metric_values;
+                slot = 0;
+                for row_i = 1:min(11, half)
+                    % Left column
+                    slot = slot + 1;
+                    if slot <= numel(lbl_handles) && isvalid(lbl_handles(slot))
+                        lbl_handles(slot).Text = char(string(pairs{row_i, 1}));
+                        val_handles(slot).Text = char(string(pairs{row_i, 2}));
+                    end
+                    % Right column
+                    slot = slot + 1;
+                    ri = row_i + half;
+                    if ri <= n_pairs && slot <= numel(lbl_handles) && isvalid(lbl_handles(slot))
+                        lbl_handles(slot).Text = char(string(pairs{ri, 1}));
+                        val_handles(slot).Text = char(string(pairs{ri, 2}));
+                    elseif slot <= numel(lbl_handles) && isvalid(lbl_handles(slot))
+                        lbl_handles(slot).Text = '';
+                        val_handles(slot).Text = '';
+                    end
+                end
+            elseif has_table
+                % Fallback: write to legacy uitable if present
+                CATS = M.categories;
+                rows = cell(size(pairs, 1), 1);
+                for ri = 1:size(pairs, 1)
+                    rows{ri} = sprintf('%s: %s', char(string(pairs{ri, 1})), char(string(pairs{ri, 2})));
+                end
+                app.handles.monitor_numeric_table.Data = rows;
+            end
         end
 
         function monitor_series = resolve_monitor_series(app, summary, cfg)
@@ -5943,6 +5952,9 @@ classdef UIController < handle
             ax.XColor = app.layout_cfg.colors.fg_text;
             ax.YColor = app.layout_cfg.colors.fg_text;
             ax.GridColor = app.layout_cfg.colors.accent_gray;
+            % Apply 2 decimal-place tick formatting to all monitor plots
+            ytickformat(ax, '%.2f');
+            xtickformat(ax, '%.2f');
 
             if exist('Legend_Format', 'file') == 2
                 try

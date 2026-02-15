@@ -190,8 +190,8 @@ function cfg = UI_Layout_Config()
     cfg.monitor_tab.sidebar.padding        = [8 8 8 8]; % Inner padding
     cfg.monitor_tab.sidebar.row_spacing    = 8;       % Vertical spacing
     cfg.monitor_tab.live_update = struct( ...
-        'refresh_stride', 2, ...           % Refresh plots every N accepted payloads
-        'min_refresh_seconds', 0.12, ...   % Time-based refresh floor
+        'refresh_stride', 1, ...           % Refresh plots every N accepted payloads
+        'min_refresh_seconds', 0.06, ...   % Time-based refresh floor
         'force_refresh_every', 25, ...     % Guaranteed refresh cadence
         'max_history_points', 500);        % Keep tail samples for responsive plotting
     all_methods = {'finite_difference', 'finite_volume', 'spectral'};
