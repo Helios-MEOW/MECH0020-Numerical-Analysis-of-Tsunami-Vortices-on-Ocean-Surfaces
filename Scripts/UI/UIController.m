@@ -731,25 +731,41 @@ classdef UIController < handle
             controls_grid.Layout.Row = 2;
             controls_grid.Layout.Column = 1;
             controls_grid.ColumnWidth = cfg_time_video.controls_col_widths;
-            controls_grid.RowHeight = {'fit'};
+            controls_grid.RowHeight = cfg_time_video.controls_row_heights;
             controls_grid.Padding = cfg_time_video.controls_padding;
             controls_grid.ColumnSpacing = 6;
+            controls_grid.RowSpacing = cfg_time_video.controls_row_spacing;
 
+            % Row 1: Play/Pause/Restart/Loop/Speed/Load buttons
             app.handles.btn_time_video_play = uibutton(controls_grid, 'Text', T.config.time.video_play_button, ...
-                'ButtonPushedFcn', @(~,~) app.play_time_video_triplet());
+                'ButtonPushedFcn', @(~,~) app.toggle_time_video_playback());
             app.handles.btn_time_video_play.Layout.Row = 1; app.handles.btn_time_video_play.Layout.Column = 1;
 
             app.handles.btn_time_video_pause = uibutton(controls_grid, 'Text', T.config.time.video_pause_button, ...
-                'ButtonPushedFcn', @(~,~) app.pause_time_video_triplet());
-            app.handles.btn_time_video_pause.Layout.Row = 1; app.handles.btn_time_video_pause.Layout.Column = 2;
+                'ButtonPushedFcn', @(~,~) app.pause_time_video_triplet(), ...
+                'Visible', 'off');
+            app.handles.btn_time_video_pause.Layout.Row = 1; app.handles.btn_time_video_pause.Layout.Column = 1;
 
             app.handles.btn_time_video_restart = uibutton(controls_grid, 'Text', T.config.time.video_restart_button, ...
                 'ButtonPushedFcn', @(~,~) app.restart_time_video_triplet());
-            app.handles.btn_time_video_restart.Layout.Row = 1; app.handles.btn_time_video_restart.Layout.Column = 3;
+            app.handles.btn_time_video_restart.Layout.Row = 1; app.handles.btn_time_video_restart.Layout.Column = 2;
+
+            app.handles.chk_time_video_loop = uicheckbox(controls_grid, ...
+                'Text', T.config.time.video_loop_checkbox, ...
+                'Value', false, ...
+                'ValueChangedFcn', @(src,~) app.on_time_video_loop_changed(src.Value));
+            app.handles.chk_time_video_loop.Layout.Row = 1; app.handles.chk_time_video_loop.Layout.Column = 3;
+
+            app.handles.dd_time_video_speed = uidropdown(controls_grid, ...
+                'Items', {'0.25x', '0.5x', '1x', '2x', '4x'}, ...
+                'ItemsData', [0.25, 0.5, 1.0, 2.0, 4.0], ...
+                'Value', 1.0, ...
+                'ValueChangedFcn', @(src,~) app.on_time_video_speed_changed(src.Value));
+            app.handles.dd_time_video_speed.Layout.Row = 1; app.handles.dd_time_video_speed.Layout.Column = 4;
 
             app.handles.btn_time_video_load = uibutton(controls_grid, 'Text', T.config.time.video_load_button, ...
                 'ButtonPushedFcn', @(~,~) app.load_time_video_triplet('AutoGenerate', true));
-            app.handles.btn_time_video_load.Layout.Row = 1; app.handles.btn_time_video_load.Layout.Column = 4;
+            app.handles.btn_time_video_load.Layout.Row = 1; app.handles.btn_time_video_load.Layout.Column = 5;
 
             app.handles.time_video_status = uilabel(controls_grid, ...
                 'Text', T.config.time.video_status_idle, ...
@@ -757,7 +773,18 @@ classdef UIController < handle
                 'HorizontalAlignment', 'left', ...
                 'WordWrap', 'on');
             app.handles.time_video_status.Layout.Row = 1;
-            app.handles.time_video_status.Layout.Column = 5;
+            app.handles.time_video_status.Layout.Column = 6;
+
+            % Row 2: Scrubber slider spanning all columns
+            app.handles.slider_time_video_scrubber = uislider(controls_grid, ...
+                'Limits', [0, 1], ...
+                'Value', 0, ...
+                'MajorTicks', [], ...
+                'MinorTicks', [], ...
+                'ValueChangedFcn', @(src,~) app.on_time_video_scrubber_moved(src.Value), ...
+                'ValueChangingFcn', @(src,evt) app.on_time_video_scrubber_moving(evt.Value));
+            app.handles.slider_time_video_scrubber.Layout.Row = 2;
+            app.handles.slider_time_video_scrubber.Layout.Column = [1 6];
 
             app.initialize_time_video_state();
 
@@ -5379,6 +5406,8 @@ classdef UIController < handle
                 'streams', streams, ...
                 'target_fps', max(1, cfg.default_fps), ...
                 'is_playing', false, ...
+                'loop_enabled', false, ...
+                'speed_multiplier', 1.0, ...
                 'last_loaded', char(datetime('now')));
         end
 
@@ -5459,6 +5488,15 @@ classdef UIController < handle
                 'TimerFcn', @(~,~) app.on_time_video_timer_tick());
             start(app.time_video_timer);
             app.time_video_state.is_playing = true;
+
+            % Update button visibility (show pause, hide play)
+            if app.has_valid_handle('btn_time_video_play')
+                app.handles.btn_time_video_play.Visible = 'off';
+            end
+            if app.has_valid_handle('btn_time_video_pause')
+                app.handles.btn_time_video_pause.Visible = 'on';
+            end
+
             app.update_time_video_status_label('Triplet status: playing');
         end
 
@@ -5468,6 +5506,15 @@ classdef UIController < handle
             if isstruct(app.time_video_state)
                 app.time_video_state.is_playing = false;
             end
+
+            % Update button visibility (show play, hide pause)
+            if app.has_valid_handle('btn_time_video_play')
+                app.handles.btn_time_video_play.Visible = 'on';
+            end
+            if app.has_valid_handle('btn_time_video_pause')
+                app.handles.btn_time_video_pause.Visible = 'off';
+            end
+
             app.update_time_video_status_label('Triplet status: paused');
         end
 
@@ -5491,9 +5538,94 @@ classdef UIController < handle
                 state.streams(idx) = app.render_time_video_frame(state.streams(idx), 1);
             end
             app.time_video_state = state;
+            app.update_scrubber_position();
             app.update_time_video_status_label('Triplet status: restarted');
             if was_playing
                 app.play_time_video_triplet();
+            end
+        end
+
+        function toggle_time_video_playback(app)
+            % Toggle between play and pause states.
+            if ~isstruct(app.time_video_state)
+                return;
+            end
+            is_playing = false;
+            if isfield(app.time_video_state, 'is_playing')
+                is_playing = app.time_video_state.is_playing;
+            end
+            if is_playing
+                app.pause_time_video_triplet();
+            else
+                app.play_time_video_triplet();
+            end
+        end
+
+        function on_time_video_loop_changed(app, loop_enabled)
+            % Update loop mode in video state.
+            if ~isstruct(app.time_video_state)
+                return;
+            end
+            app.time_video_state.loop_enabled = logical(loop_enabled);
+        end
+
+        function on_time_video_speed_changed(app, speed_multiplier)
+            % Update playback speed multiplier.
+            if ~isstruct(app.time_video_state)
+                return;
+            end
+            app.time_video_state.speed_multiplier = max(0.1, min(10.0, speed_multiplier));
+            % Restart timer with new speed if playing
+            if isfield(app.time_video_state, 'is_playing') && app.time_video_state.is_playing
+                was_playing = true;
+                app.pause_time_video_triplet();
+                if was_playing
+                    app.play_time_video_triplet();
+                end
+            end
+        end
+
+        function on_time_video_scrubber_moving(app, normalized_position)
+            % Preview frame while scrubber is being dragged (optional, can be disabled for performance).
+            % For now, just update on final position (ValueChangedFcn).
+        end
+
+        function on_time_video_scrubber_moved(app, normalized_position)
+            % Jump to specific frame based on scrubber position.
+            if ~isstruct(app.time_video_state) || ~isfield(app.time_video_state, 'streams')
+                return;
+            end
+            state = app.time_video_state;
+            for idx = 1:numel(state.streams)
+                stream = state.streams(idx);
+                if ~stream.available || stream.frame_count < 1
+                    continue;
+                end
+                target_frame = max(1, min(stream.frame_count, round(normalized_position * (stream.frame_count - 1)) + 1));
+                stream.frame_index = target_frame;
+                stream.phase = 0;
+                stream = app.render_time_video_frame(stream, target_frame);
+                state.streams(idx) = stream;
+            end
+            app.time_video_state = state;
+        end
+
+        function update_scrubber_position(app)
+            % Update scrubber slider to reflect current playback position.
+            if ~app.has_valid_handle('slider_time_video_scrubber')
+                return;
+            end
+            if ~isstruct(app.time_video_state) || ~isfield(app.time_video_state, 'streams')
+                return;
+            end
+            % Use first available stream to determine position
+            for idx = 1:numel(app.time_video_state.streams)
+                stream = app.time_video_state.streams(idx);
+                if stream.available && stream.frame_count > 1
+                    normalized_pos = (stream.frame_index - 1) / (stream.frame_count - 1);
+                    app.handles.slider_time_video_scrubber.Value = normalized_pos;
+                    return;
+                end
             end
         end
 
@@ -5503,24 +5635,66 @@ classdef UIController < handle
                 return;
             end
             target_fps = max(1, app.time_video_state.target_fps);
+            speed_mult = 1.0;
+            if isfield(app.time_video_state, 'speed_multiplier')
+                speed_mult = max(0.1, min(10.0, app.time_video_state.speed_multiplier));
+            end
+            loop_enabled = false;
+            if isfield(app.time_video_state, 'loop_enabled')
+                loop_enabled = logical(app.time_video_state.loop_enabled);
+            end
+
             state = app.time_video_state;
+            all_at_end = true;
+
             for idx = 1:numel(state.streams)
                 stream = state.streams(idx);
                 if ~stream.available || stream.frame_count < 2
                     continue;
                 end
-                stream.phase = stream.phase + stream.fps / target_fps;
+
+                % Apply speed multiplier to phase increment
+                stream.phase = stream.phase + (stream.fps / target_fps) * speed_mult;
                 advance = floor(stream.phase);
                 if advance < 1
                     state.streams(idx) = stream;
+                    if stream.frame_index < stream.frame_count
+                        all_at_end = false;
+                    end
                     continue;
                 end
                 stream.phase = stream.phase - advance;
-                stream.frame_index = mod(stream.frame_index - 1 + advance, stream.frame_count) + 1;
+
+                % Compute new frame index
+                new_index = stream.frame_index + advance;
+                if new_index > stream.frame_count
+                    if loop_enabled
+                        % Wrap around
+                        stream.frame_index = mod(new_index - 1, stream.frame_count) + 1;
+                        all_at_end = false;
+                    else
+                        % Clamp at end
+                        stream.frame_index = stream.frame_count;
+                    end
+                else
+                    stream.frame_index = new_index;
+                    if new_index < stream.frame_count
+                        all_at_end = false;
+                    end
+                end
+
                 stream = app.render_time_video_frame(stream, stream.frame_index);
                 state.streams(idx) = stream;
             end
+
             app.time_video_state = state;
+            app.update_scrubber_position();
+
+            % Stop playback if all streams reached the end and loop is disabled
+            if all_at_end && ~loop_enabled
+                app.pause_time_video_triplet();
+            end
+
             drawnow limitrate nocallbacks;
         end
 
