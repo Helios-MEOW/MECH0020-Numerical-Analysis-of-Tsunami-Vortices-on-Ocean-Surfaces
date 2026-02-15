@@ -94,6 +94,8 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.right.padding       = [8 8 8 8];   % Panel internal padding
     cfg.config_tab.right.row_spacing   = 6;           % Vertical spacing between panels
 
+    % ---- DEVELOPER GUIDE: Method Panel ----
+    % To add new solver methods or modes: edit method_grid rows and UIController.on_method_changed()
     % Method panel: 5x4 grid for algorithm/mode selectors (5 control rows, 4 columns)
     cfg.config_tab.method_grid.rows_cols    = [5, 4]; % 5 rows, 4 columns
     cfg.config_tab.method_grid.col_widths   = {'1x', '1x', '1x', '1x'};  % Equal-width columns
@@ -101,6 +103,12 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.method_grid.padding      = [6 6 6 6]; % Inner padding
     cfg.config_tab.method_grid.row_spacing  = 6;       % Vertical spacing
 
+    % ---- DEVELOPER GUIDE: Grid & Domain Panel ----
+    % To change the Grid & Domain 2x2 quad layout (settings, mesh, domain, resolution):
+    %   - Modify grid_quad below for the 2x2 outer layout
+    %   - Modify grid_grid below for the Grid Parameters sub-panel (Nx, Ny, Lx, Ly, delta, BCs)
+    %   - Plot rendering is in UIController.update_grid_domain_plots()
+    %   - BC dropdowns are created in UIController.create_config_tab() rows 4-5 of grid_layout
     % Grid & Domain panel: 2x2 quad layout (settings + 3 plots)
     cfg.config_tab.grid_quad.rows_cols     = [2, 2]; % 2x2 quadrant
     cfg.config_tab.grid_quad.col_widths    = {'1x', '1x'};
@@ -110,9 +118,9 @@ function cfg = UI_Layout_Config()
     cfg.config_tab.grid_quad.col_spacing   = 8;
 
     % Grid settings sub-grid: 3x4 for Nx, Ny, Lx, Ly, Delta, Grid points
-    cfg.config_tab.grid_grid.rows_cols     = [3, 4]; % 3 rows, 4 columns
+    cfg.config_tab.grid_grid.rows_cols     = [5, 4]; % 5 rows, 4 columns (grid params + BC editor)
     cfg.config_tab.grid_grid.col_widths    = {80, '1x', 80, '1x'};
-    cfg.config_tab.grid_grid.row_heights   = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
+    cfg.config_tab.grid_grid.row_heights   = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
     cfg.config_tab.grid_grid.padding       = [6 6 6 6];
 
     % Time panel: 2x4 grid for temporal parameters (dt, Tfinal, nu, etc.)
@@ -184,6 +192,10 @@ function cfg = UI_Layout_Config()
     cfg.monitor_tab.left.row_spacing = 10;          % Vertical spacing between tiles
     cfg.monitor_tab.left.col_spacing = 10;          % Horizontal spacing between tiles
 
+    % ---- DEVELOPER GUIDE: Monitor Tab ----
+    % To change monitor polling speed: edit live_update.min_refresh_seconds below
+    % To change metric labels/values font size: edit UIController.create_monitoring_tab() FontSize
+    % To add/remove/reorder monitor plots: edit metric_catalog below
     % Sidebar: 4x1 column for terminal, status, metrics, and run info
     cfg.monitor_tab.sidebar.rows_cols      = [4, 1]; % 4 rows, 1 column
     cfg.monitor_tab.sidebar.row_heights    = {36, 24, '1x', 'fit'};  % Fixed + flexible + auto-fit
@@ -191,7 +203,7 @@ function cfg = UI_Layout_Config()
     cfg.monitor_tab.sidebar.row_spacing    = 8;       % Vertical spacing
     cfg.monitor_tab.live_update = struct( ...
         'refresh_stride', 1, ...           % Refresh plots every N accepted payloads
-        'min_refresh_seconds', 0.06, ...   % Time-based refresh floor
+        'min_refresh_seconds', 0.04, ...   % Time-based refresh floor (lower = smoother)
         'force_refresh_every', 25, ...     % Guaranteed refresh cadence
         'max_history_points', 500);        % Keep tail samples for responsive plotting
     all_methods = {'finite_difference', 'finite_volume', 'spectral'};

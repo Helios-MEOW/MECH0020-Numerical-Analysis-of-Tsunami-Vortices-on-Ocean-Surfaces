@@ -556,6 +556,30 @@ classdef UIController < handle
             app.handles.grid_points = uilabel(grid_layout, 'Text', D.grid_points, 'FontColor', C.fg_text);
             app.handles.grid_points.Layout.Row = 3; app.handles.grid_points.Layout.Column = 4;
 
+            % --- Boundary Condition Editor (rows 4-5) ---
+            % Edit here to change available BC types or default selections.
+            bc_items = {'Periodic', 'Dirichlet', 'Neumann', 'Open/Absorbing'};
+            lbl = uilabel(grid_layout, 'Text', 'BC Top:', 'FontColor', C.fg_text, 'FontSize', 11);
+            lbl.Layout.Row = 4; lbl.Layout.Column = 1;
+            app.handles.bc_top = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
+            app.handles.bc_top.Layout.Row = 4; app.handles.bc_top.Layout.Column = 2;
+            lbl = uilabel(grid_layout, 'Text', 'BC Bottom:', 'FontColor', C.fg_text, 'FontSize', 11);
+            lbl.Layout.Row = 4; lbl.Layout.Column = 3;
+            app.handles.bc_bottom = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
+            app.handles.bc_bottom.Layout.Row = 4; app.handles.bc_bottom.Layout.Column = 4;
+            lbl = uilabel(grid_layout, 'Text', 'BC Left:', 'FontColor', C.fg_text, 'FontSize', 11);
+            lbl.Layout.Row = 5; lbl.Layout.Column = 1;
+            app.handles.bc_left = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
+            app.handles.bc_left.Layout.Row = 5; app.handles.bc_left.Layout.Column = 2;
+            lbl = uilabel(grid_layout, 'Text', 'BC Right:', 'FontColor', C.fg_text, 'FontSize', 11);
+            lbl.Layout.Row = 5; lbl.Layout.Column = 3;
+            app.handles.bc_right = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
+                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
+            app.handles.bc_right.Layout.Row = 5; app.handles.bc_right.Layout.Column = 4;
+
             % === Top-right quadrant: Mesh grid plot ===
             mesh_panel = uipanel(quad_layout, 'Title', 'Mesh Grid', ...
                 'BackgroundColor', C.bg_panel);
@@ -952,8 +976,13 @@ classdef UIController < handle
             ic_layout.RowSpacing = 4;
             app.handles.ic_layout = ic_layout;
 
+            % ---- DEVELOPER GUIDE: IC Panel ----
+            % To change IC types: edit O.ic_type_items in UI_Layout_Config.m ui_options
+            % To change IC equation display: edit update_ic_fields() switch/case below
+            % To change coefficient packing: edit build_ic_coeff_vector() below
+            % To change IC rendering: edit update_ic_preview() (contour/image + crosshairs)
             % IC type and pattern selectors
-            lbl = uilabel(ic_layout, 'Text', 'IC Type', 'FontColor', C.fg_text);
+            lbl = uilabel(ic_layout, 'Text', 'IC Type', 'FontColor', C.fg_text, 'FontSize', 12);
             lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.ic_dropdown = uidropdown(ic_layout, ...
                 'Items', O.ic_type_items, ...
@@ -961,7 +990,7 @@ classdef UIController < handle
                 'ValueChangedFcn', @(~,~) app.on_ic_changed());
             app.handles.ic_dropdown.Layout.Row = 1; app.handles.ic_dropdown.Layout.Column = 2;
 
-            lbl = uilabel(ic_layout, 'Text', 'Pattern', 'FontColor', C.fg_text);
+            lbl = uilabel(ic_layout, 'Text', 'Pattern', 'FontColor', C.fg_text, 'FontSize', 12);
             lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.ic_pattern = uidropdown(ic_layout, ...
                 'Items', O.ic_pattern_items, ...
@@ -989,34 +1018,34 @@ classdef UIController < handle
             coeff_grid.Padding = [0 0 0 0];
             coeff_grid.RowSpacing = 2;
 
-            app.handles.ic_coeff1_label = uilabel(coeff_grid, 'Text', 'Stretch x (a):', 'FontColor', C.fg_text);
+            app.handles.ic_coeff1_label = uilabel(coeff_grid, 'Text', 'Stretch x (a):', 'FontColor', C.fg_text, 'FontSize', 11);
             app.handles.ic_coeff1_label.Layout.Row = 1; app.handles.ic_coeff1_label.Layout.Column = 1;
             app.handles.ic_coeff1 = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_coeff1, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_coeff1.Layout.Row = 1; app.handles.ic_coeff1.Layout.Column = 2;
-            app.handles.ic_coeff2_label = uilabel(coeff_grid, 'Text', 'Stretch y (b):', 'FontColor', C.fg_text);
+            app.handles.ic_coeff2_label = uilabel(coeff_grid, 'Text', 'Stretch y (b):', 'FontColor', C.fg_text, 'FontSize', 11);
             app.handles.ic_coeff2_label.Layout.Row = 1; app.handles.ic_coeff2_label.Layout.Column = 3;
             app.handles.ic_coeff2 = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_coeff2, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_coeff2.Layout.Row = 1; app.handles.ic_coeff2.Layout.Column = 4;
 
-            app.handles.ic_coeff3_label = uilabel(coeff_grid, 'Text', 'Coeff 3:', 'FontColor', C.fg_text);
+            app.handles.ic_coeff3_label = uilabel(coeff_grid, 'Text', 'Coeff 3:', 'FontColor', C.fg_text, 'FontSize', 11);
             app.handles.ic_coeff3_label.Layout.Row = 2; app.handles.ic_coeff3_label.Layout.Column = 1;
             app.handles.ic_coeff3 = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_coeff3, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_coeff3.Layout.Row = 2; app.handles.ic_coeff3.Layout.Column = 2;
-            app.handles.ic_coeff4_label = uilabel(coeff_grid, 'Text', 'Coeff 4:', 'FontColor', C.fg_text);
+            app.handles.ic_coeff4_label = uilabel(coeff_grid, 'Text', 'Coeff 4:', 'FontColor', C.fg_text, 'FontSize', 11);
             app.handles.ic_coeff4_label.Layout.Row = 2; app.handles.ic_coeff4_label.Layout.Column = 3;
             app.handles.ic_coeff4 = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_coeff4, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_coeff4.Layout.Row = 2; app.handles.ic_coeff4.Layout.Column = 4;
 
-            lbl = uilabel(coeff_grid, 'Text', 'Center $x_0$:', 'FontColor', C.fg_text, 'Interpreter', 'latex');
+            lbl = uilabel(coeff_grid, 'Text', 'Center $x_0$:', 'FontColor', C.fg_text, 'Interpreter', 'latex', 'FontSize', 11);
             lbl.Layout.Row = 3; lbl.Layout.Column = 1;
             app.handles.ic_center_x = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_center_x, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_center_x.Layout.Row = 3; app.handles.ic_center_x.Layout.Column = 2;
-            lbl = uilabel(coeff_grid, 'Text', 'Center $y_0$:', 'FontColor', C.fg_text, 'Interpreter', 'latex');
+            lbl = uilabel(coeff_grid, 'Text', 'Center $y_0$:', 'FontColor', C.fg_text, 'Interpreter', 'latex', 'FontSize', 11);
             lbl.Layout.Row = 3; lbl.Layout.Column = 3;
             app.handles.ic_center_y = uieditfield(coeff_grid, 'numeric', 'Value', D.ic_center_y, ...
                 'ValueChangedFcn', @(~,~) app.update_ic_preview());
@@ -1029,13 +1058,13 @@ classdef UIController < handle
             scale_row.RowHeight = {app.layout_cfg.heights.form_row};
             scale_row.Padding = [0 0 0 0];
 
-            lbl = uilabel(scale_row, 'Text', 'Scale', 'FontColor', C.fg_text);
+            lbl = uilabel(scale_row, 'Text', 'Scale', 'FontColor', C.fg_text, 'FontSize', 12);
             lbl.Layout.Row = 1; lbl.Layout.Column = 1;
             app.handles.ic_scale = uieditfield(scale_row, 'numeric', 'Value', D.ic_scale, ...
                 'Limits', [0.01 100.0], 'ValueChangedFcn', @(~,~) app.update_ic_preview());
             app.handles.ic_scale.Layout.Row = 1; app.handles.ic_scale.Layout.Column = 2;
 
-            lbl = uilabel(scale_row, 'Text', 'Count (N)', 'FontColor', C.fg_text);
+            lbl = uilabel(scale_row, 'Text', 'Count (N)', 'FontColor', C.fg_text, 'FontSize', 12);
             lbl.Layout.Row = 1; lbl.Layout.Column = 3;
             app.handles.ic_count = uieditfield(scale_row, 'numeric', 'Value', D.ic_count, ...
                 'Limits', [1 50], 'ValueChangedFcn', @(~,~) app.update_ic_preview());
@@ -1045,34 +1074,17 @@ classdef UIController < handle
             app.handles.ic_status.Layout.Row = 4; app.handles.ic_status.Layout.Column = [1 4];
             app.handles.ic_status.Visible = 'off';
 
-            % === Row 3: IC Preview (plot left + per-vortex settings right) ===
+            % === Row 3: IC Preview (full-width plot) ===
             panel_preview = uipanel(right_layout, 'Title', 'IC Preview', ...
                 'BackgroundColor', C.bg_panel_alt);
             panel_preview.Layout.Row = 3; panel_preview.Layout.Column = 1;
-            preview_inner = uigridlayout(panel_preview, [1 2]);
-            preview_inner.ColumnWidth = {'3x', '1x'};
+            preview_inner = uigridlayout(panel_preview, [1 1]);
             preview_inner.Padding = [4 4 4 4];
-            preview_inner.ColumnSpacing = 6;
 
-            % Left: preview axes
             app.handles.ic_preview_axes = uiaxes(preview_inner);
             app.handles.ic_preview_axes.Layout.Row = 1;
             app.handles.ic_preview_axes.Layout.Column = 1;
             app.style_axes(app.handles.ic_preview_axes);
-
-            % Right: per-vortex scaling panel (dynamic)
-            vortex_ctrl_panel = uipanel(preview_inner, 'Title', 'Vortex Controls', ...
-                'BackgroundColor', C.bg_panel);
-            vortex_ctrl_panel.Layout.Row = 1;
-            vortex_ctrl_panel.Layout.Column = 2;
-            app.handles.vortex_ctrl_panel = vortex_ctrl_panel;
-            vortex_ctrl_grid = uigridlayout(vortex_ctrl_panel, [1 1]);
-            vortex_ctrl_grid.Padding = [4 4 4 4];
-            app.handles.vortex_ctrl_grid = vortex_ctrl_grid;
-            vortex_info = uilabel(vortex_ctrl_grid, 'Text', 'Single vortex mode', ...
-                'FontColor', C.fg_muted, 'WordWrap', 'on', 'FontSize', 10);
-            vortex_info.Layout.Row = 1; vortex_info.Layout.Column = 1;
-            app.handles.vortex_ctrl_info = vortex_info;
 
             % Create dummy checklist handles for backward compatibility
             app.handles.check_grid = uilabel(buttons_row, 'Text', '', 'Visible', 'off');
@@ -1150,19 +1162,19 @@ classdef UIController < handle
                     metrics_grid.RowSpacing = 2;
                     metrics_grid.ColumnSpacing = 4;
                     metrics_grid.ColumnWidth = {80, '1x', 80, '1x'};
-                    metrics_grid.RowHeight = repmat({16}, 1, 11);
+                    metrics_grid.RowHeight = repmat({20}, 1, 11);
                     app.handles.monitor_metrics_grid = metrics_grid;
                     app.handles.monitor_metric_labels = gobjects(0);
                     app.handles.monitor_metric_values = gobjects(0);
                     % Pre-create 22 label pairs (11 rows x 2 columns)
                     for mi = 1:11
-                        lbl_l = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_muted, 'FontSize', 9);
+                        lbl_l = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_muted, 'FontSize', 11);
                         lbl_l.Layout.Row = mi; lbl_l.Layout.Column = 1;
-                        val_l = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_text, 'FontSize', 9);
+                        val_l = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_text, 'FontSize', 11);
                         val_l.Layout.Row = mi; val_l.Layout.Column = 2;
-                        lbl_r = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_muted, 'FontSize', 9);
+                        lbl_r = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_muted, 'FontSize', 11);
                         lbl_r.Layout.Row = mi; lbl_r.Layout.Column = 3;
-                        val_r = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_text, 'FontSize', 9);
+                        val_r = uilabel(metrics_grid, 'Text', '--', 'FontColor', C.fg_text, 'FontSize', 11);
                         val_r.Layout.Row = mi; val_r.Layout.Column = 4;
                         app.handles.monitor_metric_labels(end+1) = lbl_l;
                         app.handles.monitor_metric_values(end+1) = val_l;
@@ -1974,16 +1986,24 @@ classdef UIController < handle
                     x2 = x0 + sep / 2;
                     ic_coeff = [gamma1, rad, x1, y0, gamma2, x2];
                 case 'multi_vortex'
-                    [centers_x, centers_y] = app.build_vortex_centers(max(3, n_vort), pattern, app.handles.Lx.Value, app.handles.Ly.Value, x0, y0);
-                    if numel(centers_x) < 3
-                        centers_x = [centers_x(:); zeros(3-numel(centers_x),1)];
-                        centers_y = [centers_y(:); zeros(3-numel(centers_y),1)];
+                    % Pack N vortices with 4 coefficients each: [G R x y] per vortex.
+                    % N comes from the Count (N) UI field.
+                    n_actual = max(1, n_vort);
+                    [centers_x, centers_y] = app.build_vortex_centers(n_actual, pattern, app.handles.Lx.Value, app.handles.Ly.Value, x0, y0);
+                    if numel(centers_x) < n_actual
+                        centers_x = [centers_x(:); zeros(n_actual-numel(centers_x),1)];
+                        centers_y = [centers_y(:); zeros(n_actual-numel(centers_y),1)];
                     end
                     g = c1 * scale;
                     r = max(c2, 1e-6);
-                    ic_coeff = [g, r, centers_x(1), centers_y(1), ...
-                                g, r, centers_x(2), centers_y(2), ...
-                                g, centers_x(3), centers_y(3), r];
+                    ic_coeff = zeros(1, 4 * n_actual);
+                    for vi = 1:n_actual
+                        idx = (vi - 1) * 4;
+                        ic_coeff(idx + 1) = g;
+                        ic_coeff(idx + 2) = r;
+                        ic_coeff(idx + 3) = centers_x(vi);
+                        ic_coeff(idx + 4) = centers_y(vi);
+                    end
                 otherwise
                     ic_coeff = [c1, c2, c3, c4, x0, y0];
             end
@@ -2270,9 +2290,9 @@ classdef UIController < handle
         function policy = resolve_monitor_update_policy(app, cfg)
             % Resolve live-monitor redraw policy from layout config with safe defaults.
             policy = struct( ...
-                'refresh_stride', 2, ...
-                'min_refresh_seconds', 0.12, ...
-                'force_refresh_every', 25, ...
+                'refresh_stride', 1, ...
+                'min_refresh_seconds', 0.04, ...
+                'force_refresh_every', 10, ...
                 'max_history_points', 500);
 
             if isfield(app.layout_cfg, 'monitor_tab') && isfield(app.layout_cfg.monitor_tab, 'live_update')
@@ -2422,6 +2442,11 @@ classdef UIController < handle
 
         function update_grid_domain_plots(app)
             % Update delta display + all three grid/domain plots
+            % ---- DEVELOPER GUIDE ----
+            % Mesh plot: grid lines + 5-point stencil; edit below to change stencil style
+            % Domain plot: reads BC dropdowns (bc_top/bottom/left/right handles); edit to change arrow style
+            % Resolution preview: shows dx, dy, delta from Grid Parameters panel
+            % BC colors: mapped in bc_color_map struct below
             app.update_delta();
             C = app.layout_cfg.colors;
 
@@ -2446,11 +2471,31 @@ classdef UIController < handle
                     plot(ax, [-Lx/2 Lx/2], [y_lines(j) y_lines(j)], '-', ...
                         'Color', [0.3 0.7 1.0 0.4], 'LineWidth', 0.5);
                 end
+
+                % --- 5-point computational stencil diagram ---
+                % Draw a small stencil at the mesh center to illustrate the FD molecule.
+                dx_mol = Lx / n_show_x;
+                dy_mol = Ly / n_show_y;
+                cx = 0; cy = 0; % stencil center
+                mol_pts_x = [cx, cx+dx_mol, cx-dx_mol, cx, cx];
+                mol_pts_y = [cy, cy, cy, cy+dy_mol, cy-dy_mol];
+                % Stencil arms (connecting lines)
+                plot(ax, [cx-dx_mol cx+dx_mol], [cy cy], '-', 'Color', C.accent_yellow, 'LineWidth', 1.5);
+                plot(ax, [cx cx], [cy-dy_mol cy+dy_mol], '-', 'Color', C.accent_yellow, 'LineWidth', 1.5);
+                % Center node (i,j)
+                plot(ax, cx, cy, 'o', 'Color', C.accent_red, 'MarkerFaceColor', C.accent_red, 'MarkerSize', 7);
+                % Neighbor nodes
+                plot(ax, mol_pts_x(2:end), mol_pts_y(2:end), 'o', 'Color', C.accent_yellow, ...
+                    'MarkerFaceColor', C.accent_yellow, 'MarkerSize', 5);
+                % Stencil labels
+                text(ax, cx, cy + dy_mol*0.35, '$(i,j)$', 'Color', C.fg_text, ...
+                    'FontSize', 9, 'HorizontalAlignment', 'center', 'Interpreter', 'latex');
+
                 hold(ax, 'off');
-                xlabel(ax, '$L_x$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
-                ylabel(ax, '$L_y$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                xlabel(ax, '$L_x$', 'Interpreter', 'latex', 'FontSize', 12, 'Color', C.fg_text);
+                ylabel(ax, '$L_y$', 'Interpreter', 'latex', 'FontSize', 12, 'Color', C.fg_text);
                 title(ax, sprintf('Mesh: $%d \\times %d$', Nx, Ny), 'Interpreter', 'latex', ...
-                    'FontSize', 10, 'Color', C.fg_text);
+                    'FontSize', 12, 'Color', C.fg_text);
                 xlim(ax, [-Lx/2, Lx/2]); ylim(ax, [-Ly/2, Ly/2]);
                 ax.XTick = [-Lx/2, 0, Lx/2]; ax.YTick = [-Ly/2, 0, Ly/2];
                 axis(ax, 'equal');
@@ -2458,6 +2503,7 @@ classdef UIController < handle
             end
 
             % --- Domain & Boundary conditions plot (bottom-left) ---
+            % Reads BC types from the 4 boundary dropdowns and color-codes arrows.
             if app.has_valid_handle('grid_domain_axes')
                 ax = app.handles.grid_domain_axes;
                 cla(ax);
@@ -2466,46 +2512,88 @@ classdef UIController < handle
                 rectangle(ax, 'Position', [-Lx/2 -Ly/2 Lx Ly], ...
                     'EdgeColor', C.accent_cyan, 'LineWidth', 2.0, ...
                     'LineStyle', '-');
-                % Periodic arrows on each boundary
-                bc_color = C.accent_green;
+
+                % Helper: map BC type to color
+                bc_color_map = struct( ...
+                    'Periodic', C.accent_green, ...
+                    'Dirichlet', C.accent_cyan, ...
+                    'Neumann', C.accent_yellow, ...
+                    'Open_Absorbing', C.accent_red);
+                bc_color_fn = @(bc) app.resolve_bc_color(bc, bc_color_map, C.fg_muted);
+
+                % Read BC selections (safe defaults)
+                bc_top    = app.safe_bc_value('bc_top',    'Periodic');
+                bc_bottom = app.safe_bc_value('bc_bottom', 'Periodic');
+                bc_left   = app.safe_bc_value('bc_left',   'Periodic');
+                bc_right  = app.safe_bc_value('bc_right',  'Periodic');
+
                 arr_len = min(Lx, Ly) * 0.15;
+
                 % Top boundary
-                quiver(ax, 0, Ly/2, arr_len, 0, 0, 'Color', bc_color, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
-                text(ax, 0, Ly/2 + Ly*0.06, 'Periodic', 'Color', bc_color, ...
-                    'HorizontalAlignment', 'center', 'FontSize', 8, 'Interpreter', 'latex');
+                c_top = bc_color_fn(bc_top);
+                quiver(ax, 0, Ly/2, arr_len, 0, 0, 'Color', c_top, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
+                text(ax, 0, Ly/2 + Ly*0.06, bc_top, 'Color', c_top, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 9);
                 % Bottom boundary
-                quiver(ax, 0, -Ly/2, arr_len, 0, 0, 'Color', bc_color, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
-                text(ax, 0, -Ly/2 - Ly*0.06, 'Periodic', 'Color', bc_color, ...
-                    'HorizontalAlignment', 'center', 'FontSize', 8, 'Interpreter', 'latex');
+                c_bot = bc_color_fn(bc_bottom);
+                quiver(ax, 0, -Ly/2, arr_len, 0, 0, 'Color', c_bot, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
+                text(ax, 0, -Ly/2 - Ly*0.06, bc_bottom, 'Color', c_bot, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 9);
                 % Left boundary
-                quiver(ax, -Lx/2, 0, 0, arr_len, 0, 'Color', bc_color, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
-                text(ax, -Lx/2 - Lx*0.08, 0, 'Periodic', 'Color', bc_color, ...
-                    'HorizontalAlignment', 'center', 'FontSize', 8, 'Rotation', 90, 'Interpreter', 'latex');
+                c_left = bc_color_fn(bc_left);
+                quiver(ax, -Lx/2, 0, 0, arr_len, 0, 'Color', c_left, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
+                text(ax, -Lx/2 - Lx*0.08, 0, bc_left, 'Color', c_left, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 9, 'Rotation', 90);
                 % Right boundary
-                quiver(ax, Lx/2, 0, 0, arr_len, 0, 'Color', bc_color, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
-                text(ax, Lx/2 + Lx*0.08, 0, 'Periodic', 'Color', bc_color, ...
-                    'HorizontalAlignment', 'center', 'FontSize', 8, 'Rotation', 90, 'Interpreter', 'latex');
+                c_right = bc_color_fn(bc_right);
+                quiver(ax, Lx/2, 0, 0, arr_len, 0, 'Color', c_right, 'LineWidth', 1.5, 'MaxHeadSize', 0.8);
+                text(ax, Lx/2 + Lx*0.08, 0, bc_right, 'Color', c_right, ...
+                    'HorizontalAlignment', 'center', 'FontSize', 9, 'Rotation', 90);
+
                 % Domain size annotations
                 text(ax, 0, -Ly/2 - Ly*0.16, sprintf('$L_x = %.2g$', Lx), 'Color', C.fg_text, ...
-                    'HorizontalAlignment', 'center', 'FontSize', 9, 'Interpreter', 'latex');
+                    'HorizontalAlignment', 'center', 'FontSize', 10, 'Interpreter', 'latex');
                 text(ax, Lx/2 + Lx*0.18, 0, sprintf('$L_y = %.2g$', Ly), 'Color', C.fg_text, ...
-                    'HorizontalAlignment', 'center', 'FontSize', 9, 'Rotation', 90, 'Interpreter', 'latex');
+                    'HorizontalAlignment', 'center', 'FontSize', 10, 'Rotation', 90, 'Interpreter', 'latex');
+
+                % BC color legend (one entry per unique BC type)
+                bc_types_used = unique({bc_top, bc_bottom, bc_left, bc_right}, 'stable');
+                legend_h = gobjects(0);
+                legend_names = {};
+                for bi = 1:numel(bc_types_used)
+                    bci = bc_types_used{bi};
+                    h = plot(ax, NaN, NaN, 's', 'Color', bc_color_fn(bci), ...
+                        'MarkerFaceColor', bc_color_fn(bci), 'MarkerSize', 8);
+                    legend_h(end+1) = h; %#ok<AGROW>
+                    legend_names{end+1} = bci; %#ok<AGROW>
+                end
+                leg = legend(ax, legend_h, legend_names, 'Location', 'southeast', ...
+                    'TextColor', C.fg_text, 'Color', C.bg_panel, 'FontSize', 8, ...
+                    'EdgeColor', C.fg_muted);
+                leg.BoxFace.ColorType = 'truecoloralpha';
+                leg.BoxFace.ColorData = uint8([30; 30; 30; 180]);
+
                 hold(ax, 'off');
-                xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
-                ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                % Remove x/y axis labels — the plot is schematic, not data
+                ax.XTickLabel = {};
+                ax.YTickLabel = {};
+                xlabel(ax, '');
+                ylabel(ax, '');
                 title(ax, 'Domain \& Boundary Conditions', 'Interpreter', 'latex', ...
-                    'FontSize', 10, 'Color', C.fg_text);
+                    'FontSize', 11, 'Color', C.fg_text);
                 margin = max(Lx, Ly) * 0.3;
                 xlim(ax, [-Lx/2 - margin, Lx/2 + margin]);
                 ylim(ax, [-Ly/2 - margin, Ly/2 + margin]);
                 axis(ax, 'equal'); grid(ax, 'off');
             end
 
-            % --- Resolution preview placeholder (bottom-right) ---
+            % --- Resolution preview (bottom-right) ---
+            % Uses delta from the Grid Parameters panel on the same page.
             if app.has_valid_handle('grid_placeholder_axes')
                 ax = app.handles.grid_placeholder_axes;
                 cla(ax);
                 dx = Lx / Nx; dy = Ly / Ny;
+                delta_val = app.handles.delta.Value;
                 n_prev = min(16, min(Nx, Ny));
                 x_prev = linspace(-Lx/2, -Lx/2 + n_prev*dx, n_prev+1);
                 y_prev = linspace(-Ly/2, -Ly/2 + n_prev*dy, n_prev+1);
@@ -2519,10 +2607,10 @@ classdef UIController < handle
                         'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
                 end
                 hold(ax, 'off');
-                xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
-                ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
-                title(ax, sprintf('Cell: $\\Delta x=%.3g,\\;\\Delta y=%.3g$', dx, dy), ...
-                    'Interpreter', 'latex', 'FontSize', 10, 'Color', C.fg_text);
+                xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
+                ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
+                title(ax, sprintf('$\\Delta x=%.3g,\\;\\Delta y=%.3g,\\;\\delta=%.3g$', dx, dy, delta_val), ...
+                    'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
                 axis(ax, 'equal'); grid(ax, 'off');
             end
         end
@@ -3485,7 +3573,7 @@ classdef UIController < handle
 
         function update_terminal_from_diary(app)
             % Refresh terminal panel from MATLAB diary file.
-            % This keeps the embedded terminal synchronized with command-window output.
+            % Only reads NEW bytes since last check to avoid duplicated output.
             if isempty(app.diary_file) || ~isfile(app.diary_file)
                 return;
             end
@@ -3497,30 +3585,29 @@ classdef UIController < handle
             if isempty(file_info)
                 return;
             end
-            if file_info.bytes == app.diary_last_size
+            current_size = file_info.bytes;
+            if current_size <= app.diary_last_size
                 return;
             end
-            app.diary_last_size = file_info.bytes;
 
             try
-                txt = fileread(app.diary_file);
-                lines = splitlines(string(txt));
-                lines = lines(strlength(strtrim(lines)) > 0);
-                if isempty(lines)
+                % Read only the new bytes appended since last read
+                fid = fopen(app.diary_file, 'r');
+                if fid < 0, return; end
+                fseek(fid, app.diary_last_size, 'bof');
+                new_text = fread(fid, current_size - app.diary_last_size, '*char')';
+                fclose(fid);
+                app.diary_last_size = current_size;
+
+                new_lines = splitlines(string(new_text));
+                new_lines = new_lines(strlength(strtrim(new_lines)) > 0);
+                if isempty(new_lines)
                     return;
                 end
-                if numel(lines) > 500
-                    lines = lines(end-499:end);
-                end
 
-                existing = string(app.terminal_log);
-                for i = 1:numel(lines)
-                    line_i = char(lines(i));
-                    if isempty(existing) || ~strcmp(existing(end), string(line_i))
-                        app.terminal_log{end+1} = line_i;
-                        app.terminal_type_log{end+1} = 'debug';
-                        existing(end+1) = string(line_i); %#ok<AGROW>
-                    end
+                for i = 1:numel(new_lines)
+                    app.terminal_log{end+1} = char(new_lines(i));
+                    app.terminal_type_log{end+1} = 'debug';
                 end
                 if numel(app.terminal_log) > 500
                     app.terminal_log = app.terminal_log(end-499:end);
@@ -3725,6 +3812,13 @@ classdef UIController < handle
                     'EdgeColor', app.layout_cfg.colors.accent_gray, ...
                     'LineStyle', '--', ...
                     'LineWidth', 1.0);
+                % Crosshair lines at vortex center (x0, y0)
+                x0_ch = app.handles.ic_center_x.Value;
+                y0_ch = app.handles.ic_center_y.Value;
+                xline(ax, x0_ch, ':', 'Color', [1 1 1 0.5], 'LineWidth', 0.8);
+                yline(ax, y0_ch, ':', 'Color', [1 1 1 0.5], 'LineWidth', 0.8);
+                plot(ax, x0_ch, y0_ch, '+', 'Color', app.layout_cfg.colors.accent_cyan, ...
+                    'MarkerSize', 10, 'LineWidth', 1.5);
                 hold(ax, 'off');
 
                 colormap(ax, 'turbo');
@@ -4984,6 +5078,26 @@ classdef UIController < handle
                 catch
                     tf = false;
                 end
+            end
+        end
+
+        function bc_val = safe_bc_value(app, handle_name, default_val)
+            % Read a BC dropdown value safely, returning default if handle missing.
+            if app.has_valid_handle(handle_name)
+                bc_val = char(string(app.handles.(handle_name).Value));
+            else
+                bc_val = default_val;
+            end
+        end
+
+        function c = resolve_bc_color(~, bc_type, color_map, fallback)
+            % Map a boundary-condition name to its display color.
+            key = strrep(bc_type, '/', '_');
+            key = matlab.lang.makeValidName(key);
+            if isfield(color_map, key)
+                c = color_map.(key);
+            else
+                c = fallback;
             end
         end
 

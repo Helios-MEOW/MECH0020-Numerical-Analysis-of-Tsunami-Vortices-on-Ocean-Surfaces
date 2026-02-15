@@ -136,23 +136,23 @@ function omega = initialise_omega(X, Y, ic_type, ic_coeff)
             omega = vort1 + vort2;
 
         case 'multi_vortex'
+            % Coeff layout: [G1 R1 x1 y1  G2 R2 x2 y2  ... GN RN xN yN]
+            % Each vortex uses 4 coefficients: Gamma, R, x_center, y_center.
+            % The vortex count N is inferred from numel(ic_coeff) / 4.
             omega = zeros(size(X));
-            if numel(ic_coeff) >= 10
-                % Coeff layout: [G1 R1 x1 y1 G2 R2 x2 y2 G3 x3 y3 (R3 optional)]
-                G1 = ic_coeff(1); R1 = ic_coeff(2); x1 = ic_coeff(3); y1 = ic_coeff(4);
-                omega = omega + G1/(2*pi*R1^2) * exp(-((X-x1).^2 + (Y-y1).^2)/(2*R1^2));
-
-                G2 = ic_coeff(5); R2 = ic_coeff(6); x2 = ic_coeff(7); y2 = ic_coeff(8);
-                omega = omega + G2/(2*pi*R2^2) * exp(-((X-x2).^2 + (Y-y2).^2)/(2*R2^2));
-
-                G3 = ic_coeff(9); x3 = ic_coeff(10); y3 = ic_coeff(11);
-                R3 = 1.5;
-                if numel(ic_coeff) >= 12
-                    R3 = ic_coeff(12);
+            n_coeff = numel(ic_coeff);
+            if n_coeff >= 4
+                n_vort = floor(n_coeff / 4);
+                for vi = 1:n_vort
+                    idx = (vi - 1) * 4;
+                    Gi = ic_coeff(idx + 1);
+                    Ri = max(ic_coeff(idx + 2), 1e-6);
+                    xi = ic_coeff(idx + 3);
+                    yi = ic_coeff(idx + 4);
+                    omega = omega + Gi/(2*pi*Ri^2) * exp(-((X-xi).^2 + (Y-yi).^2)/(2*Ri^2));
                 end
-                omega = omega + G3/(2*pi*R3^2) * exp(-((X-x3).^2 + (Y-y3).^2)/(2*R3^2));
             else
-                error('multi_vortex requires at least 10 coefficients');
+                error('multi_vortex requires at least 4 coefficients (one vortex: [G, R, x, y])');
             end
 
         case 'counter_rotating_pair'
