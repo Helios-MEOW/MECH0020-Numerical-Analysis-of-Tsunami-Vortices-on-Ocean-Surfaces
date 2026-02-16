@@ -38,10 +38,14 @@
     paths = PathBuilder.get_run_paths(Run_Config.method, Run_Config.mode, Run_Config.run_id, output_root);
     PathBuilder.ensure_directories(paths);
 
-    % Save configuration
+    % Save configuration (filter out graphics objects to avoid warnings)
+    Run_Config_clean = filter_graphics_objects(Run_Config);
+    Parameters_clean = filter_graphics_objects(Parameters);
+    Settings_clean = filter_graphics_objects(Settings);
+
     config_path = fullfile(paths.config, sprintf('Config_%s.mat', Run_Config.run_id));
-    save(config_path, 'Run_Config', 'Parameters', 'Settings');
-    save(fullfile(paths.config, 'Config.mat'), 'Run_Config', 'Parameters', 'Settings');
+    save(config_path, 'Run_Config_clean', 'Parameters_clean', 'Settings_clean');
+    save(fullfile(paths.config, 'Config.mat'), 'Run_Config_clean', 'Parameters_clean', 'Settings_clean');
 
     % ===== METHOD DISPATCH =====
     % Resolve method callbacks (init, step, diagnostics)
@@ -89,6 +93,13 @@
     % Progress reporting
     progress_stride = max(1, round(Nt / 20));
 
+    % Create progress bar if not using UI callback
+    use_progress_bar = isempty(progress_callback);
+    if use_progress_bar
+        pb = ProgressBar(Nt, 'Prefix', sprintf('[%s Evolution]', Run_Config.method), ...
+            'BarWidth', 50, 'UpdateInterval', 0.1);
+    end
+
     % Time history for diagnostics
     time_vec = zeros(1, Nt + 1);
     time_vec(1) = 0.0;
@@ -128,12 +139,23 @@
 
         % Progress reporting
         if mod(n, progress_stride) == 0 || n == 1 || n == Nt
-            fprintf('[Evolution] %6.2f%% | t = %.3f / %.3f | Method = %s | max|Ï‰| = %.3e\n', ...
-                100 * n / Nt, State.t, Tfinal, Run_Config.method, Metrics.max_vorticity);
+            if use_progress_bar
+                % Update progress bar
+                pb.update(n, 'Message', sprintf('t=%.3f, |ω|=%.3e', State.t, Metrics.max_vorticity));
+            else
+                % Traditional fprintf for UI mode
+                fprintf('[Evolution] %6.2f%% | t = %.3f / %.3f | Method = %s | max|Ï‰| = %.3e\n', ...
+                    100 * n / Nt, State.t, Tfinal, Run_Config.method, Metrics.max_vorticity);
+            end
 
             progress_callback = emit_progress_payload(progress_callback, Run_Config, ...
                 n, Nt, State.t, Metrics, toc(run_timer), NaN);
         end
+    end
+
+    % Finish progress bar if used
+    if use_progress_bar
+        pb.finish('Message', sprintf('Complete! Final t=%.3f', State.t));
     end
 
     wall_time = toc;
@@ -385,4 +407,3 @@ function progress_callback = emit_progress_payload(progress_callback, Run_Config
         progress_callback = [];
     end
 end
-

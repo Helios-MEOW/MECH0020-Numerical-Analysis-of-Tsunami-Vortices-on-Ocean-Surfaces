@@ -46,7 +46,7 @@ function omega = ic_factory(X, Y, ic_type, ic_coeff)
             omega = ic_factory_elliptical_vortex(X, Y, ic_coeff);
 
         case 'stretched_gaussian'
-            % Stretched Gaussian vortex (legacy)
+            % Stretched Gaussian vortex
             if isempty(ic_coeff) || numel(ic_coeff) < 2
                 x_coeff = -1.0;
                 y_coeff = -1.0;
