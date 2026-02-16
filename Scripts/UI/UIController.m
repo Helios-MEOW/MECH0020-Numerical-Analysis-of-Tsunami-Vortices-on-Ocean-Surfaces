@@ -524,8 +524,8 @@ classdef UIController < handle
             app.handles.grid_domain_axes = uiaxes(domain_ax_layout);
             app.style_axes(app.handles.grid_domain_axes);
 
-            % === Bottom-right quadrant: FD Stencil / Resolution Preview ===
-            placeholder_panel = uipanel(quad_layout, 'Title', 'Method Visualization', ...
+            % === Bottom-right quadrant: Resolution Preview ===
+            placeholder_panel = uipanel(quad_layout, 'Title', 'Resolution Preview', ...
                 'BackgroundColor', C.bg_panel);
             placeholder_panel.Layout.Row = 2; placeholder_panel.Layout.Column = 2;
             ph_ax_layout = uigridlayout(placeholder_panel, [1 1]);
@@ -2519,6 +2519,74 @@ classdef UIController < handle
                 ax.XTick = [-Lx/2, 0, Lx/2]; ax.YTick = [-Ly/2, 0, Ly/2];
                 axis(ax, 'equal');
                 grid(ax, 'off');
+
+                % --- FD Stencil Magnification Inset ---
+                % When FD method selected, draw a magnified stencil diagram
+                % as an inset in the bottom-right corner of the mesh plot.
+                is_fd = false;
+                if app.has_valid_handle('method_dropdown')
+                    is_fd = strcmp(app.handles.method_dropdown.Value, 'Finite Difference');
+                end
+
+                if is_fd
+                    hold(ax, 'on');
+                    % Inset position in data coordinates (bottom-right corner)
+                    inset_w = Lx * 0.38;
+                    inset_h = Ly * 0.38;
+                    inset_x = Lx/2 - inset_w - Lx*0.02;
+                    inset_y = -Ly/2 + Ly*0.02;
+
+                    % Background rectangle for inset
+                    rectangle(ax, 'Position', [inset_x, inset_y, inset_w, inset_h], ...
+                        'FaceColor', [C.bg_panel_alt, 0.92], ...
+                        'EdgeColor', C.accent_yellow, 'LineWidth', 1.5, ...
+                        'Curvature', [0.05, 0.05]);
+
+                    % Inset center and scale
+                    icx = inset_x + inset_w/2;
+                    icy = inset_y + inset_h/2;
+                    s = min(inset_w, inset_h) * 0.32; % stencil arm length
+
+                    % Stencil connecting lines
+                    plot(ax, [icx-s, icx+s], [icy, icy], '-', ...
+                        'Color', C.accent_yellow, 'LineWidth', 2);
+                    plot(ax, [icx, icx], [icy-s, icy+s], '-', ...
+                        'Color', C.accent_yellow, 'LineWidth', 2);
+
+                    % Center point (i,j)
+                    plot(ax, icx, icy, 'o', 'Color', C.accent_red, ...
+                        'MarkerFaceColor', C.accent_red, 'MarkerSize', 8);
+
+                    % Neighbor points
+                    plot(ax, [icx+s, icx-s, icx, icx], [icy, icy, icy+s, icy-s], 'o', ...
+                        'Color', C.accent_cyan, 'MarkerFaceColor', C.accent_cyan, 'MarkerSize', 6);
+
+                    % LaTeX labels
+                    text(ax, icx + s*0.15, icy + s*0.25, '$\omega_{i,j}$', ...
+                        'Interpreter', 'latex', 'FontSize', 8, 'Color', C.fg_text);
+                    text(ax, icx + s, icy - s*0.3, '$i{+}1$', ...
+                        'Interpreter', 'latex', 'FontSize', 7, 'Color', C.fg_muted, ...
+                        'HorizontalAlignment', 'center');
+                    text(ax, icx - s, icy - s*0.3, '$i{-}1$', ...
+                        'Interpreter', 'latex', 'FontSize', 7, 'Color', C.fg_muted, ...
+                        'HorizontalAlignment', 'center');
+                    text(ax, icx + s*0.3, icy + s, '$j{+}1$', ...
+                        'Interpreter', 'latex', 'FontSize', 7, 'Color', C.fg_muted);
+                    text(ax, icx + s*0.3, icy - s, '$j{-}1$', ...
+                        'Interpreter', 'latex', 'FontSize', 7, 'Color', C.fg_muted);
+
+                    % Inset title
+                    text(ax, icx, inset_y + inset_h - inset_h*0.08, ...
+                        'FD Stencil', 'Color', C.accent_yellow, ...
+                        'FontSize', 8, 'FontWeight', 'bold', ...
+                        'HorizontalAlignment', 'center');
+
+                    % Connecting line from stencil center to inset
+                    plot(ax, [cx, inset_x], [cy, icy], ':', ...
+                        'Color', [C.accent_yellow, 0.4], 'LineWidth', 1);
+
+                    hold(ax, 'off');
+                end
             end
 
             % --- Domain & Boundary conditions plot (bottom-left) ---
@@ -2606,46 +2674,32 @@ classdef UIController < handle
                 axis(ax, 'equal'); grid(ax, 'off');
             end
 
-            % --- FD Stencil / Resolution preview (bottom-right) ---
-            % Show FD computational stencil when Finite Difference method selected,
-            % otherwise show resolution preview with dx, dy, delta.
+            % --- Resolution preview (bottom-right) ---
+            % Always shows resolution preview with dx, dy, delta.
+            % FD stencil is now drawn as an inset in the mesh plot above.
             if app.has_valid_handle('grid_placeholder_axes')
                 ax = app.handles.grid_placeholder_axes;
-
-                % Check current method selection
-                is_fd = false;
-                if app.has_valid_handle('method_dropdown')
-                    method_val = app.handles.method_dropdown.Value;
-                    is_fd = strcmp(method_val, 'Finite Difference');
+                cla(ax);
+                dx = Lx / Nx; dy = Ly / Ny;
+                delta_val = app.handles.delta.Value;
+                n_prev = min(16, min(Nx, Ny));
+                x_prev = linspace(-Lx/2, -Lx/2 + n_prev*dx, n_prev+1);
+                y_prev = linspace(-Ly/2, -Ly/2 + n_prev*dy, n_prev+1);
+                hold(ax, 'on');
+                for i = 1:numel(x_prev)
+                    plot(ax, [x_prev(i) x_prev(i)], [y_prev(1) y_prev(end)], '-', ...
+                        'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
                 end
-
-                if is_fd
-                    % Render FD computational stencil (5-point Laplacian molecule)
-                    app.render_fd_stencil(ax);
-                else
-                    % Resolution preview (for non-FD methods)
-                    cla(ax);
-                    dx = Lx / Nx; dy = Ly / Ny;
-                    delta_val = app.handles.delta.Value;
-                    n_prev = min(16, min(Nx, Ny));
-                    x_prev = linspace(-Lx/2, -Lx/2 + n_prev*dx, n_prev+1);
-                    y_prev = linspace(-Ly/2, -Ly/2 + n_prev*dy, n_prev+1);
-                    hold(ax, 'on');
-                    for i = 1:numel(x_prev)
-                        plot(ax, [x_prev(i) x_prev(i)], [y_prev(1) y_prev(end)], '-', ...
-                            'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
-                    end
-                    for j = 1:numel(y_prev)
-                        plot(ax, [x_prev(1) x_prev(end)], [y_prev(j) y_prev(j)], '-', ...
-                            'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
-                    end
-                    hold(ax, 'off');
-                    xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
-                    ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
-                    title(ax, sprintf('$\\Delta x=%.3g,\\;\\Delta y=%.3g,\\;\\delta=%.3g$', dx, dy, delta_val), ...
-                        'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
-                    axis(ax, 'equal'); grid(ax, 'off');
+                for j = 1:numel(y_prev)
+                    plot(ax, [x_prev(1) x_prev(end)], [y_prev(j) y_prev(j)], '-', ...
+                        'Color', [0.9 0.5 0.1 0.6], 'LineWidth', 0.8);
                 end
+                hold(ax, 'off');
+                xlabel(ax, '$x$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
+                ylabel(ax, '$y$', 'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
+                title(ax, sprintf('$\\Delta x=%.3g,\\;\\Delta y=%.3g,\\;\\delta=%.3g$', dx, dy, delta_val), ...
+                    'Interpreter', 'latex', 'FontSize', 11, 'Color', C.fg_text);
+                axis(ax, 'equal'); grid(ax, 'off');
             end
         end
 
