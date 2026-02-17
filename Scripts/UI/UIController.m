@@ -4980,22 +4980,18 @@ classdef UIController < handle
                 end
             end
 
-            % Ensure sensible fallbacks for keys not present in editable file
-            if ~isfield(config, 'ic_pattern'),            config.ic_pattern = 'single'; end
-            if ~isfield(config, 'sweep_parameter'),       config.sweep_parameter = 'nu'; end
-            if ~isfield(config, 'sweep_values'),          config.sweep_values = [1e-6, 5e-6, 1e-5]; end
-            if ~isfield(config, 'motion_enabled'),        config.motion_enabled = false; end
-            if ~isfield(config, 'motion_model'),          config.motion_model = 'none'; end
-            if ~isfield(config, 'motion_amplitude'),      config.motion_amplitude = 0.0; end
-            if ~isfield(config, 'sustainability_auto_log'), config.sustainability_auto_log = true; end
-            if ~isfield(config, 'collectors'),
-                config.collectors = struct('cpuz', false, 'hwinfo', false, 'icue', false, ...
-                    'strict', false, 'machine_tag', getenv('COMPUTERNAME'));
+            % Require runtime/display defaults to be present in
+            % `Scripts/Editable/Parameters.m`. These are UI display defaults
+            % edited via the application; do not silently fall back to other
+            % values to avoid inconsistent UI behaviour.
+            for k = 1:numel(runtime_keys)
+                key = runtime_keys{k};
+                if ~isfield(config, key)
+                    error('UIController:MissingEditableParameter', ...
+                        'Required runtime/display default "%s" is missing from %s. Please ensure Scripts/Editable/Parameters.m defines this field (these are UI display defaults edited via the application).', ...
+                        key, fullfile('Scripts','Editable','Parameters.m'));
+                end
             end
-            if ~isfield(config, 'experimentation'),
-                config.experimentation = struct('coeff_selector', 'ic_coeff1', 'range_start', 0.5, 'range_end', 2.0, 'num_points', 4);
-            end
-            if ~isfield(config, 'run_mode_internal'),    config.run_mode_internal = 'Evolution'; end
 
             % Record where defaults were sourced from for provenance/UI display
             config.defaults_source = struct( ...

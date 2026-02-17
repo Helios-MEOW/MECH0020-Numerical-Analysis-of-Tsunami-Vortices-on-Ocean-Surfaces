@@ -61,6 +61,9 @@ function State = fd_init_internal(cfg)
 
     omega_initial = fd_build_initial_vorticity(cfg, setup.X, setup.Y);
     omega_initial = reshape(omega_initial, setup.Ny, setup.Nx);
+    if setup.use_gpu
+        omega_initial = gpuArray(omega_initial);
+    end
     psi_initial = reshape(setup.solve_poisson(omega_initial(:)), setup.Ny, setup.Nx);
 
     State = struct();
@@ -81,11 +84,18 @@ function State = fd_step_internal(State, cfg)
 
     omega_vector = State.omega(:);
 
-    % RK4 stages, each using the conservative Arakawa RHS.
-    stage1 = rhs_fd_arakawa(omega_vector, setup, nu);
-    stage2 = rhs_fd_arakawa(omega_vector + 0.5 * dt * stage1, setup, nu);
-    stage3 = rhs_fd_arakawa(omega_vector + 0.5 * dt * stage2, setup, nu);
-    stage4 = rhs_fd_arakawa(omega_vector + dt * stage3, setup, nu);
+    % Select RHS function based on Arakawa toggle
+    if setup.use_arakawa
+        rhs_fn = @(w) rhs_fd_arakawa(w, setup, nu);
+    else
+        rhs_fn = @(w) rhs_fd_simple(w, setup, nu);
+    end
+
+    % RK4 stages
+    stage1 = rhs_fn(omega_vector);
+    stage2 = rhs_fn(omega_vector + 0.5 * dt * stage1);
+    stage3 = rhs_fn(omega_vector + 0.5 * dt * stage2);
+    stage4 = rhs_fn(omega_vector + dt * stage3);
 
     omega_vector = omega_vector + (dt / 6) * (stage1 + 2 * stage2 + 2 * stage3 + stage4);
     State.omega = reshape(omega_vector, setup.Ny, setup.Nx);
@@ -106,10 +116,10 @@ function Metrics = fd_diagnostics_internal(State)
     enstrophy = 0.5 * sum(omega(:).^2) * setup.dx * setup.dy;
 
     Metrics = struct();
-    Metrics.max_vorticity = max(abs(omega(:)));
-    Metrics.enstrophy = enstrophy;
-    Metrics.kinetic_energy = kinetic_energy;
-    Metrics.peak_speed = max(sqrt(velocity_u(:).^2 + velocity_v(:).^2));
+    Metrics.max_vorticity = gather_if_gpu(max(abs(omega(:))));
+    Metrics.enstrophy = gather_if_gpu(enstrophy);
+    Metrics.kinetic_energy = gather_if_gpu(kinetic_energy);
+    Metrics.peak_speed = gather_if_gpu(max(sqrt(velocity_u(:).^2 + velocity_v(:).^2)));
     Metrics.t = State.t;
     Metrics.step = State.step;
 end
@@ -146,7 +156,12 @@ function [fig_handle, analysis] = fd_run_internal(Parameters)
     live_preview = open_live_preview_if_requested(run_options, cfg, State.omega);
 
     if n_steps > 0
-        fprintf('[FD] Running %d steps (dt=%.3e, Tfinal=%.3f)\n', n_steps, cfg.dt, cfg.Tfinal);
+        scheme_label = 'Arakawa';
+        if ~cfg.use_arakawa, scheme_label = 'Central'; end
+        gpu_label = '';
+        if cfg.use_gpu, gpu_label = ' [GPU]'; end
+        fprintf('[FD] Running %d steps (dt=%.3e, Tfinal=%.3f, scheme=%s%s)\n', ...
+            n_steps, cfg.dt, cfg.Tfinal, scheme_label, gpu_label);
     end
 
     solve_start_cpu = cputime;
@@ -185,8 +200,18 @@ function [fig_handle, analysis] = fd_run_internal(Parameters)
         psi_snapshots(:, :, snapshot_index:end) = repmat(State.psi, 1, 1, n_snapshots - snapshot_index + 1);
     end
 
+    % Gather GPU arrays back to CPU for downstream plotting/saving
+    omega_snapshots = gather_if_gpu(omega_snapshots);
+    psi_snapshots = gather_if_gpu(psi_snapshots);
+
     analysis = struct();
-    analysis.method = "finite_difference_arakawa_rk4";
+    if cfg.use_arakawa
+        analysis.method = "finite_difference_arakawa_rk4";
+    else
+        analysis.method = "finite_difference_central_rk4";
+    end
+    analysis.use_arakawa = cfg.use_arakawa;
+    analysis.use_gpu = cfg.use_gpu;
     analysis.nu = cfg.nu;
     analysis.Lx = cfg.Lx;
     analysis.Ly = cfg.Ly;
@@ -319,6 +344,20 @@ function cfg = fd_cfg_from_parameters(Parameters)
     else
         cfg.delta = [];
     end
+
+    % Arakawa toggle (default: on for conservative advection)
+    if isfield(Parameters, "use_arakawa")
+        cfg.use_arakawa = logical(Parameters.use_arakawa);
+    else
+        cfg.use_arakawa = true;
+    end
+
+    % GPU acceleration toggle (default: off)
+    if isfield(Parameters, "use_gpu")
+        cfg.use_gpu = logical(Parameters.use_gpu);
+    else
+        cfg.use_gpu = false;
+    end
 end
 
 function setup = fd_setup_internal(cfg)
@@ -362,6 +401,50 @@ function setup = fd_setup_internal(cfg)
         solve_poisson = @(omega_vector) delta^2 * (A \ omega_vector);
     end
 
+    % Resolve toggle flags
+    if isfield(cfg, 'use_arakawa')
+        use_arakawa = logical(cfg.use_arakawa);
+    else
+        use_arakawa = true;
+    end
+    if isfield(cfg, 'use_gpu')
+        use_gpu = logical(cfg.use_gpu);
+    else
+        use_gpu = false;
+    end
+
+    % GPU acceleration: convert key arrays to gpuArray
+    if use_gpu
+        if ~(exist('gpuDevice', 'file') == 2 || exist('gpuDevice', 'builtin') > 0)
+            warning('FD:NoGPU', 'GPU requested but Parallel Computing Toolbox not available. Falling back to CPU.');
+            use_gpu = false;
+        else
+            try
+                gpu_info = gpuDevice;
+                if ~gpu_info.DeviceAvailable
+                    warning('FD:GPUUnavailable', 'GPU device not available. Falling back to CPU.');
+                    use_gpu = false;
+                end
+            catch
+                warning('FD:GPUError', 'Could not initialise GPU device. Falling back to CPU.');
+                use_gpu = false;
+            end
+        end
+    end
+
+    if use_gpu
+        X = gpuArray(X);
+        Y = gpuArray(Y);
+        A = gpuArray(A);
+
+        try
+            poisson_solver = decomposition(A, "lu");
+            solve_poisson = @(omega_vector) delta^2 * (poisson_solver \ omega_vector);
+        catch
+            solve_poisson = @(omega_vector) delta^2 * (A \ omega_vector);
+        end
+    end
+
     setup = struct();
     setup.Nx = Nx;
     setup.Ny = Ny;
@@ -378,6 +461,8 @@ function setup = fd_setup_internal(cfg)
     setup.shift_xm = @(F) circshift(F, [0, -1]);
     setup.shift_yp = @(F) circshift(F, [+1, 0]);
     setup.shift_ym = @(F) circshift(F, [-1, 0]);
+    setup.use_arakawa = use_arakawa;
+    setup.use_gpu = use_gpu;
 end
 
 function omega_initial = fd_build_initial_vorticity(cfg, X, Y)
@@ -459,6 +544,61 @@ function rhs_vector = rhs_fd_arakawa(omega_vector, setup, nu)
 
     rhs_matrix = -arakawa_jacobian + nu * laplacian_omega;
     rhs_vector = rhs_matrix(:);
+end
+
+function rhs_vector = rhs_fd_simple(omega_vector, setup, nu)
+% rhs_fd_simple - Simple central-difference advection + diffusion RHS.
+%
+%   Non-conservative alternative to rhs_fd_arakawa. Uses standard
+%   central-difference approximations for the advection term:
+%     J(psi, omega) = dpsi/dy * domega/dx - dpsi/dx * domega/dy
+%   This is cheaper per step but does NOT conserve energy/enstrophy.
+
+    Nx = setup.Nx;
+    Ny = setup.Ny;
+    dx = setup.dx;
+    dy = setup.dy;
+
+    omega_matrix = reshape(omega_vector, Ny, Nx);
+    psi_matrix = reshape(setup.solve_poisson(omega_vector), Ny, Nx);
+
+    shift_xp = setup.shift_xp;
+    shift_xm = setup.shift_xm;
+    shift_yp = setup.shift_yp;
+    shift_ym = setup.shift_ym;
+
+    omega_ip = shift_xp(omega_matrix);
+    omega_im = shift_xm(omega_matrix);
+    omega_jp = shift_yp(omega_matrix);
+    omega_jm = shift_ym(omega_matrix);
+
+    psi_ip = shift_xp(psi_matrix);
+    psi_im = shift_xm(psi_matrix);
+    psi_jp = shift_yp(psi_matrix);
+    psi_jm = shift_ym(psi_matrix);
+
+    % Central-difference velocity components from streamfunction
+    u = -(psi_jp - psi_jm) / (2 * dy);  % u = -dpsi/dy
+    v =  (psi_ip - psi_im) / (2 * dx);  % v =  dpsi/dx
+
+    % Central-difference advection: u * domega/dx + v * domega/dy
+    advection = u .* (omega_ip - omega_im) / (2 * dx) ...
+              + v .* (omega_jp - omega_jm) / (2 * dy);
+
+    % Diffusion: nu * laplacian(omega)
+    laplacian_omega = (omega_ip - 2 * omega_matrix + omega_im) / dx^2 ...
+                    + (omega_jp - 2 * omega_matrix + omega_jm) / dy^2;
+
+    rhs_matrix = -advection + nu * laplacian_omega;
+    rhs_vector = rhs_matrix(:);
+end
+
+function val = gather_if_gpu(val)
+% gather_if_gpu - Transfer gpuArray to CPU; pass-through for regular arrays.
+
+    if isa(val, 'gpuArray')
+        val = gather(val);
+    end
 end
 
 function analysis = append_snapshot_metrics(analysis, setup)
@@ -579,7 +719,15 @@ function fig_handle = create_fd_summary_figure(analysis, Parameters)
     else
         ic_name = "unknown";
     end
-    sgtitle(sprintf("FD Arakawa-RK4 | IC=%s | Grid=%dx%d", ic_name, analysis.Nx, analysis.Ny));
+    if isfield(analysis, 'use_arakawa') && analysis.use_arakawa
+        method_label = "FD Arakawa-RK4";
+    else
+        method_label = "FD Central-RK4";
+    end
+    if isfield(analysis, 'use_gpu') && analysis.use_gpu
+        method_label = method_label + " [GPU]";
+    end
+    sgtitle(sprintf("%s | IC=%s | Grid=%dx%d", method_label, ic_name, analysis.Nx, analysis.Ny));
 
     % Add tiny overlay markers for representative snapshots to aid quick visual checks.
     for idx = 1:numel(snapshot_indices)

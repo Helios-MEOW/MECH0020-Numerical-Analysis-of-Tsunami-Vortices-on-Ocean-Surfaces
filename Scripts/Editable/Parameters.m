@@ -63,6 +63,19 @@ function params = Parameters()
     params.live_preview = false;
     params.live_stride = 0;
 
+    % UI / runtime-only defaults (editable canonical location)
+    % These mirror the small set of UI runtime defaults previously maintained
+    % inside the UIController so users can persist and edit them centrally.
+    params.ic_pattern = 'single';           % default initial-condition pattern
+    params.motion_enabled = false;          % whether boundary motion forcing is enabled
+    params.motion_model = 'none';           % motion model name
+    params.motion_amplitude = 0.0;          % amplitude for motion models
+    params.sustainability_auto_log = true;  % enable auto sustainability logging by default
+    params.collectors = struct('cpuz', false, 'hwinfo', false, 'icue', false, ...
+        'strict', false, 'machine_tag', getenv('COMPUTERNAME'));
+    params.experimentation = struct('coeff_selector', 'ic_coeff1', 'range_start', 0.5, 'range_end', 2.0, 'num_points', 4);
+    params.run_mode_internal = 'Evolution'; % UI internal run-mode canonical default
+
     % ---------------------------------------------------------------------
     % Media policy
     % ---------------------------------------------------------------------
