@@ -482,29 +482,41 @@ classdef UIController < handle
             app.handles.grid_points = uilabel(grid_layout, 'Text', D.grid_points, 'FontColor', C.fg_text);
             app.handles.grid_points.Layout.Row = 3; app.handles.grid_points.Layout.Column = 4;
 
-            % --- Boundary Condition Editor (rows 4-5) ---
+            % --- Boundary Condition Cases (row 4) ---
+            % Predefined BC presets; selecting a case auto-sets the four individual dropdowns below.
+            bc_case_items = {'Periodic (All)', 'Lid Driven Cavity', 'Driven Channel Flow', ...
+                'Lid & Bottom Driven Cavity', 'Enclosed Cavity', 'User Defined'};
+            lbl = uilabel(grid_layout, 'Text', 'BC Case:', 'FontColor', C.fg_text, 'FontSize', 11);
+            lbl.Layout.Row = 4; lbl.Layout.Column = 1;
+            app.handles.bc_case = uidropdown(grid_layout, 'Items', bc_case_items, 'Value', 'Periodic (All)', ...
+                'ValueChangedFcn', @(~,~) app.apply_bc_case_to_dropdowns());
+            app.handles.bc_case.Layout.Row = 4; app.handles.bc_case.Layout.Column = [2 4];
+
+            % --- Individual Boundary Condition Editor (rows 5-6) ---
             % Edit here to change available BC types or default selections.
+            % When a BC Case above is selected these are auto-populated; changing them manually
+            % switches the case to 'User Defined'.
             bc_items = {'Periodic', 'Dirichlet', 'Neumann', 'Open/Absorbing'};
             lbl = uilabel(grid_layout, 'Text', 'BC Top:', 'FontColor', C.fg_text, 'FontSize', 11);
-            lbl.Layout.Row = 4; lbl.Layout.Column = 1;
-            app.handles.bc_top = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
-                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
-            app.handles.bc_top.Layout.Row = 4; app.handles.bc_top.Layout.Column = 2;
-            lbl = uilabel(grid_layout, 'Text', 'BC Bottom:', 'FontColor', C.fg_text, 'FontSize', 11);
-            lbl.Layout.Row = 4; lbl.Layout.Column = 3;
-            app.handles.bc_bottom = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
-                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
-            app.handles.bc_bottom.Layout.Row = 4; app.handles.bc_bottom.Layout.Column = 4;
-            lbl = uilabel(grid_layout, 'Text', 'BC Left:', 'FontColor', C.fg_text, 'FontSize', 11);
             lbl.Layout.Row = 5; lbl.Layout.Column = 1;
-            app.handles.bc_left = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
-                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
-            app.handles.bc_left.Layout.Row = 5; app.handles.bc_left.Layout.Column = 2;
-            lbl = uilabel(grid_layout, 'Text', 'BC Right:', 'FontColor', C.fg_text, 'FontSize', 11);
+            app.handles.bc_top = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
+                'ValueChangedFcn', @(~,~) app.on_individual_bc_changed());
+            app.handles.bc_top.Layout.Row = 5; app.handles.bc_top.Layout.Column = 2;
+            lbl = uilabel(grid_layout, 'Text', 'BC Bottom:', 'FontColor', C.fg_text, 'FontSize', 11);
             lbl.Layout.Row = 5; lbl.Layout.Column = 3;
+            app.handles.bc_bottom = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
+                'ValueChangedFcn', @(~,~) app.on_individual_bc_changed());
+            app.handles.bc_bottom.Layout.Row = 5; app.handles.bc_bottom.Layout.Column = 4;
+            lbl = uilabel(grid_layout, 'Text', 'BC Left:', 'FontColor', C.fg_text, 'FontSize', 11);
+            lbl.Layout.Row = 6; lbl.Layout.Column = 1;
+            app.handles.bc_left = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
+                'ValueChangedFcn', @(~,~) app.on_individual_bc_changed());
+            app.handles.bc_left.Layout.Row = 6; app.handles.bc_left.Layout.Column = 2;
+            lbl = uilabel(grid_layout, 'Text', 'BC Right:', 'FontColor', C.fg_text, 'FontSize', 11);
+            lbl.Layout.Row = 6; lbl.Layout.Column = 3;
             app.handles.bc_right = uidropdown(grid_layout, 'Items', bc_items, 'Value', 'Periodic', ...
-                'ValueChangedFcn', @(~,~) app.update_grid_domain_plots());
-            app.handles.bc_right.Layout.Row = 5; app.handles.bc_right.Layout.Column = 4;
+                'ValueChangedFcn', @(~,~) app.on_individual_bc_changed());
+            app.handles.bc_right.Layout.Row = 6; app.handles.bc_right.Layout.Column = 4;
 
             % === Top-right quadrant: Mesh grid plot ===
             mesh_panel = uipanel(quad_layout, 'Title', 'Mesh Grid', ...
@@ -1469,6 +1481,26 @@ classdef UIController < handle
             app.config.Lx = app.handles.Lx.Value;
             app.config.Ly = app.handles.Ly.Value;
             app.config.delta = app.handles.delta.Value;
+
+            % --- Boundary conditions ---
+            % Collect the BC Case label and map to internal key
+            if app.has_valid_handle('bc_case')
+                bc_case_label = char(string(app.handles.bc_case.Value));
+            else
+                bc_case_label = 'Periodic (All)';
+            end
+            switch bc_case_label
+                case 'Lid Driven Cavity',           app.config.bc_case = 'lid_driven_cavity';
+                case 'Driven Channel Flow',          app.config.bc_case = 'driven_channel_flow';
+                case 'Lid & Bottom Driven Cavity',   app.config.bc_case = 'lid_and_bottom_driven_cavity';
+                case 'Enclosed Cavity',              app.config.bc_case = 'enclosed_cavity';
+                case 'User Defined',                 app.config.bc_case = 'user_defined';
+                otherwise,                           app.config.bc_case = 'periodic';
+            end
+            app.config.bc_top    = app.safe_bc_value('bc_top',    'Periodic');
+            app.config.bc_bottom = app.safe_bc_value('bc_bottom', 'Periodic');
+            app.config.bc_left   = app.safe_bc_value('bc_left',   'Periodic');
+            app.config.bc_right  = app.safe_bc_value('bc_right',  'Periodic');
             app.config.use_explicit_delta = false;
             app.config.dt = app.handles.dt.Value;
             app.config.Tfinal = app.handles.t_final.Value;
@@ -1749,6 +1781,17 @@ classdef UIController < handle
             parameters.t_final = cfg.Tfinal;
             parameters.nu = cfg.nu;
             parameters.ic_type = cfg.ic_type;
+
+            % Boundary conditions: pass the case key and individual BC types
+            if isfield(cfg, 'bc_case')
+                parameters.boundary_condition_case = cfg.bc_case;
+            else
+                parameters.boundary_condition_case = 'periodic';
+            end
+            if isfield(cfg, 'bc_top'),    parameters.bc_top    = cfg.bc_top;    else, parameters.bc_top    = 'Periodic'; end
+            if isfield(cfg, 'bc_bottom'), parameters.bc_bottom = cfg.bc_bottom; else, parameters.bc_bottom = 'Periodic'; end
+            if isfield(cfg, 'bc_left'),   parameters.bc_left   = cfg.bc_left;   else, parameters.bc_left   = 'Periodic'; end
+            if isfield(cfg, 'bc_right'),  parameters.bc_right  = cfg.bc_right;  else, parameters.bc_right  = 'Periodic'; end
             parameters.ic_coeff = cfg.ic_coeff;
             parameters.num_plot_snapshots = max(1, cfg.num_snapshots);
             parameters.num_snapshots = parameters.num_plot_snapshots;
@@ -4903,46 +4946,60 @@ classdef UIController < handle
             catch ME
                 % Fallback to hardcoded defaults if create_default_parameters is not available
                 warning(ME.identifier, '%s', ME.message);
-                config = struct(...
-                    "method", 'Finite Difference', ...
-                    "mode", 'evolution', ...
-                    "Nx", 128, ...
-                    "Ny", 128, ...
-                    "Lx", 10, ...
-                    "Ly", 10, ...
-                    "delta", 2, ...
-                    "use_explicit_delta", true, ... 
-                    "dt", 0.01, ...
-                    "t_final", 8.0, ...
-                    "nu", 1e-6, ...
-                    "num_snapshots", 9, ...
-                    "ic_type", "stretched_gaussian", ...
-                    "ic_coeff", [2, 0.2], ...
-                    "create_animations", true, ...
-                    "animation_format", 'mp4', ...
-                    "animation_fps", 30, ...
-                    "bathymetry_enabled", false ...
-                );
+                fprintf('Warning: Failed to load defaults from create_default_parameters.m. Ensure it is on the path and returns a struct with expected fields. Stopping rather than risk inconsistent defaults.\n');
+                error('UIController:InitializationFailed', 'Failed to initialize default configuration. Please fix the issue with create_default_parameters.m and try again.');
             end
 
-            % UI runtime-only fields used by launch/export paths.
-            config.ic_pattern = 'single';
-            config.sweep_parameter = 'nu';
-            config.sweep_values = [1e-6, 5e-6, 1e-5];
-            config.motion_enabled = false;
-            config.motion_model = 'none';
-            config.motion_amplitude = 0.0;
-            config.sustainability_auto_log = true;
-            config.collectors = struct('cpuz', false, 'hwinfo', false, 'icue', false, ...
-                'strict', false, 'machine_tag', getenv('COMPUTERNAME'));
-            config.experimentation = struct( ...
-                'coeff_selector', 'ic_coeff1', ...
-                'range_start', 0.5, ...
-                'range_end', 2.0, ...
-                'num_points', 4);
-            config.run_mode_internal = 'Evolution';
+            % UI runtime-only fields: prefer editable overrides in
+            % `Scripts/Editable/Parameters.m` when available. Use a small
+            % whitelist and dynamically copy only present fields, falling
+            % back to sensible defaults otherwise. This avoids repetitive
+            % isfield checks and keeps the code concise.
+            editable_params = struct();
+            try
+                if exist('Parameters', 'file') == 2 || exist('Parameters', 'class') == 8
+                    editable_params = Parameters();
+                end
+            catch
+                editable_params = struct();
+            end
+
+            % Whitelist of runtime keys that the UI expects to consume.
+            runtime_keys = { 'ic_pattern', 'sweep_parameter', 'sweep_values', ...
+                             'motion_enabled', 'motion_model', 'motion_amplitude', ...
+                             'sustainability_auto_log', 'collectors', 'experimentation', ...
+                             'run_mode_internal' };
+
+            % Apply present editable fields (do not overwrite core defaults)
+            if isstruct(editable_params)
+                for k = 1:numel(runtime_keys)
+                    key = runtime_keys{k};
+                    if isfield(editable_params, key)
+                        config.(key) = editable_params.(key);
+                    end
+                end
+            end
+
+            % Ensure sensible fallbacks for keys not present in editable file
+            if ~isfield(config, 'ic_pattern'),            config.ic_pattern = 'single'; end
+            if ~isfield(config, 'sweep_parameter'),       config.sweep_parameter = 'nu'; end
+            if ~isfield(config, 'sweep_values'),          config.sweep_values = [1e-6, 5e-6, 1e-5]; end
+            if ~isfield(config, 'motion_enabled'),        config.motion_enabled = false; end
+            if ~isfield(config, 'motion_model'),          config.motion_model = 'none'; end
+            if ~isfield(config, 'motion_amplitude'),      config.motion_amplitude = 0.0; end
+            if ~isfield(config, 'sustainability_auto_log'), config.sustainability_auto_log = true; end
+            if ~isfield(config, 'collectors'),
+                config.collectors = struct('cpuz', false, 'hwinfo', false, 'icue', false, ...
+                    'strict', false, 'machine_tag', getenv('COMPUTERNAME'));
+            end
+            if ~isfield(config, 'experimentation'),
+                config.experimentation = struct('coeff_selector', 'ic_coeff1', 'range_start', 0.5, 'range_end', 2.0, 'num_points', 4);
+            end
+            if ~isfield(config, 'run_mode_internal'),    config.run_mode_internal = 'Evolution'; end
+
+            % Record where defaults were sourced from for provenance/UI display
             config.defaults_source = struct( ...
-                'summary', 'Loaded by create_default_parameters.m and editable via Scripts/Editable/Parameters.m + Scripts/Editable/Settings.m', ...
+                'summary', 'Loaded from create_default_parameters.m; UI runtime defaults prefer Scripts/Editable/Parameters.m when present', ...
                 'loader', 'Scripts/Infrastructure/Initialisers/create_default_parameters.m', ...
                 'editable_parameters', 'Scripts/Editable/Parameters.m', ...
                 'editable_settings', 'Scripts/Editable/Settings.m');
@@ -5397,6 +5454,47 @@ classdef UIController < handle
             else
                 bc_val = default_val;
             end
+        end
+
+        function apply_bc_case_to_dropdowns(app)
+            % Translate the selected BC Case into individual top/bottom/left/right values
+            % and refresh the domain plot. Called when bc_case dropdown changes.
+            if ~app.has_valid_handle('bc_case')
+                return;
+            end
+            case_label = char(string(app.handles.bc_case.Value));
+            switch case_label
+                case 'Lid Driven Cavity'
+                    bc_top = 'Neumann'; bc_bottom = 'Dirichlet';
+                    bc_left = 'Dirichlet'; bc_right = 'Dirichlet';
+                case 'Driven Channel Flow'
+                    bc_top = 'Neumann'; bc_bottom = 'Dirichlet';
+                    bc_left = 'Periodic'; bc_right = 'Periodic';
+                case 'Lid & Bottom Driven Cavity'
+                    bc_top = 'Neumann'; bc_bottom = 'Neumann';
+                    bc_left = 'Dirichlet'; bc_right = 'Dirichlet';
+                case 'Enclosed Cavity'
+                    bc_top = 'Dirichlet'; bc_bottom = 'Dirichlet';
+                    bc_left = 'Dirichlet'; bc_right = 'Dirichlet';
+                otherwise  % 'Periodic (All)' and 'User Defined'
+                    bc_top = 'Periodic'; bc_bottom = 'Periodic';
+                    bc_left = 'Periodic'; bc_right = 'Periodic';
+            end
+            % Silently set individual dropdowns without triggering their callbacks
+            if app.has_valid_handle('bc_top'),    app.handles.bc_top.Value    = bc_top;    end
+            if app.has_valid_handle('bc_bottom'), app.handles.bc_bottom.Value = bc_bottom; end
+            if app.has_valid_handle('bc_left'),   app.handles.bc_left.Value   = bc_left;   end
+            if app.has_valid_handle('bc_right'),  app.handles.bc_right.Value  = bc_right;  end
+            app.update_grid_domain_plots();
+        end
+
+        function on_individual_bc_changed(app)
+            % When a user manually changes an individual BC dropdown, switch the
+            % BC Case selector to 'User Defined' and refresh the domain plot.
+            if app.has_valid_handle('bc_case')
+                app.handles.bc_case.Value = 'User Defined';
+            end
+            app.update_grid_domain_plots();
         end
 
         function c = resolve_bc_color(~, bc_type, color_map, fallback)
@@ -7185,10 +7283,10 @@ classdef UIController < handle
 
             % ---- DEVELOPER GUIDE: Method Panel ----
             % To add new solver methods or modes: edit method_grid rows and UIController.on_method_changed()
-            % Method panel: 5x4 grid for algorithm/mode selectors (5 control rows, 4 columns)
-            cfg.config_tab.method_grid.rows_cols    = [5, 4]; % 5 rows, 4 columns
+            % Method panel: 7x4 grid for algorithm/mode selectors (7 control rows, 4 columns)
+            cfg.config_tab.method_grid.rows_cols    = [7, 4]; % 7 rows, 4 columns
             cfg.config_tab.method_grid.col_widths   = {'1x', '1x', '1x', '1x'};  % Equal-width columns
-            cfg.config_tab.method_grid.row_heights  = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
+            cfg.config_tab.method_grid.row_heights  = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
             cfg.config_tab.method_grid.padding      = [6 6 6 6]; % Inner padding
             cfg.config_tab.method_grid.row_spacing  = 6;       % Vertical spacing
 
@@ -7197,7 +7295,8 @@ classdef UIController < handle
             %   - Modify grid_quad below for the 2x2 outer layout
             %   - Modify grid_grid below for the Grid Parameters sub-panel (Nx, Ny, Lx, Ly, delta, BCs)
             %   - Plot rendering is in UIController.update_grid_domain_plots()
-            %   - BC dropdowns are created in UIController.create_config_tab() rows 4-5 of grid_layout
+            %   - BC Case dropdown is row 4 of grid_layout; individual BC dropdowns are rows 5-6
+            %   - Selecting a BC Case auto-populates the individual dropdowns; changing them sets 'User Defined'
             % Grid & Domain panel: 2x2 quad layout (settings + 3 plots)
             cfg.config_tab.grid_quad.rows_cols     = [2, 2]; % 2x2 quadrant
             cfg.config_tab.grid_quad.col_widths    = {'1x', '1x'};
@@ -7206,10 +7305,10 @@ classdef UIController < handle
             cfg.config_tab.grid_quad.row_spacing   = 8;
             cfg.config_tab.grid_quad.col_spacing   = 8;
 
-            % Grid settings sub-grid: 3x4 for Nx, Ny, Lx, Ly, Delta, Grid points
-            cfg.config_tab.grid_grid.rows_cols     = [5, 4]; % 5 rows, 4 columns (grid params + BC editor)
+            % Grid settings sub-grid: rows 1-3 = Nx/Ny/Lx/Ly/delta; row 4 = BC Cases; rows 5-6 = individual BCs
+            cfg.config_tab.grid_grid.rows_cols     = [6, 4]; % 6 rows, 4 columns (grid params + BC cases + BC editor)
             cfg.config_tab.grid_grid.col_widths    = {80, '1x', 80, '1x'};
-            cfg.config_tab.grid_grid.row_heights   = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
+            cfg.config_tab.grid_grid.row_heights   = {cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row, cfg.heights.form_row};
             cfg.config_tab.grid_grid.padding       = [6 6 6 6];
 
             % Time panel: 2x4 grid for temporal parameters (dt, Tfinal, nu, etc.)
@@ -7443,6 +7542,8 @@ classdef UIController < handle
                 'motion_checkbox', 'Enable Seabed Motion', ...
                 'motion_checkbox2' , 'Enable Lid Driven Motion', ...
                 'motion_amplitude_label', 'Amplitude', ...
+                'arakawa_checkbox', 'Arakawa Jacobian (conservative)', ...
+                'gpu_checkbox', 'GPU Acceleration', ...
                 'physics_status_ready', 'Bathymetry and motion configured independently', ...
                 'physics_status_non_fd', 'Bathymetry/motion disabled for non-FD method');
 
@@ -7808,10 +7909,11 @@ classdef UIController < handle
                 'nu', sprintf('Kinematic viscosity (m^2/s).\nControls diffusion rate. Typical: 1e-6 (water) to 1e-2 (demonstration).'), ...
                 'num_snapshots', sprintf('Number of output snapshots.\nMore snapshots = more detail but larger output.'), ...
                 'method_dropdown', sprintf('Numerical method for vorticity transport.\nFD: Finite Difference (5-point stencil + Arakawa).\nSpectral: Fourier-space (FFT-based, periodic BCs only).'), ...
-                'bc_top', sprintf('Top boundary condition type.\nPeriodic: wraps around.\nDirichlet: fixed value.\nNeumann: zero-gradient.\nOpen/Absorbing: outflow.'), ...
-                'bc_bottom', sprintf('Bottom boundary condition type.\nShould match top for periodic domains.'), ...
-                'bc_left', sprintf('Left boundary condition type.\nShould match right for periodic domains.'), ...
-                'bc_right', sprintf('Right boundary condition type.\nShould match left for periodic domains.'), ...
+                'bc_case', sprintf('Predefined boundary condition preset.\nPeriodic (All): all walls wrap around (default for all solvers).\nLid Driven Cavity: top wall moves, all walls no-slip.\nDriven Channel Flow: left/right periodic, top driven, bottom no-slip.\nLid & Bottom Driven Cavity: top and bottom move in opposition.\nEnclosed Cavity: all walls no-slip, no driving.\nUser Defined: set each boundary individually below.'), ...
+                'bc_top', sprintf('Top boundary condition type.\nPeriodic: wraps around.\nDirichlet: fixed value (no-slip).\nNeumann: zero-gradient (driven wall).\nOpen/Absorbing: outflow.\nChanging this switches BC Case to User Defined.'), ...
+                'bc_bottom', sprintf('Bottom boundary condition type.\nShould match top for periodic domains.\nChanging this switches BC Case to User Defined.'), ...
+                'bc_left', sprintf('Left boundary condition type.\nShould match right for periodic domains.\nChanging this switches BC Case to User Defined.'), ...
+                'bc_right', sprintf('Right boundary condition type.\nShould match left for periodic domains.\nChanging this switches BC Case to User Defined.'), ...
                 'conv_tolerance', sprintf('Convergence tolerance for mesh convergence study.\nSimulation converged when metric change < tolerance.'), ...
                 'conv_criterion', sprintf('Convergence criterion metric.\nOptions: max_omega, energy, enstrophy.'), ...
                 'conv_n_coarse', sprintf('Coarsest grid resolution for convergence study.\nStarting point of mesh refinement sweep.'), ...
